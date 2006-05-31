@@ -11,7 +11,7 @@ A platform-independent GUI (Graphical User Interface) for the QCA package in R, 
 \details{
 \tabular{ll}{
 Package: \tab QCAGUI\cr
-Version: \tab 1.1-7\cr
+Version: \tab 1.1-8\cr
 Date: \tab 2006/5/31\cr
 Depends: \tab R (>= 2.1.0), tcltk\cr
 Suggests: \tab abind, car (>= 1.0-15), effects (>= 1.0-7), foreign, grid,
