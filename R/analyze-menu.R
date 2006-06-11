@@ -2,7 +2,7 @@
 
 # Analyze menu dialogs
 
-t.r.u.t.h.table <- function() {
+truth.table <- function() {
     require(QCA)
     dataSet <- activeDataSet()
     variableList <- eval(parse(text=paste("names(", dataSet,")")), envir=.GlobalEnv)
@@ -88,7 +88,7 @@ t.r.u.t.h.table <- function() {
 
 
 
-q.m.c.c <- function() {
+q.mc.c <- function() {
     require(QCA)
     dataSet <- activeDataSet()
     variableList <- eval(parse(text=paste("names(", dataSet,")")), envir=.GlobalEnv)
@@ -323,5 +323,90 @@ q.m.c.c <- function() {
     OKCancelHelp(helpSubject="qmcc")  
     
     tkpack(top1, top2, top3, buttonsFrame, side="top")
+    }
+
+
+Factorize <- function() {
+    require(QCA)
+    
+    top <- tktoplevel()
+    tkwm.title(top, "Factorize minimized solution")
+    
+    top1 <- tkframe(top)
+    tkgrid(tklabel(top1, text=" ")) # Blank line
+    dsname <- tclVar(gettextRcmdr(""))
+    entryDsname <- tkentry(top1, width="50", textvariable=dsname)
+    tkgrid(tklabel(top1, text=gettextRcmdr("Write or copy and paste the solution:")), entryDsname, sticky="e")
+    tkgrid.configure(entryDsname, sticky="w")
+    
+    onOK <- function(){
+        useletters <- tclvalue(use.lettersVariable) == "1"
+        rb1 <- tclvalue(rb1Variable) == "1"
+        rb2 <- tclvalue(rb2Variable) == "1"
+        optional <- ""
+        if (any(c(rb1, rb2))) {
+            optional <- paste(", ", c("sort.by.literals", "sort.by.number")[c(rb1, rb2)], "=TRUE", sep="")
+            }
+        command <- paste('factorize("', tclvalue(dsname), '", use.letters=', useletters, optional, ')', sep="")
+        doItAndPrint(command)
+        closeDialog()
+        tkfocus(CommanderWindow())
+        }
+    
+    top2 <- tkframe(top)
+    
+    cbTop <- tkframe(top2)
+    tkgrid(tklabel(cbTop, text=" ")) # Blank line
+    
+    initialValues <- c(1)
+    use.lettersCB <- tkcheckbutton(cbTop)
+    use.lettersVariable <- tclVar(initialValues)
+    tkconfigure(use.lettersCB, variable=use.lettersVariable)
+    
+    tkgrid(tklabel(cbTop, text="Conditions' names are simple letters:"), use.lettersCB, sticky="w")
+    
+    
+    middle <- tkframe(top2)
+    tkgrid(tklabel(middle, text="    "))
+    
+    
+    rbTop <- tkframe(top2)
+    
+    tkgrid(tklabel(rbTop, text=" ")) # Blank line
+    
+    rb1value <- rb2value <- FALSE
+    
+    rb1Command <- function() {
+        rb1value <<- !rb1value
+        if (rb2value) {
+            rb2value <<- !rb2value
+            tkdeselect(rb2CB)
+            }
+        }
+    
+    rb2Command <- function() {
+        rb2value <<- !rb2value
+        if (rb1value) {
+            rb1value <<- !rb1value
+            tkdeselect(rb1CB)
+            }
+        }
+    
+    initialValues <- c(0, 0)
+    rb1CB <- tkcheckbutton(rbTop)
+    rb1Variable <- tclVar(initialValues[1])
+    tkconfigure(rb1CB, variable=rb1Variable, command=rb1Command)
+    tkgrid(tklabel(rbTop, text="Sort by number of literals as common factor:"), rb1CB, sticky="e")
+    
+    rb2CB <- tkcheckbutton(rbTop)
+    rb2Variable <- tclVar(initialValues[2])
+    tkconfigure(rb2CB, variable=rb2Variable, command=rb2Command)
+    tkgrid(tklabel(rbTop, text="Sort by number of factorized elements:"), rb2CB, sticky="e")
+    
+    tkpack(cbTop, middle, rbTop, side="left")
+    
+    OKCancelHelp(helpSubject="factorize")
+    tkpack(top1, top2, buttonsFrame, side="top")
+    dialogSuffix(rows=2, columns=2, focus=entryDsname)
     }
 

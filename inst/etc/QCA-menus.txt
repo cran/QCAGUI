@@ -88,8 +88,9 @@
     item    topMenu         cascade         "Graphs"                                        graphsMenu                  ""
 
     menu    analyzeMenu     topMenu         ""                                              ""                          ""
-    item    analyzeMenu     command         "Truth table"                                   t.r.u.t.h.table             "activeDataSetP()"
-    item    analyzeMenu     command         "Quine-McCluskey"                               q.m.c.c                     "activeDataSetP()"
+    item    analyzeMenu     command         "Truth table"                                   truth.table                 "activeDataSetP()"
+    item    analyzeMenu     command         "Quine-McCluskey"                               q.mc.c                      "activeDataSetP()"
+    item    analyzeMenu     command         "Factorize solution"                            Factorize                   "activeDataSetP()"
     item    topMenu         cascade         "Analyze"                                       analyzeMenu                 ""
 
     menu    toolsMenu       topMenu         ""                                              ""                          ""
