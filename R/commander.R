@@ -1,17 +1,27 @@
 # The R Commander and command logger
 
-# last modified 18 Feb 06 by J. Fox
-#   slight changes 12 Aug 04 by Ph. Grosjean
+# laste modified 1 december 2006 by Adrian Dusa
+# based on the latest modifications since 6 October 06 by J. Fox
+#   slight changes 12 Aug 04 by Ph. Grosjean 
 
 Commander <- function(){
-    version <- "1.1-7"
-    if (is.SciViews()) return(invisible(svCommander(Version=version))) # +PhG
+    # the following test suggested by Richard Heiberger
+    if ("RcmdrEnv" %in% search() &&
+        exists("commanderWindow", "RcmdrEnv") &&
+        !is.null(get("commanderWindow", "RcmdrEnv"))) {
+      warning("The QCAGUI is already open.")
+      return(invisible(NULL))
+    }
+    RcmdrVersion <- "1.2-4"
+    if (is.SciViews()) return(invisible(svCommander(Version=RcmdrVersion))) # +PhG
     setOption <- function(option, default, global=TRUE) {
         opt <- if (is.null(current[[option]])) default else current[[option]]
         if (global) putRcmdr(option, opt)
         else opt
         }
-    etc <- file.path(.path.package(package="QCAGUI")[1], "etc")
+    current <- options("Rcmdr")[[1]]
+    etc <- setOption("etc", file.path(.path.package(package="QCAGUI")[1], "etc"), global=FALSE)
+    etcMenus <- setOption("etcMenus", etc, global=FALSE)
     onCopy <- function(){
         focused <- tkfocus()
         if ((tclvalue(focused) != LogWindow()$ID) && (tclvalue(focused) != OutputWindow()$ID))
@@ -101,7 +111,7 @@ Commander <- function(){
         onDelete()
         }
     messageTag(reset=TRUE)
-    putRcmdr("RcmdrVersion", version)
+    putRcmdr("RcmdrVersion", RcmdrVersion)
     putRcmdr(".activeDataSet", NULL)
     putRcmdr(".activeModel", NULL)
     putRcmdr("logFileName", NULL)
@@ -110,7 +120,6 @@ Commander <- function(){
     putRcmdr("modelNumber", 0)
     putRcmdr("rgl", FALSE)
     putRcmdr("Identify3d", NULL)
-    current <- options("Rcmdr")[[1]]
     setOption("log.font.size", if (.Platform$OS.type == "windows") 10 else 12)
     putRcmdr("logFont", tkfont.create(family="courier", size=getRcmdr("log.font.size")))
     putRcmdr("operatorFont", tkfont.create(family="courier", size=getRcmdr("log.font.size")))
@@ -141,10 +150,16 @@ Commander <- function(){
     setOption("error.text.color", "red")
     setOption("warning.text.color", "darkgreen")
     setOption("multiple.select.mode", "extended")
-    setOption("suppress.X11.warnings", .Platform$GUI == "X11") # to address problem in Linux
+    setOption("suppress.X11.warnings", 
+        interactive() && .Platform$GUI == "X11" && getRversion() < "2.4.0") # to address problem in Linux
     setOption("showData.threshold", 100)
-    setOption("retain.messages", FALSE)
+    setOption("retain.messages", TRUE)
     setOption("crisp.dialogs",  (.Platform$OS.type == "windows") && (getRversion() >= "2.1.1"))
+    if (getRcmdr("suppress.X11.warnings")) {
+        putRcmdr("messages.connection", file(open = "w+"))
+        sink(getRcmdr("messages.connection"), type="message")
+#        putRcmdr("length.messages", 0)
+        }
     if (.Platform$OS.type != "windows") {
         putRcmdr("oldPager", options(pager=RcmdrPager))
         default.font.size <- as.character(setOption("default.font.size", 12, global=FALSE))
@@ -153,11 +168,6 @@ Commander <- function(){
         .Tcl(paste("option add *font ", default.font, sep=""))
         }
     if (getRcmdr("crisp.dialogs")) tclServiceMode(on=FALSE)
-    if (getRcmdr("suppress.X11.warnings")) {
-        putRcmdr("messages.connection", textConnection(".messages", open = "w", local=FALSE))
-        sink(getRcmdr("messages.connection"), type="message")
-        putRcmdr("length.messages", 0)
-        }
     putRcmdr("commanderWindow", tktoplevel())
     .commander <- CommanderWindow()
     placement <- setOption("placement", "-40+20", global=FALSE)
@@ -166,16 +176,18 @@ Commander <- function(){
     tkwm.protocol(.commander, "WM_DELETE_WINDOW", closeCommander)
     topMenu <- tkmenu(.commander)
     tkconfigure(.commander, menu=topMenu)
-#    .commander.done <<- tclVar("0") # to address problem in Debian Linux
     source.files <- list.files(etc, pattern="\\.[Rr]$")
     for (file in source.files) {
         source(file.path(etc, file))
         cat(paste(gettextRcmdr("Sourced:"), file, "\n"))
         }
-    Menus <- read.table(file.path(etc, "QCA-menus.txt"), as.is=TRUE)
+    Menus <- read.table(file.path(etcMenus, "QCA-menus.txt"), as.is=TRUE)
     .Menus <- menus <- list()
     menuItems <- 0
+    oldMenu <- ncol(Menus) == 6
     for (m in 1:nrow(Menus)){
+        install <- if (oldMenu) "" else Menus[m, 7]
+        if ((install != "") && (!eval(parse(text=install)))) next  
         if (Menus[m, 1] == "menu") {
             position <- 0
             assign(Menus[m, 2], tkmenu(eval(parse(text=Menus[m, 3])), tearoff=FALSE))
@@ -270,7 +282,7 @@ Commander <- function(){
             jline <- iline + 1
             while (jline <= nlines){
                 if (length(grep("^[\\ \t]", lines[jline])) == 0) break
-                if (.console.output)cat(paste("QCA+ ", lines[jline],"\n", sep=""))
+                if (.console.output) cat(paste("QCA+ ", lines[jline],"\n", sep=""))
                 else{
                     tkinsert(.output, "end", paste("+ ", lines[jline],"\n", sep=""))
                     tktag.add(.output, "currentLine", "end - 2 lines linestart", "end - 2 lines lineend")
@@ -286,9 +298,6 @@ Commander <- function(){
             else if (length(grep("^remove\\(", current.line)) > 0){
                 current.line <- sub(")", ", envir=.GlobalEnv)", current.line)
                 justDoIt(current.line)
-                }
-            else if (length(grep("^hist\\(", current.line)) > 0){
-                justDoIt(paste("plot(", current.line, ")", sep=""))
                 }
             else if (any(sapply(exceptions,
                     function(.x) length(grep(paste("^", .x, "\\(", sep=""), current.line)) > 0))){
@@ -431,6 +440,8 @@ Commander <- function(){
     tkbind(.commander, "<Control-F>", onFind)
     tkbind(.commander, "<Control-s>", saveLog)
     tkbind(.commander, "<Control-S>", saveLog)
+    tkbind(.commander, "<Control-a>", onSelectAll)
+    tkbind(.commander, "<Control-A>", onSelectAll)
     tkbind(.log, "<ButtonPress-3>", contextMenuLog)
     tkbind(.output, "<ButtonPress-3>", contextMenuOutput)
     tkwm.deiconify(.commander)
@@ -441,7 +452,7 @@ Commander <- function(){
         .commander.done <<- tclVar("0") 
         tkwait.variable(.commander.done)
         }
-    if (!packageAvailable("rgl")) Message(gettextRcmdr("The rgl package is absent; 3D plots are unavailable."), type="warning")
+##    if (!packageAvailable("rgl")) Message(gettextRcmdr("The rgl package is absent; 3D plots are unavailable."), type="warning")
     Message(paste(gettextRcmdr("QCAGUI based on R Commander Version "), getRcmdr("RcmdrVersion"), ": ", date(), sep=""))
     }
 
@@ -468,20 +479,21 @@ logger <- function(command){
 justDoIt <- function(command) {
     Message()
     if (!getRcmdr("suppress.X11.warnings")){
-        messages.connection<- textConnection(".messages", open="w", local=TRUE)
+        messages.connection <- file(open="w+")
         sink(messages.connection, type="message")
         on.exit({
             sink(type="message")
             close(messages.connection)
             })
         }
+    else messages.connection <- getRcmdr("messages.connection")
     capture.output(result <- try(eval(parse(text=command), envir=.GlobalEnv), silent=TRUE))
     if (class(result)[1] ==  "try-error"){
         Message(message=paste(strsplit(result, ":")[[1]][2]), type="error")
         tkfocus(CommanderWindow())
         return()
         }
-    checkWarnings(.messages)
+    checkWarnings(readLines(messages.connection))
     result
     }
 
@@ -495,14 +507,15 @@ doItAndPrint <- function(command, log=TRUE) {
         eval(parse(text=paste("options(width=", floor(width), ")", sep="")))
         }
     if (!getRcmdr("suppress.X11.warnings")){
-        messages.connection <- textConnection(".messages", open="w", local=TRUE)
+        messages.connection <- file(open="w+")
         sink(messages.connection, type="message")
         on.exit({
             sink(type="message")
             close(messages.connection)
             })
         }
-    output.connection <- textConnection(".Output", open="w", local=TRUE)
+    else messages.connection <- getRcmdr("messages.connection")
+    output.connection <- file(open="w+")
     sink(output.connection, type="output")
     on.exit({
         if (!.console.output) sink(type="output") # if .console.output, output connection already closed
@@ -517,6 +530,7 @@ doItAndPrint <- function(command, log=TRUE) {
         return()
         }
     if (isS4object(result)) show(result) else print(result)
+    .Output <- readLines(output.connection)
     if (.Output[length(.Output)] == "NULL") .Output <- .Output[-length(.Output)] # suppress "NULL" line at end of output
     if (length(.Output) != 0) {  # is there output to print?
         if (.console.output) {
@@ -531,46 +545,51 @@ doItAndPrint <- function(command, log=TRUE) {
         }
     else if (.console.output) sink(type="output")
     # errors already intercepted, display any warnings
-    checkWarnings(.messages)
+    checkWarnings(readLines(messages.connection))
     result
     }
 
 checkWarnings <- function(messages){
-#    if (is.SciViews()) return(invisible()) # PhG: added for SciViews compatibility 
     if (getRcmdr("suppress.X11.warnings")){
-            length.messages <- length(messages)
-            last.length.messages <- getRcmdr("length.messages")
-            if (length.messages > last.length.messages){
-                current.messages <- messages[(last.length.messages + 1):length.messages]
-                putRcmdr("length.messages", length.messages)
-                # suppress X11 warnings (origin at this point unclear)
-                X11.warning <- grep("^Warning\\: X11 protocol error\\: BadWindow \\(invalid Window parameter\\)",
-                    current.messages)
-                if (length(X11.warning) > 0){
-                    current.messages <- current.messages[-X11.warning]
-                    if (length(current.messages) == 0) return()
-                    }
-                if (length(current.messages) > 10) current.messages <- c(paste(length(current.messages), "warnings."),
-                    gettextRcmdr("First and last 5 warnings:"), head(current.messages,5), ". . .", tail(current.messages, 5))
-                Message(message=paste(current.messages, collapse="\n"), type="warning")
-            }
-        }
+            X11.warning <- grep("^Warning\\: X11 protocol error\\: BadWindow \\(invalid Window parameter\\)",
+                messages)
+            if (length(X11.warning) > 0){
+                messages <- messages[-X11.warning]
+                }
+            if (length(messages) == 0) Message()
+            else if (length(messages) > 10) {
+                messages <- c(paste(length(messages), "warnings."),
+                    gettextRcmdr("First and last 5 warnings:"), 
+                        head(messages,5), ". . .", tail(messages, 5))
+                Message(message=paste(messages, collapse="\n"), type="warning")
+                }
+        else Message(message=paste(messages, collapse="\n"), type="warning")
+        }                        
     else{
-        if (length(messages) == 0) return()
-        if (length(messages) > 10) messages <- c(paste(length(messages), "warnings."),
-            gettextRcmdr("First and last 5 warnings:"), head(messages, 5), ". . .", tail(messages, 5))
-        Message(message=paste(messages, collapse="\n"), type="warning")
+        if (length(messages) == 0) Message()
+        else if (length(messages) > 10){ 
+            messages <- c(paste(length(messages), "warnings."),
+                gettextRcmdr("First and last 5 warnings:"), 
+                    head(messages, 5), ". . .", tail(messages, 5))
+            Message(message=paste(messages, collapse="\n"), type="warning")
+            }
+        else Message(message=paste(messages, collapse="\n"), type="warning")
         }
     tkfocus(CommanderWindow())
     }
     
 Message <- function(message, type=c("note", "error", "warning")){
     if (is.SciViews()) return(svMessage(message, type))    # +PhG
+    .message <- MessagesWindow()
     type <- match.arg(type)
     if (type != "note") tkbell()
-    .message <- MessagesWindow()
     if (getRcmdr("retain.messages")) {
-        tkinsert(.message, "end", "\n")
+        if (!missing(message)) tkinsert(.message, "end", "\n")
+        else if (!is.null(getRcmdr("last.message"))) {
+            tkinsert(.message, "end", "\n\n")
+            putRcmdr("last.message", NULL)
+            tkyview.moveto(.message, 1.0)
+            }
         }
     else if (type == "note"){
         lastMessage <- tclvalue(tkget(MessagesWindow(),  "end - 2 lines", "end"))
@@ -578,19 +597,22 @@ Message <- function(message, type=c("note", "error", "warning")){
             tkdelete(.message, "1.0", "end")
         }
     else tkdelete(.message, "1.0", "end")
-    if (missing(message)) return()
     col <- if (type == "error") getRcmdr("error.text.color")
             else if (type == "warning") getRcmdr("warning.text.color")
             else getRcmdr("output.text.color")
     prefix <- switch(type, error=gettextRcmdr("ERROR"), warning=gettextRcmdr("WARNING"), note=gettextRcmdr("NOTE"))
+    if (missing(message)){
+        return()
+        }
+    putRcmdr("last.message", type)
     message <- paste(prefix, ": ", message, sep="")
     lines <- strsplit(message, "\n")[[1]]
     for (line in lines){
         tagName <- messageTag()
-        tkinsert(.message, "end", paste(line,"\n", sep=""))
+        tkinsert(.message, "end", paste(line, "\n", sep=""))
         tktag.add(.message, tagName, "end - 2 lines linestart", "end - 2 lines lineend")
         tktag.configure(.message, tagName, foreground=col)
-        tkyview.moveto(.message, 1)
+        tkyview.moveto(.message, 1.0)
         }
     }
 

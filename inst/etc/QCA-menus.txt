@@ -35,6 +35,7 @@
     item    importMenu      command         "from SPSS data set..."                         importSPSS                  "packageAvailable('foreign')"
     item    importMenu      command         "from Minitab data set..."                      importMinitab               "packageAvailable('foreign')"
     item    importMenu      command         "from STATA data set..."                        importSTATA                 "packageAvailable('foreign')"
+    item    importMenu      command         "from Tosmana XML file..."                      importTosmana               "packageAvailable('XML')"
     item    dataMenu        cascade         "Import data"                                   importMenu                  ""
     menu    packagesMenu    dataMenu        ""                                              ""                          ""
     item    packagesMenu    command         "List data sets in packages"                    listDataSetsInPackages      ""
