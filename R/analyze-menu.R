@@ -103,7 +103,7 @@ q.mc.c <- function() {
         chart <- tclvalue(chartVariable) == "1"
         use.letters <- tclvalue(uselettersVariable) == "1"
         show.cases <- tclvalue(showcasesVariable) == "1"
-        tt <- tclvalue(truthtableVariable) == "1"
+        #tt <- tclvalue(truthtableVariable) == "1"
         
         outcome1 <- as.character(tclvalue(outcome1Variable))
         outcome0 <- as.character(tclvalue(outcome0Variable))
@@ -113,9 +113,9 @@ q.mc.c <- function() {
         incl.rem <- expl.1 <- expl.0 <- expl.ctr <- incl.1 <- incl.0 <- incl.ctr <- FALSE
         
         aa <- c("expl.1", "expl.0", "expl.ctr", "incl.1", "incl.0", "incl.ctr", "incl.rem",
-                "quiet", "details", "chart", "use.letters", "show.cases", "tt")
+                "quiet", "details", "chart", "use.letters", "show.cases")#, "tt")
         bb <- c( expl.1,   expl.0,   expl.ctr,   incl.1,   incl.0,   incl.ctr,   incl.rem,
-                 quiet,   details,   chart,   use.letters,   show.cases, tt)
+                 quiet,   details,   chart,   use.letters,   show.cases)#, tt)
         
         bb[c(1, 4, 2, 5, 3, 6)] <- c(sapply(c(outcome1, outcome0, contradictions),
                                               function(idx) idx == c("explain", "include")))
@@ -228,11 +228,11 @@ q.mc.c <- function() {
     
     top3 <- tkframe(top)
     
-    cbOptions <- c("truthtable", "useletters", "chart", "showcases", "details", "quiet")
-    cbLabels <- c("Data is already a truth table:", "Use letters instead variables' names:", 
+    cbOptions <- c("useletters", "chart", "showcases", "details", "quiet")
+    cbLabels <- c("Use letters instead variables' names:", 
                   "Show prime implicants chart:", "Show cases for solution:",
                   "Some details:", "Quiet (no details at all):")
-    initialValues <- c(0, 1, 0, 0, 0, 0)
+    initialValues <- c(1, 0, 0, 0, 0)
     
     CBvalues <- rep(FALSE, 4)
     modified <- rep(FALSE, 3)
@@ -299,18 +299,18 @@ q.mc.c <- function() {
             }
         }
     
-    for (i in 1:6) {
+    for (i in 1:5) {
         CheckBox <- paste(cbOptions[i], "CB", sep="")
         assign(CheckBox, tkcheckbutton(top3))
         cbVariable <- paste(cbOptions[i], "Variable", sep="")
         assign(cbVariable, tclVar(initialValues[i]))
-        if (i < 3) {
+        if (i == 1) {
             tkconfigure(get(CheckBox), variable=get(cbVariable))
-            } else if (i == 3) {
+            } else if (i == 2) {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=chartCommand)
-            } else if (i == 4) {
+            } else if (i == 3) {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=showcasesCommand)
-            } else if (i == 5) {
+            } else if (i == 4) {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=detailsCommand)
             } else {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=quietCommand)

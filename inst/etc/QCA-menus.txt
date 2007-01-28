@@ -35,7 +35,7 @@
     item    importMenu      command         "from SPSS data set..."                         importSPSS                  "packageAvailable('foreign')"
     item    importMenu      command         "from Minitab data set..."                      importMinitab               "packageAvailable('foreign')"
     item    importMenu      command         "from STATA data set..."                        importSTATA                 "packageAvailable('foreign')"
-    item    importMenu      command         "from Tosmana XML file..."                      importTosmana               "packageAvailable('XML')"
+    item    importMenu      command         "from Tosmana XML file..."                      importTosmana               "packageAvailable('QCA') && packageAvailable('XML')"
     item    dataMenu        cascade         "Import data"                                   importMenu                  ""
     menu    packagesMenu    dataMenu        ""                                              ""                          ""
     item    packagesMenu    command         "List data sets in packages"                    listDataSetsInPackages      ""
@@ -89,9 +89,9 @@
     item    topMenu         cascade         "Graphs"                                        graphsMenu                  ""
 
     menu    analyzeMenu     topMenu         ""                                              ""                          ""
-    item    analyzeMenu     command         "Truth table"                                   truth.table                 "activeDataSetP()"
-    item    analyzeMenu     command         "Quine-McCluskey"                               q.mc.c                      "activeDataSetP()"
-    item    analyzeMenu     command         "Factorize solution"                            Factorize                   "activeDataSetP()"
+    item    analyzeMenu     command         "Truth table"                                   truth.table                 "activeDataSetP() && packageAvailable('QCA')"
+    item    analyzeMenu     command         "Quine-McCluskey"                               q.mc.c                      "activeDataSetP() && packageAvailable('QCA')"
+    item    analyzeMenu     command         "Factorize solution"                            Factorize                   "activeDataSetP() && packageAvailable('QCA')"
     item    topMenu         cascade         "Analyze"                                       analyzeMenu                 ""
 
     menu    toolsMenu       topMenu         ""                                              ""                          ""
@@ -101,7 +101,7 @@
 
     menu    helpMenu        topMenu         ""                                              ""                          ""
     item    helpMenu        command         "R Commander help"                              helpCommander               ""
-    item    helpMenu        command         "Introduction to the R Commander"               browseManual                ""
+    item    helpMenu        command         "QCAGUI user manual"                            browseManual                ""
     item    helpMenu        command         "Help on active data set (if available)"        helpDataSet                 "activeDataSetP()"
     item    helpMenu        command         "About QCAGUI"                                  helpAboutCommander          ""
     item    topMenu         cascade         "Help"                                          helpMenu                    ""
