@@ -98,6 +98,7 @@ q.mc.c <- function() {
     tkwm.title(top, "Perform the Quine-McCluskey minimization algorithm")
     
     onOK <- function(){
+        diffmat <- tclvalue(diffmatVariable) == "1"
         quiet <- tclvalue(quietVariable) == "1"
         details <- tclvalue(detailsVariable) == "1"
         chart <- tclvalue(chartVariable) == "1"
@@ -113,16 +114,25 @@ q.mc.c <- function() {
         incl.rem <- expl.1 <- expl.0 <- expl.ctr <- incl.1 <- incl.0 <- incl.ctr <- FALSE
         
         aa <- c("expl.1", "expl.0", "expl.ctr", "incl.1", "incl.0", "incl.ctr", "incl.rem",
-                "quiet", "details", "chart", "use.letters", "show.cases")#, "tt")
+                "quiet", "details", "chart", "use.letters", "show.cases")
         bb <- c( expl.1,   expl.0,   expl.ctr,   incl.1,   incl.0,   incl.ctr,   incl.rem,
-                 quiet,   details,   chart,   use.letters,   show.cases)#, tt)
+                 quiet,   details,   chart,   use.letters,   show.cases)
         
         bb[c(1, 4, 2, 5, 3, 6)] <- c(sapply(c(outcome1, outcome0, contradictions),
                                               function(idx) idx == c("explain", "include")))
         if (remainders == "include") {bb[7] <- TRUE}
         
-        qmcc.options <- paste(", ", paste(aa[bb], collapse="=TRUE, "), "=TRUE", sep="")
-        if (length(aa[bb]) == 0) {qmcc.options <- ""}
+        TFoptions <- paste(aa[bb], collapse="=TRUE, ")
+        if (!diffmat) TFoptions <- paste(TFoptions, "diffmat=FALSE, ", sep="") 
+        
+        
+        if (length(aa[bb]) == 0) {
+            qmcc.options <- ""
+            }
+        else {
+            qmcc.options <- paste(", ", paste(aa[bb], collapse="=TRUE, "), "=TRUE", sep="")
+            if (!diffmat) qmcc.options <- paste(qmcc.options, ", diffmat=FALSE", sep="")
+            }
         
         outcomeVar <- variableList[as.integer(tkcurselection(outcomeBox)) + 1]
         conditionsVar <- variableList[as.integer(tkcurselection(conditionsBox)) + 1]
@@ -228,11 +238,11 @@ q.mc.c <- function() {
     
     top3 <- tkframe(top)
     
-    cbOptions <- c("useletters", "chart", "showcases", "details", "quiet")
-    cbLabels <- c("Use letters instead variables' names:", 
+    cbOptions <- c("diffmat", "useletters", "chart", "showcases", "details", "quiet")
+    cbLabels <- c("Generate differences matrix:", "Use letters instead variables' names:", 
                   "Show prime implicants chart:", "Show cases for solution:",
                   "Some details:", "Quiet (no details at all):")
-    initialValues <- c(1, 0, 0, 0, 0)
+    initialValues <- c(1, 1, 0, 0, 0, 0)
     
     CBvalues <- rep(FALSE, 4)
     modified <- rep(FALSE, 3)
@@ -299,18 +309,18 @@ q.mc.c <- function() {
             }
         }
     
-    for (i in 1:5) {
+    for (i in 1:6) {
         CheckBox <- paste(cbOptions[i], "CB", sep="")
         assign(CheckBox, tkcheckbutton(top3))
         cbVariable <- paste(cbOptions[i], "Variable", sep="")
         assign(cbVariable, tclVar(initialValues[i]))
-        if (i == 1) {
+        if (i < 3) {
             tkconfigure(get(CheckBox), variable=get(cbVariable))
-            } else if (i == 2) {
-            tkconfigure(get(CheckBox), variable=get(cbVariable), command=chartCommand)
             } else if (i == 3) {
-            tkconfigure(get(CheckBox), variable=get(cbVariable), command=showcasesCommand)
+            tkconfigure(get(CheckBox), variable=get(cbVariable), command=chartCommand)
             } else if (i == 4) {
+            tkconfigure(get(CheckBox), variable=get(cbVariable), command=showcasesCommand)
+            } else if (i == 5) {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=detailsCommand)
             } else {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=quietCommand)
