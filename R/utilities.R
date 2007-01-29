@@ -1113,9 +1113,7 @@ helpAboutCommander <- function() {
 
 browseManual <- function() {
     browseURL(paste(file.path(.path.package(package="QCAGUI")[1], "doc"), 
-        "/Getting-Started-with-the-Rcmdr.pdf", sep=""))
-    }
-
+    "/User-Manual-QCAGUI.pdf", sep=""))}
 
     
     # functions for building dialog boxes
@@ -1969,12 +1967,13 @@ RcmdrTkmessageBox <- function(message, icon=c("info", "question", "warning",
 trim.col.na <- function(dat){
 # Remove variables with only missing values (occurs sometimes with modified Excel file)    
     colsup <- NULL 
-    for (i in 1:ncol(dat))
-    {
-    if (length(dat[is.na(dat[,i])==T,i]) ==length(dat[,i]))
-     colsup <- c(colsup,i)  
-    }
-    if (length(colsup) > 0)
-     dat <- dat[,-colsup]
-    dat
+    for (i in 1:ncol(dat)) {
+        if (length(dat[is.na(dat[,i]) == TRUE, i]) == length(dat[,i])) {
+            colsup <- c(colsup,i)
+            }
+        }
+    if (length(colsup) > 0) {
+        dat <- dat[, -colsup]
+        }
+    return(dat)
     }
