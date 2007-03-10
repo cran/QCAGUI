@@ -98,40 +98,46 @@ q.mc.c <- function() {
     tkwm.title(top, "Perform the Quine-McCluskey minimization algorithm")
     
     onOK <- function(){
-        diffmat <- tclvalue(diffmatVariable) == "1"
-        quiet <- tclvalue(quietVariable) == "1"
-        details <- tclvalue(detailsVariable) == "1"
+        diffmat <- tclvalue(diffmatVariable) == "0"
+        use.letters <- tclvalue(uselettersVariable) == "0"
         chart <- tclvalue(chartVariable) == "1"
-        use.letters <- tclvalue(uselettersVariable) == "1"
         show.cases <- tclvalue(showcasesVariable) == "1"
-        #tt <- tclvalue(truthtableVariable) == "1"
+        details <- tclvalue(detailsVariable) == "0"
+        quiet <- tclvalue(quietVariable) == "1"
+        if (quiet) details <- FALSE
         
         outcome1 <- as.character(tclvalue(outcome1Variable))
         outcome0 <- as.character(tclvalue(outcome0Variable))
         contradictions <- as.character(tclvalue(contradictionsVariable))
         remainders <- as.character(tclvalue(remaindersVariable))
         
-        incl.rem <- expl.1 <- expl.0 <- expl.ctr <- incl.1 <- incl.0 <- incl.ctr <- FALSE
+        expl.1 <- expl.0 <- expl.ctr <- incl.1 <- incl.0 <- incl.ctr <- incl.rem <- FALSE
         
-        aa <- c("expl.1", "expl.0", "expl.ctr", "incl.1", "incl.0", "incl.ctr", "incl.rem",
-                "quiet", "details", "chart", "use.letters", "show.cases")
-        bb <- c( expl.1,   expl.0,   expl.ctr,   incl.1,   incl.0,   incl.ctr,   incl.rem,
-                 quiet,   details,   chart,   use.letters,   show.cases)
+        checked <-  c("expl.1", "expl.0", "expl.ctr", "incl.1", "incl.0", "incl.ctr", "incl.rem",
+                      "quiet", "chart", "show.cases")
+        options1 <- c( expl.1,   expl.0,   expl.ctr,   incl.1,   incl.0,   incl.ctr,   incl.rem,
+                       quiet,   chart,   show.cases)
+        notchecked <- c("diffmat", "use.letters", "details")
+        options2 <-   c( diffmat,   use.letters,   details)
         
-        bb[c(1, 4, 2, 5, 3, 6)] <- c(sapply(c(outcome1, outcome0, contradictions),
+        options1[c(1, 4, 2, 5, 3, 6)] <- c(sapply(c(outcome1, outcome0, contradictions),
                                               function(idx) idx == c("explain", "include")))
-        if (remainders == "include") {bb[7] <- TRUE}
+        if (remainders == "include") {options1[7] <- TRUE}
         
-        TFoptions <- paste(aa[bb], collapse="=TRUE, ")
-        if (!diffmat) TFoptions <- paste(TFoptions, "diffmat=FALSE, ", sep="") 
-        
-        
-        if (length(aa[bb]) == 0) {
-            qmcc.options <- ""
-            }
-        else {
-            qmcc.options <- paste(", ", paste(aa[bb], collapse="=TRUE, "), "=TRUE", sep="")
-            if (!diffmat) qmcc.options <- paste(qmcc.options, ", diffmat=FALSE", sep="")
+        qmcc.options <- ""
+        if (length(checked[options1]) != 0 | length(notchecked[options2]) != 0) {
+            if (all(length(checked[options1]) != 0, length(notchecked[options2]) != 0)) {
+                qmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE, ",
+                                      paste(notchecked[options2], collapse="=FALSE, "), "=FALSE", sep="")
+                }
+            else {
+                if (length(checked[options1]) != 0) {
+                    qmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE", sep="")
+                    }
+                else {
+                    qmcc.options <- paste(", ", paste(notchecked[options2], collapse="=FALSE, "), "=FALSE", sep="")
+                    }
+                }
             }
         
         outcomeVar <- variableList[as.integer(tkcurselection(outcomeBox)) + 1]
@@ -242,9 +248,9 @@ q.mc.c <- function() {
     cbLabels <- c("Generate differences matrix:", "Use letters instead variables' names:", 
                   "Show prime implicants chart:", "Show cases for solution:",
                   "Some details:", "Quiet (no details at all):")
-    initialValues <- c(1, 1, 0, 0, 0, 0)
+    initialValues <- c(1, 1, 0, 0, 1, 0)
     
-    CBvalues <- rep(FALSE, 4)
+    CBvalues <- as.logical(initialValues[3:6])
     modified <- rep(FALSE, 3)
     
     chartCommand <- function() {
