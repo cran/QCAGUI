@@ -528,5 +528,13 @@ Version 1.2-4
    
    o  Small change to start-up -- test for interactive() moved to top of .onLoad().
    
+Version 1.2-8 - QCAGUI
+
+   o  Changed menus and added functions to transform Rcmdr in QCAGUI
+   
+   o  Preserved only abolutely necessary depending packages: abind, car, foreign, XML (this also eliminates the unnecessary warning about the RODBC package)
+   
+   o  Updated version of the QCAGUI user manual
+   
    
    

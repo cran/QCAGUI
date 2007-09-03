@@ -5,11 +5,11 @@ ActiveModel, activeModelP, assignCluster, bin.var, checkActiveDataSet,
 checkActiveModel, checkBoxes, checkClass, checkFactors, checkMethod, 
 checkNumeric, checkReplace,
 checkTwoLevelFactors, checkVariables, closeDialog, colPercents, Commander,
-commanderPosition, CommanderWindow, Confint, dataSetsP,
+commanderPosition, CommanderWindow, dataSetsP,
 dialogSuffix, doItAndPrint, errorCondition, exists.method,
 Factors, factorsP, getFrame, getRcmdr, getSelection, gettextRcmdr,
 glmP, GrabFocus, groupsBox, groupsLabel, hclustSolutionsP, Hist, 
-identify3d, initializeDialog, is.valid.name, is.SciViews, justDoIt, KMeans,
+initializeDialog, is.valid.name, is.SciViews, justDoIt, KMeans,
 listAllModels, listDataSets, listFactors, listGeneralizedLinearModels, 
 listLinearModels, listMultinomialLogitModels, listNumeric, 
 listProportionalOddsModels, listTwoLevelFactors, listVariables, 
@@ -17,14 +17,10 @@ lmP, logger, LogWindow,
 Message, MessagesWindow, modelFormula, modelsP, Numeric,
 numericP, numSummary, OKCancelHelp, OutputWindow, packageAvailable, partial.cor,
 plotMeans, putRcmdr, radioButtons, RcmdrPager, RcmdrTclSet, RcmdrTkmessageBox,
-reliability, rowPercents, scatter3d, stem.leaf, subOKCancelHelp,
+reliability, rowPercents, stem.leaf, subOKCancelHelp,
 subsetBox, totPercents, trim.blanks, TwoLevelFactors, twoLevelFactorsP, 
 UpdateModelNumber, variableListBox, Variables)
 
-S3method(Confint, glm)
-S3method(Confint, default)
-S3method(confint, multinom)
-S3method(confint, polr)
 S3method(print, numSummary)
 S3method(print, reliability)
 S3method(print, stem.leaf)
