@@ -15,8 +15,7 @@
     on.exit(options(save.options))
     tcltk <- require(tcltk)
     if (!tcltk) stop(gettext("The tcltk package is absent. The R Commander cannot function.", domain="R-Rcmdr"))
-    required.packages <- rev(c("abind", "car", "effects", "foreign", "grid", "lattice", "lmtest", 
-        "MASS", "mgcv", "multcomp", "nlme", "nnet", "relimp", "rgl", "RODBC"))
+    required.packages <- rev(c("abind", "car", "foreign", "XML"))
     packages.to.load <- options("Rcmdr")[[1]]$load.at.startup
     if (is.null(packages.to.load)) packages.to.load <- "car"
     for (package in packages.to.load){ 
