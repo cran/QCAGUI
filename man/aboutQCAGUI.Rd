@@ -3,7 +3,7 @@
 
 \title{About the QCAGUI Package}
 \description{
-  QCAGUI Version 1.2-8
+  QCAGUI Version 1.2-9
 }
 
 \author{The package is 99\% based on the Rcmdr package written by

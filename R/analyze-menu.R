@@ -98,6 +98,7 @@ q.mc.c <- function() {
     tkwm.title(top, "Perform the Quine-McCluskey minimization algorithm")
     
     onOK <- function(){
+        eqmcc <- tclvalue(eqmccVariable) == "1"
         diffmat <- tclvalue(diffmatVariable) == "0"
         use.letters <- tclvalue(uselettersVariable) == "0"
         chart <- tclvalue(chartVariable) == "1"
@@ -117,7 +118,7 @@ q.mc.c <- function() {
                       "quiet", "chart", "show.cases")
         options1 <- c( expl.1,   expl.0,   expl.ctr,   incl.1,   incl.0,   incl.ctr,   incl.rem,
                        quiet,   chart,   show.cases)
-        notchecked <- c("diffmat", "use.letters", "details")
+        unchecked <- c("diffmat", "use.letters", "details")
         options2 <-   c( diffmat,   use.letters,   details)
         
         options1[c(1, 4, 2, 5, 3, 6)] <- c(sapply(c(outcome1, outcome0, contradictions),
@@ -125,27 +126,52 @@ q.mc.c <- function() {
         if (remainders == "include") {options1[7] <- TRUE}
         
         qmcc.options <- ""
-        if (length(checked[options1]) != 0 | length(notchecked[options2]) != 0) {
-            if (all(length(checked[options1]) != 0, length(notchecked[options2]) != 0)) {
+        if (length(checked[options1]) != 0 | length(unchecked[options2]) != 0) {
+            if (all(length(checked[options1]) != 0, length(unchecked[options2]) != 0)) {
                 qmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE, ",
-                                      paste(notchecked[options2], collapse="=FALSE, "), "=FALSE", sep="")
+                                      paste(unchecked[options2], collapse="=FALSE, "), "=FALSE", sep="")
+                
                 }
             else {
                 if (length(checked[options1]) != 0) {
                     qmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE", sep="")
                     }
                 else {
-                    qmcc.options <- paste(", ", paste(notchecked[options2], collapse="=FALSE, "), "=FALSE", sep="")
+                    qmcc.options <- paste(", ", paste(unchecked[options2], collapse="=FALSE, "), "=FALSE", sep="")
                     }
                 }
             }
+        
+        eqmcc.options <- ""
+        if (length(checked[options1]) != 0 | options2[2]) {
+            if (all(length(checked[options1]) != 0, length(unchecked[options2]) != 0)) {
+                eqmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE, ",
+                                      options2[2], "=FALSE", sep="")
+                
+                }
+            else {
+                if (length(checked[options1]) != 0) {
+                    eqmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE", sep="")
+                    }
+                else {
+                    eqmcc.options <- paste(", ", options2[2], "=FALSE", sep="")
+                    }
+                }
+            }
+        
         
         outcomeVar <- variableList[as.integer(tkcurselection(outcomeBox)) + 1]
         conditionsVar <- variableList[as.integer(tkcurselection(conditionsBox)) + 1]
         cndts <- paste(', conditions=c("', paste(conditionsVar, collapse='", "'), '")', sep="")
         if (length(conditionsVar) == 0) {cndts <- ""}
         
-        command <- paste('qmcc(', dataSet, ', outcome=', paste('"', outcomeVar, '"', sep=""), cndts, qmcc.options, ')', sep="")
+        if (eqmcc) {
+            command <- paste('eqmcc(', dataSet, ', outcome=', paste('"', outcomeVar, '"', sep=""), cndts, eqmcc.options, ')', sep="")
+            }
+        else {
+            command <- paste('qmcc(', dataSet, ', outcome=', paste('"', outcomeVar, '"', sep=""), cndts, qmcc.options, ')', sep="")
+            }
+        
             
         
         doItAndPrint(command)
@@ -244,13 +270,13 @@ q.mc.c <- function() {
     
     top3 <- tkframe(top)
     
-    cbOptions <- c("diffmat", "useletters", "chart", "showcases", "details", "quiet")
-    cbLabels <- c("Generate differences matrix:", "Use letters instead variables' names:", 
-                  "Show prime implicants chart:", "Show cases for solution:",
-                  "Some details:", "Quiet (no details at all):")
-    initialValues <- c(1, 1, 0, 0, 1, 0)
+    cbOptions <- c("eqmcc", "diffmat", "useletters", "chart", "showcases", "details", "quiet")
+    cbLabels <- c("Use the enhanced algorithm", "Generate differences matrix:",
+                  "Use letters instead variables' names:", "Show prime implicants chart:",
+                  "Show cases for solution:", "Some details:", "Quiet (no details at all):")
+    initialValues <- c(0, 1, 1, 0, 0, 1, 0)
     
-    CBvalues <- as.logical(initialValues[3:6])
+    CBvalues <- as.logical(initialValues[4:7])
     modified <- rep(FALSE, 3)
     
     chartCommand <- function() {
@@ -315,18 +341,18 @@ q.mc.c <- function() {
             }
         }
     
-    for (i in 1:6) {
+    for (i in 1:7) {
         CheckBox <- paste(cbOptions[i], "CB", sep="")
         assign(CheckBox, tkcheckbutton(top3))
         cbVariable <- paste(cbOptions[i], "Variable", sep="")
         assign(cbVariable, tclVar(initialValues[i]))
-        if (i < 3) {
+        if (i < 4) {
             tkconfigure(get(CheckBox), variable=get(cbVariable))
-            } else if (i == 3) {
-            tkconfigure(get(CheckBox), variable=get(cbVariable), command=chartCommand)
             } else if (i == 4) {
-            tkconfigure(get(CheckBox), variable=get(cbVariable), command=showcasesCommand)
+            tkconfigure(get(CheckBox), variable=get(cbVariable), command=chartCommand)
             } else if (i == 5) {
+            tkconfigure(get(CheckBox), variable=get(cbVariable), command=showcasesCommand)
+            } else if (i == 6) {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=detailsCommand)
             } else {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=quietCommand)
