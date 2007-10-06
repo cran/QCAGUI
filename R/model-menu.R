@@ -1,6 +1,6 @@
 # Model menu dialogs
 
-# last modified 16 May 07 by J. Fox
+# last modified 22 June 07 by J. Fox
 
 selectActiveModel <- function(){
     models <- listAllModels()
@@ -52,5 +52,4 @@ selectActiveModel <- function(){
     tkgrid(buttonsFrame, columnspan=2, sticky="w")
     dialogSuffix(rows=3, columns=2)
     }
-
 
