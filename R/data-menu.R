@@ -1,4 +1,4 @@
-# last modified 7 August 2006 by J. Fox
+# last modified 4 June 2007 by J. Fox
 
 # Data menu dialogs
 
@@ -169,11 +169,11 @@ Recode <- function(){
     }
 
 Compute <- function(){
-#    if (!checkActiveDataSet()) return(invisible())
     onDoubleClick <-function(){
         var <- trim.blanks(getSelection(variablesBox))
-        if (length(grep("\\[factor\\]", var)) == 1)
-            var <- trim.blanks(sub("\\[factor\\]", "",  var))
+        word <- paste("\\[", gettextRcmdr("factor"), "\\]", sep="")
+        if (length(grep(word, var)) == 1)
+            var <- trim.blanks(sub(word, "",  var))
         tkfocus(compute)
         expr <- tclvalue(computeVar)
         tclvalue(computeVar) <- if (expr == "") var
@@ -1547,6 +1547,28 @@ Stack <- function(){
     tkgrid(buttonsFrame, sticky="w", columnspan=2)
     dialogSuffix(rows=5, columns=2, preventGrabFocus=TRUE)
     }
+    
+loadDataSet <- function() {
+    file <- tclvalue(tkgetOpenFile(filetypes=
+        gettextRcmdr('{"R Data Files" {".rda" ".Rda" ".RDA"}} {"All Files" {"*"}}')))
+    if (file == "") return()
+    command <- paste('load("', file,'")', sep="")
+    dsname <- justDoIt(command)
+    logger(command)
+    activeDataSet(dsname)
+    tkfocus(CommanderWindow())
+    }
+    
+saveDataSet <- function() {
+    file <- tclvalue(tkgetSaveFile(filetypes=
+        gettextRcmdr('{"R Data Files" {".rda" ".Rda" ".RDA"}} {"All Files" {"*"}}'),
+        defaultextension="rda", initialfile=paste(activeDataSet(), "rda", sep=".")))
+    if (file == "") return()
+    command <- paste('save("', activeDataSet(), '", file="', file, '")', sep="")
+    justDoIt(command)
+    logger(command)
+    }
+
 
 
 
@@ -1600,5 +1622,4 @@ Stack <- function(){
     #tkgrid.configure(entryMaxLevels, sticky="w")
     dialogSuffix(rows=4, columns=2, focus=entryDsname)
     }
-    
 

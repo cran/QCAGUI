@@ -1,7 +1,6 @@
-# last modified 4 October 06 by J. Fox + slight changes 12 Aug 04 by Ph. Grosjean
+# last modified 23 July 2007 by J. Fox + slight changes 12 Aug 04 by Ph. Grosjean
                                                                                        
 # utility functions
-
 
     # listing objects etc.
 
@@ -55,11 +54,18 @@ activeDataSet <- function(dsname, flushModel=TRUE){
             }
         else return(.activeDataSet)
         }
-    if (!is.data.frame(get(dsname, envir=.GlobalEnv))){
-        Message(message=paste(dsname, gettextRcmdr(" is not a data frame and cannot be attached."),
-            sep=""), type="error")
-        tkfocus(CommanderWindow())
-        return()
+    if (!is.data.frame(ds <- get(dsname, envir=.GlobalEnv))){
+        if (!exists.method("as.data.frame", ds, default=FALSE)){
+            Message(message=paste(dsname, gettextRcmdr(" is not a data frame and cannot be attached."),
+                sep=""), type="error")
+            tkfocus(CommanderWindow())
+            return()
+            }
+        command <- paste(dsname, " <- as.data.frame(", dsname, ")", sep="")
+        justDoIt(command)
+        logger(command)
+        Message(message=paste(dsname, gettextRcmdr(" has been coerced to a data frame"), sep=""),
+            type="warning")
         }
     varnames <- names(eval(parse(text=dsname), envir=.GlobalEnv))
     newnames <- make.names(varnames)
@@ -146,7 +152,7 @@ listNumeric <- function(dataSet=ActiveDataSet()) {
     }
 
 trim.blanks <- function(text){
-    gsub("^\ ", "", gsub("\ *$", "", text))
+    gsub("^\ *", "", gsub("\ *$", "", text))
     }
     
 is.valid.name <- function(x){
@@ -639,7 +645,6 @@ bin.var <- function (x, bins=4, method=c("intervals", "proportions", "natural"),
     as.factor(x)
     }
     
-
     # Pager
 
 # this is slightly modified from tkpager to use the Rcmdr monospaced font
@@ -683,13 +688,15 @@ helpCommander <- function() {
     }
 
 helpAboutCommander <- function() {
-    if (as.numeric(R.Version()$major) >= 2) print(help("QCAGUI"))
+    if (as.numeric(R.Version()$major) >= 2) print(help("Rcmdr"))
     else help("QCAGUI")
     }
 
 browseManual <- function() {
     browseURL(paste(file.path(.path.package(package="QCAGUI")[1], "doc"), 
-    "/User-Manual-QCAGUI.pdf", sep=""))}
+        "/User-Manual-QCAGUI.pdf", sep=""))
+    }
+
 
     
     # functions for building dialog boxes
@@ -899,7 +906,7 @@ variableListBox <- function(parentWindow, variableList=Variables(), bg="white",
     if (length(variableList) == 1 && is.null(initialSelection)) initialSelection <- 0
     frame <- tkframe(parentWindow)
     listbox <- tklistbox(frame, height=min(listHeight, length(variableList)),
-        selectmode=selectmode, background=bg, exportselection=export)
+        selectmode=selectmode, background=bg, exportselection=export, width=max(20, nchar(variableList)))
     scrollbar <- tkscrollbar(frame, repeatinterval=5, command=function(...) tkyview(listbox, ...))
     tkconfigure(listbox, yscrollcommand=function(...) tkset(scrollbar, ...))
     for (var in variableList) tkinsert(listbox, "end", var)
@@ -1042,7 +1049,7 @@ groupsBox <- defmacro(recall=NULL, label=gettextRcmdr("Plot by:"), initialLabel=
         .factors <- Factors()
         onGroups <- function(){
             if (length(.factors) == 0){
-                errorCondition(recall=recall, message=gettextRcmdr("There no factors in the active data set.")) 
+                errorCondition(recall=recall, message=gettextRcmdr("There are no factors in the active data set.")) 
                 return()
                 }
             initializeDialog(subdialog, title=gettextRcmdr("Groups"))
@@ -1116,12 +1123,13 @@ modelFormula <- defmacro(frame=top, hasLhs=TRUE, expr={
         !is.element(check.char, c("+", "*", ":", "/", "-", "^", "(", "%"))
         }
     .variables <- Variables()
-    variables <- paste(.variables, ifelse(is.element(.variables, Factors()), "[factor]", ""))
+    variables <- paste(.variables, ifelse(is.element(.variables, Factors()), gettextRcmdr("[factor]"), ""))
     xBox <- variableListBox(frame, variables, title=gettextRcmdr("Variables (double-click to formula)"))
+    word <- paste("\\[", gettextRcmdr("factor"), "\\]", sep="")
     onDoubleClick <- if (!hasLhs){
         function(){
             var <- getSelection(xBox)
-            if (length(grep("\\[factor\\]", var)) == 1) var <- sub("\\[factor\\]", "",  var)
+            if (length(grep(word, var)) == 1) var <- sub(word, "",  var)
             tkfocus(rhsEntry)
             rhs <- tclvalue(rhsVariable)
             rhs.chars <- rev(strsplit(rhs, "")[[1]])
@@ -1141,7 +1149,7 @@ modelFormula <- defmacro(frame=top, hasLhs=TRUE, expr={
     else{
         function(){
             var <- getSelection(xBox)
-            if (length(grep("\\[factor\\]", var)) == 1) var <- sub("\\[factor\\]", "",  var)
+            if (length(grep(word, var)) == 1) var <- sub(word, "",  var)
             lhs <- tclvalue(lhsVariable)
             if (lhs == "") tclvalue(lhsVariable) <- var
             else {
@@ -1347,7 +1355,6 @@ RcmdrTclSet <- function(name, value){
     name <- ls(unclass(getRcmdr(name))$env)
     tcl("set", name, value)
     }
-
     
 # functions to store or retrieve Rcmdr state information
 
@@ -1370,14 +1377,47 @@ TwoLevelFactors <- function(names){
     if (missing(names)) getRcmdr("twoLevelFactors")
     else putRcmdr("twoLevelFactors", names)
     }
+
+# The following two functions were modified by Erich Neuwrith
+#  and subsequently by John Fox (23 July 07)
     
 ActiveDataSet <- function(name){
-    if (missing(name)) getRcmdr(".activeDataSet")
+    if (missing(name)) {
+      temp <- getRcmdr(".activeDataSet")
+      if (is.null(temp))
+        return(NULL)
+      else
+        if (!exists(temp) || !is.data.frame(get(temp,envir=.GlobalEnv))) {
+          Message(sprintf(gettextRcmdr("the dataset %s is no longer available"),
+            temp), type="error")
+          putRcmdr(".activeDataSet", NULL)
+          RcmdrTclSet("dataSetName", gettextRcmdr("<No active dataset>"))
+          putRcmdr(".activeModel", NULL)
+          RcmdrTclSet("modelName", gettextRcmdr("<No active model>"))
+          activateMenus()
+          if (getRcmdr("suppress.menus") && RExcelSupported()) return(NULL)
+        }
+        return(temp)
+      }
     else putRcmdr(".activeDataSet", name)
     }
 
 ActiveModel <- function(name){
-    if (missing(name)) getRcmdr(".activeModel")
+    if (missing(name)) {
+      temp <- getRcmdr(".activeModel")
+      if (is.null(temp))
+        return(NULL)
+      else
+        if (!exists(temp) || !is.model(get(temp,envir=.GlobalEnv))) {
+          Message(sprintf(gettextRcmdr("the model %s is no longer available"),
+            temp), type="error")
+          putRcmdr(".activeModel", NULL)
+          RcmdrTclSet("modelName", gettextRcmdr("<No active model>"))
+          activateMenus()
+          return(NULL)
+        }
+      else return(temp)
+      }
     else putRcmdr(".activeModel", name)
     }
     
@@ -1426,6 +1466,7 @@ packageAvailable <- function(name) 0 != length(.find.package(name, quiet=TRUE))
 rglLoaded <- function() 0 != length(grep("^rgl", loadedNamespaces()))
 
 activateMenus <- function(){
+    if (getRcmdr("suppress.menus")) return()
     for (item in getRcmdr("Menus")){
         if (item$activation()) .Tcl(paste(item$ID, " entryconfigure ", item$position - 1," -state normal", sep=""))
         else .Tcl(paste(item$ID, " entryconfigure ", item$position - 1," -state disabled", sep=""))
@@ -1543,13 +1584,87 @@ RcmdrTkmessageBox <- function(message, icon=c("info", "question", "warning",
 trim.col.na <- function(dat){
 # Remove variables with only missing values (occurs sometimes with modified Excel file)    
     colsup <- NULL 
-    for (i in 1:ncol(dat)) {
-        if (length(dat[is.na(dat[,i]) == TRUE, i]) == length(dat[,i])) {
-            colsup <- c(colsup,i)
+    for (i in 1:ncol(dat))
+    {
+    if (length(dat[is.na(dat[,i])==T,i]) ==length(dat[,i]))
+     colsup <- c(colsup,i)  
+    }
+    if (length(colsup) > 0)
+     dat <- dat[,-colsup]
+    dat
+    }
+
+# check whether packages are available
+
+packagesAvailable <- function(packages){
+    sapply(sapply(packages, .find.package, quiet=TRUE), 
+        function(x) length(x) != 0)
+    }
+    
+# insert a row (or rows) in a matrix or data frame
+
+insertRows <- function(object1, object2, where=NULL, ...){
+    if (ncol(object1) != ncol(object2)) 
+        stop(gettextRcmdr("objects have different numbers of columns"))
+    if (!(TRUE == all.equal(colnames(object1), colnames(object2))))
+        stop(gettextRcmdr("objects have different column names"))
+    n <- nrow(object1)
+    if (is.null(where) || where >= n) rbind(object1, object2)
+    else if (where < 1) rbind(object2, object1)
+    else rbind(object1[1:floor(where),], object2, 
+        object1[(floor(where) + 1):n,])
+    }
+    
+# functions for handling Rcmdr plug-in packages
+
+listPlugins <- function(loaded=FALSE){
+    availablePackages <- if (loaded) sort(.packages(all.available = TRUE))
+        else sort(setdiff(.packages(all.available = TRUE), .packages()))
+    plugins <- availablePackages[sapply(availablePackages, 
+        function(package) file.exists(file.path(.find.package(package), "etc/menus.txt")))]
+    plugins
+    }    
+
+loadPlugins <- function(){
+    plugins <- listPlugins()
+    initializeDialog(title=gettextRcmdr("Load Plugins"))
+    packagesBox <- variableListBox(top, plugins, title=gettextRcmdr("Plug-ins (pick one or more)"),
+        selectmode="multiple", listHeight=10)
+    onOK <- function(){
+        plugins <- getSelection(packagesBox)
+        closeDialog(top)
+        if (length(plugins) == 0){
+            errorCondition(recall=loadPlugins, message=gettextRcmdr("You must select at least one plug-in."))
+            return()
+            }
+        opts <- options("Rcmdr")
+        opts$Rcmdr$plugins <- c(plugins, opts$Rcmdr$plugins)
+        options(opts)
+        for (plugin in plugins) {            
+            command <- paste('library("', plugin, '", character.only=TRUE)', sep="")
+            justDoIt(command)
+            }
+        Message(paste(gettextRcmdr("Plug-ins loaded:"), paste(plugins, collapse=", ")), type="note")
+        response <- tkmessageBox(message=paste(gettextRcmdr(
+            "The plug-in(s) will not be available until the Commander is restarted.\nRestart now?")), 
+                    icon="question", type="yesno")
+        if (tclvalue(response) == "yes") {
+            putRcmdr("autoRestart", TRUE)
+            closeCommander(ask=FALSE)
+            Commander()
             }
         }
-    if (length(colsup) > 0) {
-        dat <- dat[, -colsup]
-        }
-    return(dat)
-    }
+    OKCancelHelp(helpSubject="Plugins")
+    tkgrid(getFrame(packagesBox), sticky="nw")
+    tkgrid(buttonsFrame, sticky="w")
+    dialogSuffix(rows=1, columns=1)
+    } 
+    
+# the following two functions contributed by Erich Neuwirth (added 22 July 07)
+
+whitespaceonly <- function(str) sub('[[:space:]]+$', '', str) == ''
+
+is.model <- function(object) {
+  any(class(object) %in% getRcmdr("modelClasses"))
+  }
+   

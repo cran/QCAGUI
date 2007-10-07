@@ -1,8 +1,8 @@
-# last modified 27 November 2006 by J. Fox
+# last modified 11 May 2007 by J. Fox
 
 .onAttach <- function(...){
     Commander()
-    cat(gettext("\nQCAGUI based on Rcmdr Version", domain="R-Rcmdr"), getRcmdr("RcmdrVersion"), "\n")
+    packageStartupMessage(gettext("\nQCAGUI based on Rcmdr Version", domain="R-Rcmdr"), " ", getRcmdr("RcmdrVersion"), "\n")
     }
 
 .onLoad <- function(...){
@@ -15,7 +15,7 @@
     on.exit(options(save.options))
     tcltk <- require(tcltk)
     if (!tcltk) stop(gettext("The tcltk package is absent. The R Commander cannot function.", domain="R-Rcmdr"))
-    required.packages <- rev(c("abind", "car", "foreign", "XML"))
+    required.packages <- rev(c("abind", "car", "foreign", "XML", "MASS"))
     packages.to.load <- options("Rcmdr")[[1]]$load.at.startup
     if (is.null(packages.to.load)) packages.to.load <- "car"
     for (package in packages.to.load){ 
