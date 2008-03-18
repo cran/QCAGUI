@@ -16,4 +16,8 @@ Version 1.3-0 - QCAGUI
    o  The Factorize menu can now be selected without needing a dataframe in memory
    
 
+Version 1.3-1 - QCAGUI
+
+   o  Fixed a bug with pie and bar charts using numeric variables
+
 

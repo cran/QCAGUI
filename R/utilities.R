@@ -427,7 +427,7 @@ print.numSummary <- function(x, ...){
 
     # wrapper function for histograms
 
-Hist <- function(x, scale=c("frequency", "percent", "density"), ...){
+Hist <- function(x, scale=c("frequency", "percent", "density"), ...) {
     xlab <- deparse(substitute(x))
     x <- na.omit(x)
     scale <- match.arg(scale)
@@ -442,8 +442,8 @@ Hist <- function(x, scale=c("frequency", "percent", "density"), ...){
                 else (0:max)/10
         axis(2, at=at*n, labels=at*100)
         }  
-    box()   
-    abline(h=0, col="gray") 
+    box()
+    abline(h=0, col="gray")
     invisible(NULL)
     }
 

@@ -394,7 +394,7 @@ scatterPlotMatrix <- function(){
 
 barGraph <- function(){
     initializeDialog(title=gettextRcmdr("Bar Graph"))
-    variableBox <- variableListBox(top, Factors(), title=gettextRcmdr("Variable (pick one)"))
+    variableBox <- variableListBox(top, Numeric(), title=gettextRcmdr("Variable (pick one)"))
     onOK <- function(){
         variable <- getSelection(variableBox)
         closeDialog()
@@ -417,7 +417,7 @@ barGraph <- function(){
 
 pieChart <- function(){
     initializeDialog(title=gettextRcmdr("Pie Chart"))
-    variableBox <- variableListBox(top, Factors(), title=gettextRcmdr("Variable (pick one)"))
+    variableBox <- variableListBox(top, Numeric(), title=gettextRcmdr("Variable (pick one)"))
     onOK <- function(){
         variable <- getSelection(variableBox)
         closeDialog()
