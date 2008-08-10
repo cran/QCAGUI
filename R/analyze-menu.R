@@ -126,14 +126,14 @@ q.mc.c <- function() {
         if (remainders == "include") {options1[7] <- TRUE}
         
         qmcc.options <- ""
-        if (length(checked[options1]) != 0 | length(unchecked[options2]) != 0) {
-            if (all(length(checked[options1]) != 0, length(unchecked[options2]) != 0)) {
+        if (any(options1) | any(options2)) {
+            if (all(any(options1), any(options2))) {
                 qmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE, ",
                                       paste(unchecked[options2], collapse="=FALSE, "), "=FALSE", sep="")
                 
                 }
             else {
-                if (length(checked[options1]) != 0) {
+                if (any(options1)) {
                     qmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE", sep="")
                     }
                 else {
@@ -143,18 +143,18 @@ q.mc.c <- function() {
             }
         
         eqmcc.options <- ""
-        if (length(checked[options1]) != 0 | options2[2]) {
-            if (all(length(checked[options1]) != 0, length(unchecked[options2]) != 0)) {
+        if (any(options1) | options2[2]) {
+            if (all(any(options1), options2[2])) {
                 eqmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE, ",
-                                      options2[2], "=FALSE", sep="")
+                                      unchecked[2], "=FALSE", sep="")
                 
                 }
             else {
-                if (length(checked[options1]) != 0) {
+                if (any(options1)) {
                     eqmcc.options <- paste(", ", paste(checked[options1], collapse="=TRUE, "), "=TRUE", sep="")
                     }
                 else {
-                    eqmcc.options <- paste(", ", options2[2], "=FALSE", sep="")
+                    eqmcc.options <- paste(", ", unchecked[2], "=FALSE", sep="")
                     }
                 }
             }
@@ -276,66 +276,105 @@ q.mc.c <- function() {
                   "Show cases for solution:", "Some details:", "Quiet (no details at all):")
     initialValues <- c(0, 1, 1, 0, 0, 1, 0)
     
-    CBvalues <- as.logical(initialValues[4:7])
-    modified <- rep(FALSE, 3)
+    CBvalues <- as.logical(initialValues)
+    modified <- rep(FALSE, 8) # "details" is disabled by both quiet and eqmcc
+    
+    diffmatCommand <- function() {
+        if (CBvalues[1]) {
+            tkdeselect(eqmccCB)
+            CBvalues[c(1, 8)] <<- FALSE
+            }
+        CBvalues[2] <<- !CBvalues[2]
+        modified[c(2, 8)] <<- FALSE
+        }
     
     chartCommand <- function() {
-        if (CBvalues[4]) {
+        if (CBvalues[7]) {
             tkdeselect(quietCB)
-            CBvalues[2:4] <<- FALSE
+            CBvalues[5:7] <<- FALSE
             }
-        CBvalues[1] <<- !CBvalues[1]
-        modified[1:3] <<- FALSE
+        CBvalues[4] <<- !CBvalues[4]
+        modified[4:6] <<- FALSE
         }
     
     showcasesCommand <- function() {
-        if (CBvalues[4]) {
+        if (CBvalues[7]) {
             tkdeselect(quietCB)
-            CBvalues[c(1, 3, 4)] <<- FALSE
+            CBvalues[c(4, 6, 7)] <<- FALSE
             }
-        CBvalues[2] <<- !CBvalues[2]
-        modified[1:3] <<- FALSE
+        CBvalues[5] <<- !CBvalues[5]
+        modified[4:6] <<- FALSE
         }
     
     detailsCommand <- function() {
-        if (CBvalues[4]) {
-            tkdeselect(quietCB)
-            CBvalues[c(1, 2, 4)] <<- FALSE
+        if (CBvalues[1]) {
+            tkdeselect(eqmccCB)
+            CBvalues[1:2] <<- FALSE
             }
-        CBvalues[3] <<- !CBvalues[3]
-        modified[1:3] <<- FALSE
+        if (CBvalues[7]) {
+            tkdeselect(quietCB)
+            CBvalues[c(4, 5, 7)] <<- FALSE
+            }
+        CBvalues[6] <<- !CBvalues[6]
+        modified[c(2, 4:6, 8)] <<- FALSE
         }
     
     quietCommand <- function() {
-        if (!CBvalues[4]) {
-            CBvalues[4] <<- !CBvalues[4]
-            if (CBvalues[1]) {
-                modified[1] <<- TRUE
-                CBvalues[1] <<- !CBvalues[1]
+        if (!CBvalues[7]) {
+            CBvalues[7] <<- !CBvalues[7]
+            if (CBvalues[4]) {
+                modified[4] <<- TRUE
+                CBvalues[4] <<- !CBvalues[4]
                 tkdeselect(chartCB)
                 }
-            if (CBvalues[2]) {
-                modified[2] <<- TRUE
-                CBvalues[2] <<- !CBvalues[2]
+            if (CBvalues[5]) {
+                modified[5] <<- TRUE
+                CBvalues[5] <<- !CBvalues[5]
                 tkdeselect(showcasesCB)
                 }
-            if (CBvalues[3]) {
-                modified[3] <<- TRUE
-                CBvalues[3] <<- !CBvalues[3]
+            if (CBvalues[6]) {
+                modified[6] <<- TRUE
+                CBvalues[6] <<- !CBvalues[6]
                 tkdeselect(detailsCB)
                 }
             } else {
-            CBvalues[4] <<- !CBvalues[4]
-            if (modified[1]) {
-                CBvalues[1] <<- !CBvalues[1]
+            CBvalues[7] <<- !CBvalues[7]
+            if (modified[4]) {
+                CBvalues[4] <<- !CBvalues[4]
                 tkselect(chartCB)
                 }
-            if (modified[2]) {
-                CBvalues[2] <<- !CBvalues[2]
+            if (modified[5]) {
+                CBvalues[5] <<- !CBvalues[5]
                 tkselect(showcasesCB)
                 }
-            if (modified[3]) {
-                CBvalues[3] <<- !CBvalues[3]
+            if (modified[6]) {
+                CBvalues[6] <<- !CBvalues[6]
+                tkselect(detailsCB)
+                }
+            }
+        }
+    
+    eqmccCommand <- function() {
+        if (!CBvalues[1]) {
+            CBvalues[1] <<- !CBvalues[1]
+            if (CBvalues[2]) {
+                modified[2] <<- TRUE
+                CBvalues[2] <<- !CBvalues[2]
+                tkdeselect(diffmatCB)
+                }
+            if (CBvalues[6]) {
+                modified[8] <<- TRUE
+                CBvalues[6] <<- !CBvalues[6]
+                tkdeselect(detailsCB)
+                }
+            } else {
+            CBvalues[1] <<- !CBvalues[1]
+            if (modified[2]) {
+                CBvalues[2] <<- !CBvalues[2]
+                tkselect(diffmatCB)
+                }
+            if (modified[8]) {
+                CBvalues[6] <<- !CBvalues[6]
                 tkselect(detailsCB)
                 }
             }
@@ -346,19 +385,23 @@ q.mc.c <- function() {
         assign(CheckBox, tkcheckbutton(top3))
         cbVariable <- paste(cbOptions[i], "Variable", sep="")
         assign(cbVariable, tclVar(initialValues[i]))
-        if (i < 4) {
+        if (i == 1) {
+            tkconfigure(get(CheckBox), variable=get(cbVariable), command=eqmccCommand)
+        } else if (i == 2) {
+            tkconfigure(get(CheckBox), variable=get(cbVariable), command=diffmatCommand)
+        } else if (i == 3) {
             tkconfigure(get(CheckBox), variable=get(cbVariable))
-            } else if (i == 4) {
+        } else if (i == 4) {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=chartCommand)
-            } else if (i == 5) {
+        } else if (i == 5) {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=showcasesCommand)
-            } else if (i == 6) {
+        } else if (i == 6) {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=detailsCommand)
-            } else {
+        } else {
             tkconfigure(get(CheckBox), variable=get(cbVariable), command=quietCommand)
-            }
-        tkgrid(tklabel(top3, text=cbLabels[i]), get(CheckBox), sticky="e")
         }
+        tkgrid(tklabel(top3, text=cbLabels[i]), get(CheckBox), sticky="e")
+    }
     
     tkgrid(tklabel(top3, text=" ")) # Blank line
     
