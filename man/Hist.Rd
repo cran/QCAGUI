@@ -20,7 +20,6 @@ Hist(x, scale = c("frequency", "percent", "density"), ...)
 }
 
 
-}
 \value{
   This function returns \code{NULL}, and is called for its side effect ---
   plotting a histogram.
@@ -34,5 +33,5 @@ Hist(x, scale = c("frequency", "percent", "density"), ...)
     data(Prestige)
     Hist(Prestige$income, scale="percent")
     }
-}
+
 \keyword{hplot}
