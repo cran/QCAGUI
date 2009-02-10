@@ -279,7 +279,7 @@ Many options can also be set via the \emph{File -> Options} menu, which will res
 
 \examples{
     options(Rcmdr=list(log.font.size=12, contrasts=c("contr.Sum", "contr.poly")))
-    }
 }
+
 
 \keyword{misc}
