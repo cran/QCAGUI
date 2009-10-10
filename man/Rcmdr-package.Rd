@@ -13,12 +13,12 @@ user interface) for R, based on the tcltk package.
 \tabular{ll}{
 Package: \tab Rcmdr\cr
 Version: \tab 1.3-5\cr
-Date: \tab 2007/7/30\cr
+Date: \tab 2007.07.30\cr
 Depends: \tab R (>= 2.1.0), tcltk, grDevices, utils\cr
 Suggests: \tab abind, car (>= 1.1-1), effects (>= 1.0-7), foreign, grid, 
   lattice, lmtest, MASS, mgcv, multcomp, nlme, nnet, relimp, rgl, RODBC\cr
 LazyLoad: \tab no\cr
-License: \tab GPL version 2 or newer\cr
+License: \tab GPL (>= 2)\cr
 URL: \tab http://www.r-project.org,
 http://socserv.socsci.mcmaster.ca/jfox/Misc/Rcmdr/\cr
 }
