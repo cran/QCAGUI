@@ -414,6 +414,8 @@ q.mc.c <- function() {
 Factorize <- function() {
     require(QCA)
     
+    library(tcltk)
+
     top <- tktoplevel()
     tkwm.title(top, "Factorize minimized solution")
     
@@ -425,14 +427,13 @@ Factorize <- function() {
     tkgrid.configure(entryDsname, sticky="w")
     
     onOK <- function(){
-        useletters <- tclvalue(use.lettersVariable) == "1"
         rb1 <- tclvalue(rb1Variable) == "1"
         rb2 <- tclvalue(rb2Variable) == "1"
         optional <- ""
         if (any(c(rb1, rb2))) {
             optional <- paste(", ", c("sort.by.literals", "sort.by.number")[c(rb1, rb2)], "=TRUE", sep="")
             }
-        command <- paste('factorize("', tclvalue(dsname), '", use.letters=', useletters, optional, ')', sep="")
+        command <- paste('factorize("', tclvalue(dsname), '", splitmethod="', tclvalue(splitm), '"', optional, ')', sep="")
         doItAndPrint(command)
         closeDialog()
         tkfocus(CommanderWindow())
@@ -444,11 +445,12 @@ Factorize <- function() {
     tkgrid(tklabel(cbTop, text=" ")) # Blank line
     
     initialValues <- c(1)
-    use.lettersCB <- tkcheckbutton(cbTop)
-    use.lettersVariable <- tclVar(initialValues)
-    tkconfigure(use.lettersCB, variable=use.lettersVariable)
     
-    tkgrid(tklabel(cbTop, text="Conditions' names are simple letters:"), use.lettersCB, sticky="w")
+    splitm <- tclVar(gettextRcmdr(""))
+    entrySplitm <- tkentry(cbTop, width="1", textvariable=splitm)
+    tkgrid(tklabel(cbTop, text=gettextRcmdr("Split method:")), entrySplitm, sticky="e")
+    tkgrid.configure(entrySplitm, sticky="w")
+    
     
     
     middle <- tkframe(top2)
@@ -493,5 +495,6 @@ Factorize <- function() {
     OKCancelHelp(helpSubject="factorize")
     tkpack(top1, top2, buttonsFrame, side="top")
     dialogSuffix(rows=2, columns=2, focus=entryDsname)
-    }
+}
+
 
