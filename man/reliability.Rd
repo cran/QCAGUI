@@ -25,7 +25,6 @@ reliability(S)
   \item{...}{not used: for compatibility with the print generic."}
 }
 
-
 \value{
     an object of class reliability, which normally would be printed.
 }
@@ -37,9 +36,10 @@ reliability(S)
 
 \author{John Fox \email{jfox@mcmaster.ca}}
 
-\seealso{\code{\link[stats]{cov}}}
+\seealso{\code{\link{cov}}}
 
 \examples{
+library(car)
 data(DavisThin)
 reliability(cov(DavisThin))
 }

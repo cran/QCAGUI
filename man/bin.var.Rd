@@ -34,9 +34,5 @@ bin.var(x, bins = 4, method = c("intervals", "proportions", "natural"),
     with the original author's permission.}
 
 \seealso{\code{\link[base]{cut}}, \code{\link[stats]{kmeans}}.}
-
-\examples{
-summary(bin.var(rnorm(100), method="prop", labels=letters[1:4]))
-}
   
 \keyword{manip}

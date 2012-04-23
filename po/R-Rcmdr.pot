@@ -1,8 +1,6 @@
-msgid ""
-msgstr ""
-"Project-Id-Version: Rcmdr 1.3-4\n"
-"Report-Msgid-Bugs-To: bugs@r-project.org\n"
-"POT-Creation-Date: 2007-07-21 12:02\n"
+"Project-Id-Version: Rcmdr 1.8-4\n"
+"Report-Msgid-Bugs-To: jfox@mcmaster.ca\n"
+"POT-Creation-Date: 2012-03-20 10:30:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3360,4 +3358,482 @@ msgid "the dataset %s is no longer available"
 msgstr ""
 
 msgid "the model %s is no longer available"
-msgid ""
+msgstr ""
+
+# message added to version 1.3-10
+
+msgid "The Commander GUI is launched only in interactive sessions"
+msgstr ""
+
+# messages added to version 1.3-15
+
+# Note: translate these messages only if the corresponding
+#  translated documents are supplied
+
+# For the following, you must supply a file named Commander-xx.Rd containing
+# a translation of the file Commander.Rd, where xx is the code for your
+# language. The \name{} and \alias{} fields in the .Rd file should both be
+# Commander-xx, where again xx is the language code.
+# Example: "Commander-es"
+
+# Note: Some translated Commander-xx.Rd files have not been compiling properly. As
+# an alternative, you can supply a PDF file named Commander-xx.pdf, and this will
+# be accessed when the user selects Help -> Commander help.
+
+# If you supply neither Commander-xx.Rd nor Commander-xx.pdf, then
+# the string "Commander" should not be translated. 
+
+msgid "Commander"
+msgstr ""
+
+# For the following you must supply a PDF document containing a translation
+# of "Getting-Started-with-the-Rcmdr.pdf". I suggest using a translation
+# including -xx, where xx is the code for your language.
+# Example: "Empezando-con-Rcmdr-es"
+
+msgid "Getting-Started-with-the-Rcmdr"
+msgstr ""
+
+# messages added to version 1.4-0
+
+msgid "Type of Tests"
+msgstr ""
+
+msgid "Sequential (\"Type I\")"
+msgstr ""
+
+msgid "Partial obeying marginality (\"Type II\")"
+msgstr ""
+
+msgid "Partial ignoring marginality (\"Type III\")"
+msgstr ""
+
+msgid "Type III tests require careful attention to contrast coding."
+msgstr ""
+
+msgid "There is no appropriate anova method for a model of this class."
+msgstr ""
+
+msgid "Duplicate menu names:"
+msgstr ""
+
+msgid "Strip chart..."
+msgstr ""
+
+msgid "Strip Chart"
+msgstr ""
+
+msgid "Factors (pick zero or more)"
+msgstr ""
+
+msgid "Duplicate Values"
+msgstr ""
+
+msgid "Stack"
+msgstr ""
+
+msgid "Jitter"
+msgstr ""
+
+msgid "Remove Rows from Active Data Set"
+msgstr ""
+
+msgid "Remove row(s) from active data set..."
+msgstr ""
+
+msgid "No rows to remove"
+msgstr ""
+
+msgid "Indices or quoted names of row(s) to remove"
+msgstr ""
+
+msgid "Akaike Information Criterion (AIC)"
+msgstr ""
+
+msgid "Bayesian Information Criterion (BIC)"
+msgstr ""
+
+msgid "Change working directory..."
+msgstr ""
+
+msgid "Log x-axis"
+msgstr ""
+
+msgid "Log y-axis"
+msgstr ""
+
+msgid "from text file, clipboard, or URL..."
+msgstr ""
+
+msgid "Read Text Data From File, Clipboard, or URL"
+msgstr ""
+
+msgid "Location of Data File"
+msgstr ""
+
+msgid "Local file system"
+msgstr ""
+
+msgid "Clipboard"
+msgstr ""
+
+msgid "Internet URL"
+msgstr ""
+
+msgid "Friedman rank-sum test..."
+msgstr ""
+
+msgid "Friedman Rank Sum Test"
+msgstr ""
+
+msgid "Repeated-Measures Variables (pick two or more)"
+msgstr ""
+
+msgid "Undo"
+msgstr ""
+
+msgid "Redo"
+msgstr ""
+
+msgid "ANOVA table..."
+msgstr ""
+
+# messages added to version 1.4-2
+
+msgid "Location not specified."
+msgstr ""
+
+# messages added to version 1.5-0
+
+#     "Models -> Stepwise model selection" dialog and menu item
+
+msgid "Stepwise model selection..."
+msgstr ""
+
+msgid "Stepwise Model Selection"
+msgstr ""
+
+msgid "Direction"
+msgstr ""
+
+msgid "backward/forward"
+msgstr ""
+
+msgid "forward/backward"
+msgstr ""
+
+msgid "backward"
+msgstr ""
+
+msgid "forward"
+msgstr ""
+
+msgid "Criterion"
+msgstr ""
+
+msgid "BIC"
+msgstr ""
+
+msgid "AIC"
+msgstr ""
+
+#      "Models -> Subset model selection" dialog and menu item
+
+msgid "Subset model selection..."
+msgstr ""
+
+msgid "Subset Model Selection"
+msgstr ""
+
+msgid "Criterion for Model Plot"
+msgstr ""
+
+msgid "Mallows Cp"
+msgstr ""
+
+msgid "Adjusted R-sq."
+msgstr ""
+
+msgid "R-squared"
+msgstr ""
+
+msgid "Number of best models\nof each size:"
+msgstr ""
+
+msgid "Maximum size:"
+msgstr ""
+
+#  	"Data -> Merge data sets" menu item and dialog
+
+msgid "Merge data sets..."
+msgstr ""
+
+msgid "Merge Data Sets"
+msgstr ""
+
+msgid "First Data Set (pick one)"
+msgstr ""
+
+msgid "Second Data Set (pick one)"
+msgstr ""
+
+msgid "Merge rows"
+msgstr ""
+
+msgid "Merge columns"
+msgstr ""
+
+msgid "Direction of Merge"
+msgstr ""
+
+msgid "You cannot merge a data set with itself."
+msgstr ""
+
+msgid "Name for merged data set:"
+msgstr ""
+
+msgid "Merge only common\nrows or columns"
+msgstr ""
+
+#  	"Data -> Active data set -> Aggregate variables in active data set" menu item and dialog
+
+msgid "Aggregate variables in active data set..."
+msgstr ""
+
+msgid "Aggregate Observations"
+msgstr ""
+
+msgid "Variables to aggregate\n(pick one or more)"
+msgstr ""
+
+msgid "Aggregate by\n(pick one or more)"
+msgstr ""
+
+msgid "Sum"
+msgstr ""
+
+msgid "You must select at least one variable to aggregate."
+msgstr ""
+
+msgid "You must select at least one variable to aggregate by."
+msgstr ""
+
+msgid "Variables to aggregate and those to aggregate by must be different."
+msgstr ""
+
+msgid "Name for aggregated data set:"
+msgstr ""
+
+#     miscellaneous 
+
+msgid "{\"R Data Files\" {\".rda\" \".Rda\" \".RDA\" \".RData\"}} {\"All Files\" {\"*\"}}"
+msgstr ""
+
+msgid "No data set selected."
+msgstr ""
+
+msgid "Help on selected data set"
+msgstr ""
+
+msgid "Population mean != mu0"
+msgstr ""
+
+msgid "Population proportion != p0"
+msgstr ""
+
+msgid "Models do not have the same family."
+msgstr ""
+
+msgid "Pairwise p-values\nfor Pearson or Spearman correlations"
+msgstr ""
+
+msgid "The Windows version of the R Commander works best under RGui\nwith the single-document interface (SDI); see ?Commander."
+msgstr ""
+
+# messages added to version 1.6-0
+
+	# for Levene test
+
+msgid "median"
+msgstr ""
+
+msgid "Center"
+msgstr ""
+
+	# for scatterplot
+
+msgid "Smooth line"
+msgstr ""
+
+msgid "Show spread"
+msgstr ""
+
+	# for AV plots
+	
+msgid "Identify points with mouse?\nRight-click to exit."
+msgstr ""
+
+	# for interactive point identification
+	
+msgid "Use left mouse button to identify points,\n"
+msgstr ""
+
+msgid "right button to exit."
+msgstr ""
+
+msgid "esc key to exit."
+msgstr ""
+
+	# menus
+	
+msgid "Start R help system"
+msgstr ""
+
+# messages added to version 1.6-4 
+#  to correct order of file extensions
+
+msgid "{\"All Files\" {\"*\"}} {\"Script Files\" {\".R\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"Output Files\" {\".txt\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"Text Files\" {\".txt\" \".TXT\" \".dat\" \".DAT\" \".csv\" \".CSV\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"SPSS portable files\" {\".por\" \".POR\"}} {\"SPSS save files\" {\".sav\" \".SAV\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"Minitab portable files\" {\".mtp\" \".MTP\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"STATA datasets\" {\".dta\" \".DTA\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"MS Access database\" {\".mdb\" \".MDB\"}} {\"MS Access 2007 database\" {\".accdb\" \".ACCDB\"}} {\"dBase-like file\" {\".dbf\" \".DBF\"}} {\"MS Excel 2007 file\" {\".xlsx\" \".XLSX\"}} {\"MS Excel file\" {\".xls\" \".XLS\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"R Data Files\" {\".RData\" \".rda\" \".Rda\" \".RDA\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"PNG Files\" {\".png\" \".PNG\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"JPEG Files\" {\".jpg\" \".JPG\" \".jpeg\" \".JPEG\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"PDF Files\" {\".pdf\" \".PDF\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"Postscript Files\" {\".ps\" \".PS\"}}"
+msgstr ""
+
+msgid "{\"All Files\" {\"*\"}} {\"Encapsulated Postscript Files\" {\".eps\" \".EPS\"}}"
+msgstr ""
+
+# messages added to version 1.7-0
+
+msgid "Reset"
+msgstr ""
+
+msgid "Coefficient of Variation"
+msgstr ""
+
+msgid "Skewness"
+msgstr ""
+
+msgid "Kurtosis"
+msgstr ""
+
+msgid "Type 1"
+msgstr ""
+
+msgid "Type 2"
+msgstr ""
+
+msgid "Type 3"
+msgstr ""
+
+msgid "Missing Data"
+msgstr ""
+
+msgid "Use complete cases"
+msgstr ""
+
+msgid "Use pairwise-complete cases"
+msgstr ""
+
+# messages added to version 1.7-4
+
+msgid "Component scores are not available when subset is specified."
+msgstr ""
+
+msgid "Factor scores are not available when subset is specified."
+msgstr ""
+
+# messages added to version 1.8-0
+
+msgid "Confirmatory Factor Analysis"
+msgstr ""
+
+msgid "Fewer than 2 variables selected to load on factor."
+msgstr ""
+
+msgid "Define factor"
+msgstr ""
+
+msgid "Select variables\nloading on factor"
+msgstr ""
+
+msgid "Covariance"
+msgstr ""
+
+msgid "Correlation"
+msgstr ""
+
+msgid "Matrix to Analyze"
+msgstr ""
+
+msgid "Correlated"
+msgstr ""
+
+msgid "Orthogonal"
+msgstr ""
+
+msgid "Factor Correlations"
+msgstr ""
+
+msgid "There are too many factors."
+msgstr ""
+
+msgid "Identifying Constraints"
+msgstr ""
+
+msgid "Factor variances set to 1"
+msgstr ""
+
+msgid "First loading on each factor set to 1"
+msgstr ""
+
+msgid "Confirmatory factor analysis..."
+msgstr ""
+
+# messages added to version 1.8-1
+
+	# the following messages were omitted from version 1.8-0
+
+msgid "Robust standard errors"
+msgstr ""
+
+msgid "No factors defined."
+msgstr ""
+
+# message added to version 1.8-2
+
+msgid "Default-font size (points)"
+msgstr ""
+
+# message added to version 1.8-4
+
+msgid "data set edit error."
+msgstr ""
