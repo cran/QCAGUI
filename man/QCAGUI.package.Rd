@@ -26,7 +26,7 @@ QCAGUI is a graphical user interface (GUI) for the QCA package, derived from R C
 
 \author{
 The package is 99\% based on the Rcmdr package written by John Fox <jfox@mcmaster.ca>.
-Only some additional menus were adapted for the QCA package by Adrian Dusa <adi@sas.unibuc.ro>
+Only some additional menus were adapted for the QCA package by Adrian Dusa <dusadrian@unibuc.ro>
 }
 
 \keyword{misc}

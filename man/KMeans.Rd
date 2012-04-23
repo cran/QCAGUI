@@ -35,8 +35,4 @@ KMeans(x, centers, iter.max=10, num.seeds=10)
 
 \seealso{\code{\link[stats]{kmeans}}}
 
-\examples{
-  data(USArrests)
-  KMeans(USArrests, centers=3, iter.max=5, num.seeds=5)
-}
 \keyword{misc}
