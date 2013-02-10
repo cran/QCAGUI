@@ -1,24 +1,47 @@
 
 # The R Commander and command logger
 
-# last modified 2012-03-31 by J. Fox
+# last modified 2013-01-27 by J. Fox
 #  applied patch to improve window behaviour supplied by Milan Bouchet-Valat 2011-09-22
 #   slight changes 12 Aug 04 by Ph. Grosjean
 #   changes 21 June 2007 by Erich Neuwirth for Excel support (marked EN)
 #   modified 17 December 2008 by Richard Heiberger  ##rmh
 
 Commander <- function(){
-	RStudioP <- function() exists("RStudio.version", where=1)
-	DESCRIPTION <- readLines(file.path(.find.package("Rcmdr"), "DESCRIPTION")[1])
+    library(QCAGUI, quietly=TRUE)
+    RcmdrEnv.on.path <- getOption("QCAGUI")[["RcmdrEnv.on.path"]]
+    if (is.null(RcmdrEnv.on.path)) RcmdrEnv.on.path <- (getRversion() < "3.0.0")
+    if (RcmdrEnv.on.path){
+        RcmdrEnv <- function() {
+            pos <-  match("RcmdrEnv", search())
+            if (is.na(pos)) { # Must create it
+                RcmdrAttach <- base::attach
+                RcmdrEnv <- list()
+                RcmdrAttach(RcmdrEnv, pos = length(search()) - 1)
+                rm(RcmdrEnv)
+                pos <- match("RcmdrEnv", search())
+            }
+            return(pos.to.env(pos))
+        }
+        
+        assignInMyNamespace("RcmdrEnv", RcmdrEnv)        
+        assignInMyNamespace(".RcmdrEnv", NULL)
+        
+    }
+	RStudioP <- function() nzchar(Sys.getenv("RSTUDIO_USER_IDENTITY"))
+	DESCRIPTION <- readLines(file.path(.find.package("QCAGUI"), "DESCRIPTION")[1])
 	RcmdrVersion <- trim.blanks(sub("^Version:", "",
 					grep("^Version:", DESCRIPTION, value=TRUE)))
 	putRcmdr("quotes", options(useFancyQuotes=FALSE))
 	putRcmdr("messageNumber", 0)
 	# the following test suggested by Richard Heiberger
-	if ("RcmdrEnv" %in% search() &&
-			exists("commanderWindow", "RcmdrEnv") &&
-			!is.null(get("commanderWindow", "RcmdrEnv"))) {
-		warning("QCAGUI is already open.")
+# 	if ("RcmdrEnv" %in% search() &&
+# 			exists("commanderWindow", "RcmdrEnv") &&
+# 			!is.null(get("commanderWindow", "RcmdrEnv"))) {
+	if (exists(".RcmdrEnv") && is.environment(RcmdrEnv()) &&
+	        exists("commanderWindow", RcmdrEnv()) &&
+	        !is.null(get("commanderWindow", RcmdrEnv()))) {
+#		warning("The R Commander is already open.")
 		return(invisible(NULL))
 	}
 	if (is.SciViews()) return(invisible(svCommander(Version=RcmdrVersion))) # +PhG
@@ -27,9 +50,26 @@ Commander <- function(){
 		if (global) putRcmdr(option, opt)
 		else opt
 	}
-	current <- options("Rcmdr")[[1]]
+	current <- options("QCAGUI")[[1]]
+    setOption("suppress.icon.images", FALSE)
+    icon.images <- !getRcmdr("suppress.icon.images")
+    tkimage.create("photo", "::image::RlogoIcon", file = system.file("etc", "R-logo.gif", package="QCAGUI"))
+    tkimage.create("photo", "::image::okIcon", 
+                   file = if (icon.images) system.file("etc", "ok.gif", package="QCAGUI") else system.file("etc", "blank.gif", package="QCAGUI"))
+    tkimage.create("photo", "::image::cancelIcon", file = if (icon.images) system.file("etc", "cancel.gif", package="QCAGUI") 
+                   else system.file("etc", "blank.gif", package="QCAGUI"))
+	tkimage.create("photo", "::image::helpIcon", file = if (icon.images) system.file("etc", "help.gif", package="QCAGUI")
+                    else system.file("etc", "blank.gif", package="QCAGUI"))
+	tkimage.create("photo", "::image::resetIcon", file = if (icon.images) system.file("etc", "reset.gif", package="QCAGUI")
+                    else system.file("etc", "blank.gif", package="QCAGUI"))
+	tkimage.create("photo", "::image::submitIcon", file = system.file("etc", "submit.gif", package="QCAGUI"))
+	tkimage.create("photo", "::image::editIcon", file = system.file("etc", "edit.gif", package="QCAGUI"))
+	tkimage.create("photo", "::image::viewIcon", file = system.file("etc", "view.gif", package="QCAGUI"))
+	tkimage.create("photo", "::image::dataIcon", file = system.file("etc", "data.gif", package="QCAGUI"))
+	tkimage.create("photo", "::image::modelIcon", file = system.file("etc", "model.gif", package="QCAGUI"))
 	setOption("number.messages", TRUE)
-	etc <- setOption("etc", file.path(.path.package(package="QCAGUI")[1], "etc"))
+#etc <- setOption("etc", file.path(.path.package(package="QCAGUI")[1], "etc"))
+	etc <- setOption("etc", system.file("etc", package="QCAGUI"))
 	etcMenus <- setOption("etcMenus", etc)
 	putRcmdr("etcMenus", etcMenus)
 	onCopy <- function(){
@@ -176,7 +216,7 @@ Commander <- function(){
 	setOption("grab.focus", TRUE)
 	setOption("attach.data.set", FALSE)
 	setOption("log.text.color", "black")
-	setOption("command.text.color", "red")
+	setOption("command.text.color", "darkred")
 	setOption("output.text.color", "darkblue")
 	setOption("error.text.color", "red")
 	setOption("warning.text.color", "darkgreen")
@@ -190,6 +230,7 @@ Commander <- function(){
 	setOption("crisp.dialogs",  TRUE)
 	setOption("length.output.stack", 10)
 	setOption("length.command.stack", 10)
+    setOption("quit.R.on.close", FALSE)
 	putRcmdr("outputStack", as.list(rep(NA, getRcmdr("length.output.stack"))))
 	putRcmdr("commandStack", as.list(rep(NA, getRcmdr("length.command.stack"))))
 	setOption("variable.list.height", 4)
@@ -202,10 +243,18 @@ Commander <- function(){
 	if (.Platform$OS.type != "windows") {
 		putRcmdr("oldPager", options(pager=RcmdrPager))
 	}
+	putRcmdr("restore.help_type", getOption("help_type"))
+	if (.Platform$OS.type != "windows" || RStudioP()) {
+	    options(help_type = "text")
+	}
 	default.font.size <- as.character(setOption("default.font.size", 10, global=FALSE)) # if (.Platform$OS.type == "windows")10 else 12, global=FALSE))
 	default.font <- setOption("default.font", NULL, global=FALSE) 
 	if (!("RcmdrDefaultFont" %in% as.character(.Tcl("font names")))){
-		if (is.null(default.font)) .Tcl(paste("font create RcmdrDefaultFont -size ", default.font.size))
+#		if (is.null(default.font)) .Tcl(paste("font create RcmdrDefaultFont -size ", default.font.size))
+	    if (is.null(default.font)){
+	        .Tcl(paste("font create RcmdrDefaultFont", tclvalue(tkfont.actual("TkDefaultFont"))))
+	        tkfont.configure("RcmdrDefaultFont", size=default.font.size)
+	    }
 		else .Tcl(paste("font create RcmdrDefaultFont ", default.font))
 		.Tcl("option add *font RcmdrDefaultFont")
 	}
@@ -214,7 +263,7 @@ Commander <- function(){
 		else .Tcl(paste("font configure RcmdrDefaultFont ", default.font))
 	}
 	.Tcl("ttk::style configure TButton -font RcmdrDefaultFont")
-	placement <- setOption("placement", "-40+20", global=FALSE)
+	placement <- setOption("placement", "", global=FALSE)
 	source.files <- list.files(etc, pattern="\\.[Rr]$")
 	for (file in source.files) {
 		source(file.path(etc, file))
@@ -310,7 +359,11 @@ Commander <- function(){
 		addModels <- description[grep("Models:", description)]
 		addModels <- gsub(" ", "", sub("^Models:", "", addModels))
 		addModels <- unlist(strsplit(addModels, ","))
+		addRcmdrModels <- description[grep("RcmdrModels:", description)]
+		addRcmdrModels <- gsub(" ", "", sub("^RcmdrModels:", "", addRcmdrModels))
+		addRcmdrModels <- unlist(strsplit(addRcmdrModels, ","))
 		if (length(addModels) > 0) modelClasses <- c(modelClasses, addModels)
+		if (length(addRcmdrModels) > 0) modelClasses <- c(modelClasses, addRcmdrModels)
 	}
 	putRcmdr("modelClasses", modelClasses)
 #	onEdit <- function(){
@@ -346,7 +399,8 @@ Commander <- function(){
 		if (class(result)[1] !=  "try-error"){ 			
 			if (nrow(get(dsnameValue)) == 0){
 				errorCondition(window=NULL, message=gettextRcmdr("empty data set."))
-				assign(dsnameValue, save.dataset, envir=.GlobalEnv)
+				# assign(dsnameValue, save.dataset, envir=.GlobalEnv)
+                justDoIt(paste(dsnameValue, "<- save.dataset"))
 				return()
 			}
 			else{
@@ -356,7 +410,8 @@ Commander <- function(){
 		}
 		else{
 			errorCondition(window=NULL, message=gettextRcmdr("data set edit error."))
-			assign(dsnameValue, save.dataset, envir=.GlobalEnv)
+			# assign(dsnameValue, save.dataset, envir=.GlobalEnv)
+			justDoIt(paste(dsnameValue, "<- save.dataset"))
 			return()
 		}
 		tkwm.deiconify(CommanderWindow())
@@ -404,7 +459,7 @@ Commander <- function(){
 			while (nchar(lines[iline])==0) iline <- iline + 1
 			if (iline > nlines) break
 			current.line <- lines[iline]
-			if (.console.output) cat(paste("\nQCA> ", current.line, "\n", sep=""))
+			if (.console.output) cat(paste("\n", getRcmdr("prefixes")[1], current.line,"\n", sep=""))
 			else{
 				tkinsert(.output, "end", paste("\n> ", current.line,"\n", sep="")) ### end of changed
 				tktag.add(.output, "currentLine", "end - 2 lines linestart", "end - 2 lines lineend")
@@ -413,7 +468,7 @@ Commander <- function(){
 			jline <- iline + 1
 			while (jline <= nlines){
 				if (class(try(parse(text=current.line),silent=TRUE))!="try-error") break
-				if (.console.output)cat(paste("\nQCA> ", lines[jline],"\n", sep=""))
+				if (.console.output)cat(paste(getRcmdr("prefixes")[2], lines[jline],"\n", sep=""))
 				else{
 					tkinsert(.output, "end", paste("+ ", lines[jline],"\n", sep=""))
 					tktag.add(.output, "currentLine", "end - 2 lines linestart", "end - 2 lines lineend")
@@ -475,9 +530,12 @@ Commander <- function(){
 	if (getRcmdr("crisp.dialogs")) tclServiceMode(on=FALSE)
 	putRcmdr("commanderWindow", tktoplevel(class="Rcommander"))
 	.commander <- CommanderWindow()
+#	if (.Platform$OS.type == "windows") tkwm.iconbitmap(.commander, default=system.file("etc", "R-logo.ico", package="QCAGUI"))
+    tcl("wm", "iconphoto", .commander, "::image::RlogoIcon")
 	tkwm.geometry(.commander, placement)
-	tkwm.title(.commander, gettextRcmdr("Qualitative Comparative Analysis"))
-	tkwm.protocol(.commander, "WM_DELETE_WINDOW", CloseCommander)
+	tkwm.title(.commander, gettextRcmdr("QCA"))
+	tkwm.protocol(.commander, "WM_DELETE_WINDOW", 
+                  if (getRcmdr("quit.R.on.close")) closeCommanderAndR else CloseCommander)
 	topMenu <- tkmenu(.commander)
 	tkconfigure(.commander, menu=topMenu)
 	position <- numeric(0)
@@ -491,8 +549,9 @@ Commander <- function(){
 				menus[[Menus[m, 2]]] <- list(ID=get(Menus[m, 2])$ID, position=0)
 			}
 			else if (Menus[m, 1] == "item") {
+				position[Menus[m, 2]] <- position[Menus[m, 2]] + 1
 				if (Menus[m, 3] == "command"){
-					position[Menus[m, 2]] <- position[Menus[m, 2]] + 1
+				#	position[Menus[m, 2]] <- position[Menus[m, 2]] + 1  # moved up following suggestion on M. Bouchet-Valet
 					if (Menus[m, 6] == "")
 						tkadd(get(Menus[m, 2]), "command", label=gettextMenus(Menus[m, 4]),
 								command=get(Menus[m, 5]))
@@ -519,11 +578,13 @@ Commander <- function(){
 	putRcmdr("autoRestart", FALSE)
 	activateMenus()
 	controlsFrame <- tkframe(CommanderWindow())
-	editButton <- buttonRcmdr(controlsFrame, text=gettextRcmdr("Edit data set"), command=onEdit)
-	viewButton <- buttonRcmdr(controlsFrame, text=gettextRcmdr("View data set"), command=onView)
+	editButton <- buttonRcmdr(controlsFrame, text=gettextRcmdr("Edit data set"), command=onEdit, 
+                              image="::image::editIcon", compound="left")
+	viewButton <- buttonRcmdr(controlsFrame, text=gettextRcmdr("View data set"), command=onView,
+	                          image="::image::viewIcon", compound="left")
 	putRcmdr("dataSetName", tclVar(gettextRcmdr("<No active dataset>")))
 	putRcmdr("dataSetLabel", tkbutton(controlsFrame, textvariable=getRcmdr("dataSetName"), foreground="red",
-					relief="groove", command=selectActiveDataSet))
+					relief="groove", command=selectActiveDataSet, image="::image::dataIcon", compound="left"))
 	logFrame <- tkframe(CommanderWindow())
 	putRcmdr("logWindow", tktext(logFrame, bg="white", foreground=getRcmdr("log.text.color"),
 					font=getRcmdr("logFont"), height=log.height, width=log.width, wrap="none", undo=TRUE))
@@ -535,14 +596,12 @@ Commander <- function(){
 	tkconfigure(.log, xscrollcommand=function(...) tkset(logXscroll, ...))
 	tkconfigure(.log, yscrollcommand=function(...) tkset(logYscroll, ...))
 	outputFrame <- tkframe(.commander)
-	submitIm <- tcl("image", "create", "bitmap", file=file.path(etc, "submit.xbm"))
-	if (getRcmdr("console.output"))
-		submitButton <- if (English()) buttonRcmdr(logFrame, image=submitIm,
-							borderwidth="2", command=onSubmit)
-				else buttonRcmdr(logFrame, text=gettextRcmdr("Submit"), borderwidth="2", command=onSubmit)
-	else submitButton <- if (English()) buttonRcmdr(outputFrame, image=submitIm,
-							borderwidth="2", command=onSubmit)
-				else buttonRcmdr(outputFrame, text=gettextRcmdr("Submit"), borderwidth="2", command=onSubmit)
+#	submitIm <- tcl("image", "create", "bitmap", file=file.path(etc, "submit.xbm"))
+	submitButton <- if (getRcmdr("console.output"))
+		 buttonRcmdr(logFrame, text=gettextRcmdr("Submit"), borderwidth="2", command=onSubmit,
+                     image="::image::submitIcon", compound="left")
+	else buttonRcmdr(outputFrame, text=gettextRcmdr("Submit"), borderwidth="2", command=onSubmit, 
+	                 image="::image::submitIcon", compound="left")
 	putRcmdr("outputWindow", tktext(outputFrame, bg="white", foreground=getRcmdr("output.text.color"),
 					font=getRcmdr("logFont"), height=output.height, width=log.width, wrap="none", undo=TRUE))
 	.output <- OutputWindow()
@@ -563,28 +622,16 @@ Commander <- function(){
 	tkconfigure(.messages, xscrollcommand=function(...) tkset(messagesXscroll, ...))
 	tkconfigure(.messages, yscrollcommand=function(...) tkset(messagesYscroll, ...))
 	putRcmdr("modelName", tclVar(gettextRcmdr("<No active model>")))
-	putRcmdr("modelLabel", tkbutton(controlsFrame, textvariable=getRcmdr("modelName"), foreground="red",
-					relief="groove", command=selectActiveModel))
-	show.edit.button <- options("Rcmdr")[[1]]$show.edit.button
+	# putRcmdr("modelLabel", tkbutton(controlsFrame, textvariable=getRcmdr("modelName"), foreground="red",
+	# 				relief="groove", command=selectActiveModel, image="::image::modelIcon", compound="left"))
+	show.edit.button <- options("QCAGUI")[[1]]$show.edit.button
 	show.edit.button <- if (is.null(show.edit.button)) TRUE else show.edit.button
 	if (!getRcmdr("suppress.menus")){
-	    
-        tkgrid(tklabel(controlsFrame, bitmap=paste("@", file.path(etc, "QCA.xbm"), sep=""), fg="red"),
-            tklabel(controlsFrame, text=gettextRcmdr("Data set:")), getRcmdr("dataSetLabel"),
-            tklabel(controlsFrame, text="  "), if(show.edit.button) editButton, viewButton, sticky="w")
-            # tklabel(controlsFrame, text=gettextRcmdr("    Model: ")), getRcmdr("modelLabel"), sticky="w")
-        tkgrid(controlsFrame, sticky="w")
-	    
-	    
-	    
-	    
-	    
-	    
-		RcmdrIm <- tcl("image", "create", "bitmap", file=file.path(etc, "QCA.xbm"), foreground="red")
-		tkgrid(labelRcmdr(controlsFrame, image=RcmdrIm),
+#		RcmdrIm <- tcl("image", "create", "bitmap", file=file.path(etc, "QCA.xbm"), foreground="red")
+		tkgrid(labelRcmdr(controlsFrame, image="::image::RlogoIcon", compound="left"),
 				labelRcmdr(controlsFrame, text=gettextRcmdr("Data set:")), getRcmdr("dataSetLabel"),
 				labelRcmdr(controlsFrame, text="  "), if(show.edit.button) editButton, viewButton, sticky="w")
-				#labelRcmdr(controlsFrame, text=gettextRcmdr("    Model: ")), getRcmdr("modelLabel"), sticky="w")
+				# labelRcmdr(controlsFrame, text=gettextRcmdr("    Model: ")), getRcmdr("modelLabel"), sticky="w")
 		tkgrid(controlsFrame, sticky="w")
 	}
 	.log.commands <-  getRcmdr("log.commands")
@@ -595,7 +642,7 @@ Commander <- function(){
 	tkgrid(logXscroll)
 	if (.log.commands) tkgrid(logFrame, sticky="news", padx=10, pady=0, columnspan=2)
 	tkgrid(labelRcmdr(outputFrame, text=gettextRcmdr("Output Window"), foreground="blue"),
-			if (.log.commands && !.console.output) submitButton, sticky="w")
+			if (.log.commands && !.console.output) submitButton, sticky="sw")
 	tkgrid(.output, outputYscroll, sticky="news", columnspan=2)
 	tkgrid(outputXscroll, columnspan=1 + (.log.commands && !.console.output))
 	if (!.console.output) tkgrid(outputFrame, sticky="news", padx=10, pady=0, columnspan=2)
@@ -660,10 +707,13 @@ Commander <- function(){
 	tkwm.deiconify(.commander)
 	tkfocus(.commander)
 	if (getRcmdr("crisp.dialogs")) tclServiceMode(on=TRUE)
-	tkwait <- options("Rcmdr")[[1]]$tkwait  # to address problem in Debian Linux
+	tkwait <- options("QCAGUI")[[1]]$tkwait  # to address problem in Debian Linux
 	if ((!is.null(tkwait)) && tkwait) {
-		.commander.done <<- tclVar("0")
-		tkwait.variable(.commander.done)
+#		.commander.done <<- tclVar("0")
+#		assign(".commander.done", tclVar("0"), envir = .GlobalEnv)
+        putRcmdr(".commander.done", tclVar("0"))
+#		tkwait.variable(.commander.done)
+        tkwait.variable(getRcmdr(".commander.done"))
 	}
 	Message(paste(gettextRcmdr("QCAGUI based on R Commander Version "), getRcmdr("RcmdrVersion"), ": ", date(), sep=""))
 	if (.Platform$GUI == "Rgui"  && ismdi()) Message(gettextRcmdr(
@@ -692,7 +742,7 @@ logger <- function(command){
 	tkinsert(.output, "end", "\n")
 	if (getRcmdr("console.output")) {
 		for (line in seq(along.with=lines)) {
-			prompt <- ifelse (line==1, "\nQCA>", "\nQCA+") 
+			prompt <- ifelse (line==1, paste("\n", getRcmdr("prefixes")[1], sep=""), paste("\n", getRcmdr("prefixes")[2], sep=""))
 			cat(paste(prompt, lines[line]))  ##rmh
 		}
 		cat("\n")                          ##rmh
@@ -769,6 +819,7 @@ doItAndPrint <- function(command, log=TRUE) {
 	}
 	for (i in seq_along(exprs)) {
 		ei <- exprs[i]
+		tcl("update")
 		result <-  try(withVisible(eval(ei, envir=.GlobalEnv)), silent=TRUE)
 		if (class(result)[1] ==  "try-error"){
 			Message(message=paste(strsplit(result, ":")[[1]][2]), type="error")
@@ -885,7 +936,13 @@ Message <- function(message, type=c("note", "error", "warning")){
 		putRExcel(".rexcel.last.message",message)
 	######### end of change ###############
 	lines <- strsplit(message, "\n")[[1]]
-	
+    console.output <- getRcmdr("console.output")
+	if (!console.output){
+	  width <- (as.numeric(tkwinfo("width", .message)) - 2*as.numeric(tkcget(.message, borderwidth=NULL)) - 2)/
+	    as.numeric(tkfont.measure(tkcget(.message, font=NULL), "0"))
+	  eval(parse(text=paste("options(width=", floor(width), ")", sep="")))
+	}
+	lines <- strwrap(lines)
 	######### added by rmh #####################                   ##rmh
 	if (console.output) {                                        ##rmh & J. Fox
 		if (sink.number() != 0) sink()							## fixed by J. Fox

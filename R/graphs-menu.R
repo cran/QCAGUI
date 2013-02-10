@@ -1,6 +1,6 @@
 # Graphs menu dialogs
 
-# last modified 2012-02-02 by J. Fox
+# last modified 2012-08-29 by J. Fox
 #  applied patch to improve window behaviour supplied by Milan Bouchet-Valat 2011-09-22
 
 indexPlot <- function () {
@@ -207,76 +207,56 @@ stemAndLeaf <- function () {
 }
 
 boxPlot <- function () {
-	defaults <- list(initial.x = NULL, initial.identifyPoints = 0, initialGroup=NULL) 
-	dialog.values <- getDialog("boxPlot", defaults)
-	initializeDialog(title = gettextRcmdr("Boxplot"))
-	xBox <- variableListBox(top, Numeric(), title = gettextRcmdr("Variable (pick one)"), 
-			initialSelection = varPosn (dialog.values$initial.x, "numeric"))
-	identifyVariable <- tclVar(dialog.values$initial.identifyPoints)
-	identifyFrame <- tkframe(top)
-	identifyCheckBox <- tkcheckbutton(identifyFrame, variable = identifyVariable)
-	initial.group <- dialog.values$initial.group
-	.groups <- if (is.null(initial.group)) FALSE else initial.group
-	onOK <- function() {
-		x <- getSelection(xBox)
-		identifyPoints <- "1" == tclvalue(identifyVariable)
-		putDialog ("boxPlot", list(initial.x = x, initial.identifyPoints = identifyPoints, 
-						initial.group=if (.groups == FALSE) NULL else .groups))
-		closeDialog()
-		if (length(x) == 0) {
-			errorCondition(recall = boxPlot, message = gettextRcmdr("You must select a variable"))
-			return()
-		}
-		.activeDataSet <- ActiveDataSet()
-		var <- paste(.activeDataSet, "$", x, sep = "")
-		if (is.null(.groups) || .groups == FALSE) {
-			command <- (paste("boxplot(", var, ", ylab=\"", x, 
-								"\")", sep = ""))
-			logger(command)
-			justDoIt(command)
-			if (identifyPoints) {
-				RcmdrTkmessageBox(title = "Identify Points", 
-						message = paste(gettextRcmdr("Use left mouse button to identify points,\n"), 
-								gettextRcmdr(if (MacOSXP()) 
-													"esc key to exit."
-												else "right button to exit."), sep = ""), 
-						icon = "info", type = "ok")
-				doItAndPrint(paste("identify(rep(1, length(", 
-								var, ")), ", var, ", rownames(", .activeDataSet, 
-								"))", sep = ""))
-			}
-		}
-		else {
-			command <- (paste("boxplot(", x, "~", .groups, ", ylab=\"", 
-								x, "\", xlab=\"", .groups, "\"", ", data=", .activeDataSet, 
-								")", sep = ""))
-			logger(command)
-			justDoIt(command)
-			if (identifyPoints) {
-				RcmdrTkmessageBox(title = "Identify Points", 
-						message = paste(gettextRcmdr("Use left mouse button to identify points,\n"), 
-								gettextRcmdr(if (MacOSXP()) 
-													"esc key to exit."
-												else "right button to exit."), sep = ""), 
-						icon = "info", type = "ok")
-				doItAndPrint(paste("identify(", .activeDataSet, 
-								"$", .groups, ", ", var, ", rownames(", .activeDataSet, 
-								"))", sep = ""))
-			}
-		}
-		activateMenus()
-		tkfocus(CommanderWindow())
-	}
-	groupsBox(boxPlot, initialGroup=initial.group, 
-			initialLabel=if (is.null(initial.group)) gettextRcmdr("Plot by groups") else paste(gettextRcmdr("Plot by:"), initial.group))
-	OKCancelHelp(helpSubject = "boxplot", reset = "boxPlot")
-	tkgrid(getFrame(xBox), sticky = "nw")
-	tkgrid(labelRcmdr(identifyFrame, text = gettextRcmdr("Identify outliers with mouse"), 
-					justify = "left"), identifyCheckBox, sticky = "w")
-	tkgrid(identifyFrame, stick = "w")
-	tkgrid(groupsFrame, sticky = "w")
-	tkgrid(buttonsFrame, sticky = "w")
-	dialogSuffix(rows = 4, columns = 1)
+    defaults <- list(initial.x = NULL, initial.identify = "y", initialGroup=NULL) 
+    dialog.values <- getDialog("boxPlot", defaults)
+    initializeDialog(title = gettextRcmdr("Boxplot"))
+    xBox <- variableListBox(top, Numeric(), title = gettextRcmdr("Variable (pick one)"), 
+                            initialSelection = varPosn (dialog.values$initial.x, "numeric"))
+    radioButtons(name = "identify", buttons = c("y", "identify", "none"), 
+                 labels = gettextRcmdr(c("Automatically", "With mouse", "No")), 
+                 title = gettextRcmdr("Identify Outliers"), 
+                 initialValue = dialog.values$initial.identify)
+    initial.group <- dialog.values$initial.group
+    .groups <- if (is.null(initial.group)) FALSE else initial.group
+    onOK <- function() {
+        x <- getSelection(xBox)
+        identifyPoints <- tclvalue(identifyVariable)
+        putDialog ("boxPlot", list(initial.x = x, initial.identify = identifyPoints, 
+                                   initial.group=if (.groups == FALSE) NULL else .groups))
+        closeDialog()
+        if (length(x) == 0) {
+            errorCondition(recall = boxPlot, message = gettextRcmdr("You must select a variable"))
+            return()
+        }
+        .activeDataSet <- ActiveDataSet()
+        var <- paste(.activeDataSet, "$", x, sep = "")
+        if (identifyPoints == "identify")
+            RcmdrTkmessageBox(title = "Identify Points", 
+                              message = paste(gettextRcmdr("Use left mouse button to identify points,\n"), 
+                                              gettextRcmdr(if (MacOSXP()) "esc key to exit."
+                                                           else "right button to exit."), sep = ""), 
+                              icon = "info", type = "ok")
+        if (is.null(.groups) || .groups == FALSE) {
+            command <- paste("Boxplot( ~ ", x, ", data=", .activeDataSet, ', id.method="', 
+                             identifyPoints, '")', sep="")
+            doItAndPrint(command)
+        }
+        else {
+            command <- paste("Boxplot(", x, "~", .groups, ", data=", .activeDataSet, 
+                             ', id.method="', identifyPoints, '")', sep = "")
+            doItAndPrint(command)
+        }
+        activateMenus()
+        tkfocus(CommanderWindow())
+    }
+    groupsBox(boxPlot, initialGroup=initial.group, 
+              initialLabel=if (is.null(initial.group)) gettextRcmdr("Plot by groups") else paste(gettextRcmdr("Plot by:"), initial.group))
+    OKCancelHelp(helpSubject = "boxplot", reset = "boxPlot")
+    tkgrid(getFrame(xBox), sticky = "nw")
+    tkgrid(identifyFrame, stick = "w")
+    tkgrid(groupsFrame, sticky = "w")
+    tkgrid(buttonsFrame, sticky = "w")
+    dialogSuffix(rows = 4, columns = 1)
 }
 
 scatterPlot <- function () {
@@ -308,7 +288,7 @@ scatterPlot <- function () {
 					dialog.values$initial.spread),labels = gettextRcmdr(c("Identify points", 
 							"Jitter x-variable", "Jitter y-variable", "Log x-axis", 
 							"Log y-axis", "Marginal boxplots", "Least-squares line", 
-							"Smooth line", "Show spread")), title = "Options")
+							"Smooth line", "Show spread")), title = gettextRcmdr("Options"))
 	sliderValue <- tclVar(dialog.values$initial.span)
 	slider <- tkscale(optionsFrame, from = 0, to = 100, showvalue = TRUE, 
 			variable = sliderValue, resolution = 5, orient = "horizontal")
@@ -984,514 +964,321 @@ PlotMeans <- function () {
 	dialogSuffix(rows = 3, columns = 2)
 }
 
-Scatter3D <- function () {
-	use.rgl <- options("Rcmdr")[[1]]$use.rgl
-	if (length(use.rgl) == 0 || use.rgl) {
-		Library("car")
-		Library("rgl")
-		Library("mgcv")
-	}
-	defaults <- list (initial.x = NULL, initial.y = NULL, initial.scales = 1, initial.grid = 1, 
-			initial.resids = 0, initial.lin = 1, initial.quad = 0, initial.nonpar = 0, 
-			initial.additive = 0, initial.ellips = 0, initial.dfNonpar = gettextRcmdr ("<auto>"), 
-			initial.dfAdd = gettextRcmdr ("<auto>"), initial.bg = "white", initial.identify = 0,
-			initialGroup=NULL, initial.lines.by.group=0)
-	dialog.values <- getDialog ("Scatter3D", defaults)
-	initial.group <- dialog.values$initial.group
-	.linesByGroup <- if (dialog.values$initial.lines.by.group == 1) TRUE else FALSE
-	.groups <- if (is.null(initial.group)) FALSE else initial.group
-	initializeDialog(title = gettextRcmdr("3D Scatterplot"))
-	variablesFrame <- tkframe(top)
-	.numeric <- Numeric()
-	xBox <- variableListBox(variablesFrame, .numeric, title = gettextRcmdr("Explanatory variables (pick two)"), 
-			selectmode = "multiple", initialSelection = varPosn (dialog.values$initial.x, "numeric"))
-	yBox <- variableListBox(variablesFrame, .numeric, title = gettextRcmdr("Response variable (pick one)"), 
-			initialSelection = varPosn (dialog.values$initial.y, "numeric"))
-	surfacesFrame <- tkframe(top)
-	identifyPoints <- tclVar(dialog.values$initial.identify)
-	identifyPointsCheckBox <- tkcheckbutton(surfacesFrame, variable = identifyPoints)
-	axisScales <- tclVar(dialog.values$initial.scales)
-	axisScalesCheckBox <- tkcheckbutton(surfacesFrame, variable = axisScales)
-	gridLines <- tclVar(dialog.values$initial.grid)
-	gridLinesCheckBox <- tkcheckbutton(surfacesFrame, variable = gridLines)
-	squaredResiduals <- tclVar(dialog.values$initial.resids)
-	squaredResidualsCheckBox <- tkcheckbutton(surfacesFrame, 
-			variable = squaredResiduals)
-	linearLSSurface <- tclVar(dialog.values$initial.lin)
-	linearLSCheckBox <- tkcheckbutton(surfacesFrame, variable = linearLSSurface)
-	quadLSSurface <- tclVar(dialog.values$initial.quad)
-	quadLSCheckBox <- tkcheckbutton(surfacesFrame, variable = quadLSSurface)
-	nonparSurface <- tclVar(dialog.values$initial.nonpar)
-	nonparCheckBox <- tkcheckbutton(surfacesFrame, variable = nonparSurface)
-	dfNonparVariable <- tclVar(dialog.values$initial.dfNonpar)
-	dfNonparField <- ttkentry(surfacesFrame, width = "6", textvariable = dfNonparVariable)
-	additiveSurface <- tclVar(dialog.values$initial.additive)
-	additiveCheckBox <- tkcheckbutton(surfacesFrame, variable = additiveSurface)
-	dfAddVariable <- tclVar(dialog.values$initial.dfAdd)
-	dfAddField <- ttkentry(surfacesFrame, width = "6", textvariable = dfAddVariable)
-	ellipsoid <- tclVar(dialog.values$initial.ellips)
-	ellipsoidCheckBox <- tkcheckbutton(surfacesFrame, variable = ellipsoid)
-	bgFrame <- tkframe(top)
-	bgVariable <- tclVar(dialog.values$initial.bg)
-	whiteButton <- ttkradiobutton(bgFrame, variable = bgVariable, 
-			value = "white")
-	blackButton <- ttkradiobutton(bgFrame, variable = bgVariable, 
-			value = "black")
-	onOK <- function() {
-		x <- getSelection(xBox)
-		y <- getSelection(yBox)
-		scales <- tclvalue(axisScales)
-		grid <- tclvalue(gridLines)
-		resids <- tclvalue(squaredResiduals)
-		lin <- tclvalue(linearLSSurface)
-		quad <- tclvalue(quadLSSurface)
-		nonpar <- tclvalue(nonparSurface)
-		additive <- tclvalue(additiveSurface)
-		ellips <- tclvalue(ellipsoid) 
-		dfNonpar <- tclvalue(dfNonparVariable)
-		dfAdd <- tclvalue(dfAddVariable)
-		bg <- tclvalue(bgVariable)
-		identify <- tclvalue(identifyPoints)
-		putDialog ("Scatter3D", list (initial.x = x, initial.y = y, initial.scales = scales, initial.grid = grid, 
-						initial.resids = resids, initial.lin = lin, initial.quad = quad, initial.nonpar = nonpar, 
-						initial.additive = additive, initial.ellips = ellips, initial.dfNonpar = dfNonpar, 
-						initial.dfAdd = dfAdd, initial.bg = bg, initial.identify = identify,
-						initial.group=if (.groups == FALSE) NULL else .groups,
-						initial.lines.by.group=if (.linesByGroup) 1 else 0))
-		closeDialog()
-		if (length(y) == 0) {
-			errorCondition(recall = Scatter3D, message = gettextRcmdr("You must select a response variable."))
-			return()
-		}
-		if (2 != length(x)) {
-			errorCondition(recall = Scatter3D, message = gettextRcmdr("You must select 2 explanatory variables."))
-			return()
-		}
-		if (is.element(y, x)) {
-			errorCondition(recall = Scatter3D, message = gettextRcmdr("Response and explanatory variables must be different."))
-			return()
-		}
-		scales <- if (tclvalue(axisScales) == 1) 
-					"TRUE"
-				else "FALSE"
-		grid <- if (tclvalue(gridLines) == 1) 
-					"TRUE"
-				else "FALSE"
-		resids <- if (tclvalue(squaredResiduals) == 1) 
-					", residuals=\"squares\""
-				else ", residuals=TRUE"
-		lin <- if (tclvalue(linearLSSurface) == 1) 
-			"\"linear\""
-		quad <- if (tclvalue(quadLSSurface) == 1) 
-			"\"quadratic\""
-		nonpar <- if (tclvalue(nonparSurface) == 1) 
-			"\"smooth\""
-		additive <- if (tclvalue(additiveSurface) == 1) 
-			"\"additive\""
-		surfaces <- c(lin, quad, nonpar, additive)
-		nsurfaces <- length(surfaces)
-		if (nsurfaces > 1) 
-			resids <- ""
-		ellips <- if (tclvalue(ellipsoid) == 1) 
-					"TRUE"
-				else "FALSE"
-		opts <- options(warn = -1)
-		dfNonpar <- if (dfNonpar == gettextRcmdr("<auto>")) 
-					""
-				else paste(", df.smooth=", as.numeric(dfNonpar), sep = "")
-		dfAdd <- if (dfAdd == gettextRcmdr("<auto>")) 
-					""
-				else paste(", df.additive=", as.numeric(dfAdd), sep = "")
-		options(opts)
-		fit <- if (nsurfaces == 0) 
-					", surface=FALSE"
-				else if (nsurfaces == 1) 
-					paste(", fit=", surfaces, sep = "")
-				else paste(", fit=c(", paste(surfaces, collapse = ","), 
-							")", sep = "")
-		.activeDataSet <- ActiveDataSet()
-		if (.groups != FALSE) {
-			groups <- paste(", groups=", .activeDataSet, "$", 
-					.groups, sep = "")
-			parallel <- paste(", parallel=", .linesByGroup, sep = "")
-		}
-		else groups <- parallel <- ""
-		command <- paste("scatter3d(", .activeDataSet, "$", x[1], 
-				", ", .activeDataSet, "$", y, ", ", .activeDataSet, 
-				"$", x[2], fit, resids, dfNonpar, dfAdd, groups, 
-				parallel, ", bg=\"", bg, "\", axis.scales=", scales, 
-				", grid=", grid, ", ellipsoid=", ellips, ", xlab=\"", 
-				x[1], "\", ylab=\"", y, "\", zlab=\"", x[2], "\")", 
-				sep = "")
-		doItAndPrint(command)
-		putRcmdr("rgl", TRUE)
-		command <- paste("identify3d(", .activeDataSet, "$", 
-				x[1], ", ", .activeDataSet, "$", y, ", ", .activeDataSet, 
-				"$", x[2], groups, ", axis.scales=", scales, ", labels=row.names(", 
-				.activeDataSet, "))", sep = "")
-		putRcmdr("Identify3d", command)
-		.Tcl("update")
-		if (tclvalue(identifyPoints) == 1) {
-			RcmdrTkmessageBox(title = "Identify Points", message = paste(gettextRcmdr("Use left mouse button to identify points,\n"), 
-							gettextRcmdr(if (MacOSXP()) 
-												"esc key to exit."
-											else "right button to exit."), sep = ""), icon = "info", 
-					type = "ok")
-			doItAndPrint(command)
-		}
-		activateMenus()
-		tkfocus(CommanderWindow())
-		rgl.bringtotop()
-	}
-	groupsBox(Scatter3D, plotLinesByGroup = TRUE, plotLinesByGroupsText = gettextRcmdr("Parallel regression surfaces"),
-			initialGroup=initial.group, initialLinesByGroup=dialog.values$initial.lines.by.group,
-			initialLabel=if (is.null(initial.group)) gettextRcmdr("Plot by groups") else paste(gettextRcmdr("Plot by:"), initial.group))
-	OKCancelHelp(helpSubject = "Scatter3DDialog", reset = "Scatter3D")
-	tkgrid(getFrame(yBox), labelRcmdr(variablesFrame, text = "  "), 
-			getFrame(xBox), sticky = "nw")
-	tkgrid(variablesFrame, sticky = "nw")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Identify observations\nwith mouse")), 
-			identifyPointsCheckBox, sticky = "w")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Show axis scales")), 
-			axisScalesCheckBox, sticky = "w")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Show surface grid lines")), 
-			gridLinesCheckBox, sticky = "w")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Show squared residuals")), 
-			squaredResidualsCheckBox, sticky = "w")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Surfaces to Fit"), 
-					fg = "blue"), sticky = "w")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Linear least-squares")), 
-			linearLSCheckBox, sticky = "w")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Quadratic least-squares")), 
-			quadLSCheckBox, sticky = "w")
-	dfLabel <- labelRcmdr(surfacesFrame, text = gettextRcmdr("df = "))
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Smooth regression")), 
-			nonparCheckBox, dfLabel, dfNonparField, sticky = "w")
-	tkgrid.configure(dfLabel, sticky = "e")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Additive regression")), 
-			additiveCheckBox, labelRcmdr(surfacesFrame, text = gettextRcmdr("df(each term) = ")), 
-			dfAddField, sticky = "w")
-	tkgrid(labelRcmdr(surfacesFrame, text = gettextRcmdr("Plot 50% concentration ellipsoid")), 
-			ellipsoidCheckBox, sticky = "w")
-	tkgrid(surfacesFrame, sticky = "w")
-	tkgrid(labelRcmdr(bgFrame, text = gettextRcmdr("Background Color"), 
-					fg = "blue"), sticky = "w", columnspan = 2)
-	tkgrid(labelRcmdr(bgFrame, text = gettextRcmdr("Black")), 
-			blackButton, sticky = "w")
-	tkgrid(labelRcmdr(bgFrame, text = gettextRcmdr("White")), 
-			whiteButton, sticky = "w")
-	tkgrid(bgFrame, sticky = "w")
-	tkgrid(groupsFrame, sticky = "w")
-	tkgrid(buttonsFrame, stick = "w")
-	dialogSuffix(rows = 5, columns = 1)
-}
-
-Identify3D <- function(){
-	if (0 == rgl.cur()) {
-		Message(message=gettextRcmdr("There is no current RGL graphics device."),
-				type="error")
-		return()
-	}
-	RcmdrTkmessageBox(title="Identify Points",
-			message=gettextRcmdr("Drag right mouse button to identify points,\nclick right button to exit."),
-			icon="info", type="ok")
-	command <- getRcmdr("Identify3d")
-	doItAndPrint(command)
-}
-
 saveBitmap <- function () {
-	if (1 == dev.cur()) {
-		Message(gettextRcmdr("There is no current graphics device to save."), 
-				type = "error")
-		return()
-	}
-	defaults <- list (initial.width = 500, initial.height = 500, initial.type = "png")
-	dialog.values <- getDialog ("saveBitmap", defaults)
-	initializeDialog(title = gettextRcmdr("Save Graph as Bitmap"))
-	radioButtons(name = "filetype", buttons = c("png", "jpeg"), 
-			labels = c("PNG", "JPEG"), title = gettextRcmdr("Graphics File Type"),
-			initialValue = dialog.values$initial.type)
-	sliderFrame <- tkframe(top)
-	widthVariable <- tclVar(dialog.values$initial.width)
-	widthSlider <- tkscale(sliderFrame, from = 200, to = 1000, 
-			showvalue = TRUE, variable = widthVariable, resolution = 25, 
-			orient = "horizontal")
-	heightVariable <- tclVar(dialog.values$initial.height)
-	heightSlider <- tkscale(sliderFrame, from = 200, to = 1000, 
-			showvalue = TRUE, variable = heightVariable, resolution = 25, 
-			orient = "horizontal")
-	onOK <- function() {
-		closeDialog()
-		width <- tclvalue(widthVariable)
-		height <- tclvalue(heightVariable)
-		type <- tclvalue(filetypeVariable)
-		putDialog ("saveBitmap", list (initial.width = width, initial.height = height, initial.type = type))
-		if (type == "png") {
-			ext <- "png"
-			filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"PNG Files\" {\".png\" \".PNG\"}}")
-			initial <- "RGraph.png"
-		}
-		else {
-			ext <- "jpg"
-			filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"JPEG Files\" {\".jpg\" \".JPG\" \".jpeg\" \".JPEG\"}}")
-			initial <- "RGraph.jpg"
-		}
-		filename <- tclvalue(tkgetSaveFile(filetypes = filetypes, 
-						defaultextension = ext, initialfile = initial, parent = CommanderWindow()))
-		if (filename == "") 
-			return()
-		command <- paste("dev.print(", type, ", filename=\"", 
-				filename, "\", width=", width, ", height=", height, 
-				")", sep = "")
-		doItAndPrint(command)
-		Message(paste(gettextRcmdr("Graph saved to file"), filename), 
-				type = "note")
-	}
-	OKCancelHelp(helpSubject = "png", reset = "saveBitmap")
-	tkgrid(filetypeFrame, sticky = "w")
-	tkgrid(labelRcmdr(sliderFrame, text = gettextRcmdr("Width (pixels)")), 
-			widthSlider, sticky = "sw")
-	tkgrid(labelRcmdr(sliderFrame, text = gettextRcmdr("Height (pixels)")), 
-			heightSlider, sticky = "sw")
-	tkgrid(sliderFrame, sticky = "w")
-	tkgrid(buttonsFrame, sticky = "w")
-	dialogSuffix(rows = 3, columns = 1)
+    env <- environment()
+    updateWidth <- function(...){
+        if (tclvalue(aspectVariable) == "1"){
+            tclvalue(heightVariable) <- round(aspect*as.numeric(tclvalue(widthVariable)))
+        }
+    }
+    updateHeight <- function(...){
+        if (tclvalue(aspectVariable) == "1"){
+            tclvalue(widthVariable) <- round((1/aspect)*as.numeric(tclvalue(heightVariable)))
+        }
+    }
+    updateSize <- function(...){
+        units <- tclvalue(unitsVariable)
+        size <- dev.size(units=units)
+        if (units == "in") {
+            wmin <- min(3, size[1])
+            wmax <- max(10, size[1])
+            hmin <- min(3, size[2])
+            hmax <- max(10, size[2])
+            rmin <- 50
+            rmax <- 300
+            res <- if (tclvalue(resVariable) == "72") 72 else round(2.54*as.numeric(tclvalue(resVariable)))
+        }
+        else if (units == "cm") {
+            wmin <- min(8, size[1])
+            wmax <- max(25, size[1])
+            hmin <- min(8, size[2])
+            hmax <- max(25, size[2])
+            rmin <- 20
+            rmax <- 120
+            res <- round(as.numeric(tclvalue(resVariable))/2.54)
+        }
+        else {
+            wmin <- min(200, size[1])
+            wmax <- max(1000, size[1])
+            hmin <- min(200, size[2])
+            hmax <- max(1000, size[2])
+            rmin <- 50
+            rmax <- 300
+            res <- 72
+        }
+        tkconfigure(widthSlider, from = wmin, to = wmax)
+        tkconfigure(heightSlider,  from = hmin, to = hmax)
+        tkconfigure(wlabel, text = paste(gettextRcmdr(c("Width", " (", all.units[units], ")")), collapse=""))
+        tkconfigure(hlabel, text = paste(gettextRcmdr(c("Height",  " (", all.units[units], ")")), collapse=""))
+        tkconfigure(rlabel, text = paste(gettextRcmdr(c("Resolution (pixels/", unit[units], ")")), collapse=""))
+        tkconfigure(resSlider, from=rmin, to=rmax, state = if (tclvalue(unitsVariable) == "px") "disabled" else "normal")
+        tkconfigure(disabled, text = if (units == "px") gettextRcmdr("[disabled]") else "")
+        tclvalue(widthVariable) <- size[1]
+        tclvalue(heightVariable) <- size[2]
+        tclvalue(resVariable) <- res
+    }
+    all.units <- c("inches", "cm", "pixels")
+    names(all.units) <- c("in", "cm", "px")
+    unit <- c("inch", "cm", "inch")
+    names(unit) <- c("in", "cm", "px")
+    if (1 == dev.cur()) {
+        Message(gettextRcmdr("There is no current graphics device to save."), 
+                type = "error")
+        return()
+    }
+    defaults <- list (initial.type = "png", initial.pointsize=12, initial.units="in", initial.res = 72)
+    dialog.values <- getDialog ("saveBitmap", defaults)
+    units <- dialog.values$initial.units
+    size <- dev.size(units=units)
+    aspect <- size[2]/size[1]
+    if (units == "in") {
+        wmin <- min(3, size[1])
+        wmax <- max(10, size[1])
+        hmin <- min(3, size[2])
+        hmax <- max(10, size[2])
+        rmin <- 50
+        rmax <- 300
+        res <- dialog.values$initial.res
+    }
+    else if (units == "cm") {
+        wmin <- min(8, size[1])
+        wmax <- max(25, size[1])
+        hmin <- min(8, size[2])
+        hmax <- max(25, size[2])
+        rmin <- 20
+        rmax <- 120
+        res <- dialog.values$initial.res
+    }
+    else {
+        wmin <- min(200, size[1])
+        wmax <- max(1000, size[1])
+        hmin <- min(200, size[2])
+        hmax <- max(1000, size[2])
+        rmin <- 50
+        rmax <- 300
+        res <- 72
+    }
+    initializeDialog(title = gettextRcmdr("Save Graph as Bitmap"))
+    radioButtons(name = "filetype", buttons = c("png", "jpeg"), 
+                 labels = c("PNG", "JPEG"), title = gettextRcmdr("Graphics File Type"),
+                 initialValue = dialog.values$initial.type)
+    radioButtons(name = "units", buttons = c("in", "cm", "px"), 
+                 labels = gettextRcmdr(c("inches", "cm", "pixels")), title = gettextRcmdr("Units"),
+                 initialValue = dialog.values$initial.units, command=updateSize)
+    sliderFrame <- tkframe(top)
+    widthVariable <- tclVar(size[1])
+    widthSlider <- tkscale(sliderFrame, from = wmin, to = wmax, 
+                           showvalue = TRUE, variable = widthVariable, resolution = 1, 
+                           orient = "horizontal", command=updateWidth)
+    heightVariable <- tclVar(size[2])
+    heightSlider <- tkscale(sliderFrame, from = hmin, to = hmax, 
+                            showvalue = TRUE, variable = heightVariable, resolution = 1, 
+                            orient = "horizontal", command=updateHeight)
+    pointSizeVariable <- tclVar(dialog.values$initial.pointsize)
+    pointSizeSlider <- tkscale(sliderFrame, from = 6, to = 16, 
+                               showvalue = TRUE, variable = pointSizeVariable, resolution = 1, 
+                               orient = "horizontal")
+    resVariable <- tclVar(res)
+    resSlider <- tkscale(sliderFrame, from = rmin, to = rmax, 
+                         showvalue = TRUE, variable = resVariable, resolution = 1, 
+                         orient = "horizontal")
+    tkconfigure(resSlider,  state = if (tclvalue(unitsVariable) == "px") "disabled" else "normal")
+    aspectVariable <- tclVar("1")
+    aspectFrame <- tkframe(top)
+    aspectCheckBox <- tkcheckbutton(aspectFrame, variable = aspectVariable)
+    onOK <- function() {
+        closeDialog()
+        width <- tclvalue(widthVariable)
+        height <- tclvalue(heightVariable)
+        type <- tclvalue(filetypeVariable)
+        pointsize <- tclvalue(pointSizeVariable)
+        units <- tclvalue(unitsVariable)
+        res <- tclvalue(resVariable)
+        putDialog ("saveBitmap", list (initial.type = type, initial.pointsize = pointsize, initial.units=units, initial.res=res))
+        if (type == "png") {
+            ext <- "png"
+            filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"PNG Files\" {\".png\" \".PNG\"}}")
+            initial <- "RGraph.png"
+        }
+        else {
+            ext <- "jpg"
+            filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"JPEG Files\" {\".jpg\" \".JPG\" \".jpeg\" \".JPEG\"}}")
+            initial <- "RGraph.jpg"
+        }
+        filename <- tclvalue(tkgetSaveFile(filetypes = filetypes, 
+                                           defaultextension = ext, initialfile = initial, parent = CommanderWindow()))
+        if (filename == "") 
+            return()
+        command <- paste("dev.print(", type, ", filename=\"", 
+                         filename, "\", width=", width, ", height=", height, ", pointsize=", pointsize, ', units="', units, 
+                         if(units == "px") '")' else paste('", res=', res, ')', sep=""), sep = "")
+        doItAndPrint(command)
+        Message(paste(gettextRcmdr("Graph saved to file"), filename), 
+                type = "note")
+    }
+    OKCancelHelp(helpSubject = "png", reset = "saveBitmap")
+    tkgrid(filetypeFrame, sticky = "w")
+    tkgrid(unitsFrame, stick="w")
+    tkgrid(labelRcmdr(aspectFrame, text = gettextRcmdr("Fixed aspect ratio (height:width)")),
+           aspectCheckBox, sticky="w")
+    tkgrid(aspectFrame, sticky="w")
+    tkgrid(wlabel <- labelRcmdr(sliderFrame, text = paste(gettextRcmdr(c("Width", " (", all.units[units], ")")), collapse="")), 
+           widthSlider, sticky = "sw")
+    tkgrid(hlabel <- labelRcmdr(sliderFrame, text = paste(gettextRcmdr(c("Height",  " (", all.units[units], ")")), collapse="")), 
+           heightSlider, sticky = "sw")
+    tkgrid(rlabel <- labelRcmdr(sliderFrame, text = paste(gettextRcmdr(c("Resolution", "(", "pixels", "/", unit[units], ")")), collapse="")), 
+           resSlider, 
+           disabled <- labelRcmdr(sliderFrame, text = if (units == "px") gettextRcmdr("[disabled]") else ""),
+           sticky = "sw")
+    tkgrid(labelRcmdr(sliderFrame, text = gettextRcmdr("Text size (points)")), 
+           pointSizeSlider, sticky = "sw")
+    tkgrid(sliderFrame, sticky = "w")
+    tkgrid(buttonsFrame, sticky = "w")
+    dialogSuffix(rows = 5, columns = 1)
 }
 
 savePDF <- function () {
-	if (1 == dev.cur()) {
-		Message(gettextRcmdr("There is no current graphics device to save."), 
-				type = "error")
-		return()
-	}
-	defaults <- list (initial.width = 5.0, initial.height = 5.0, initial.type = "pdf", initial.pointsize = 10)
-	dialog.values <- getDialog ("savePDF", defaults)
-	initializeDialog(title = gettextRcmdr("Save Graph as PDF/Postscript"))
-	radioButtons(name = "filetype", buttons = c("pdf", "postscript", 
-					"eps"), labels = gettextRcmdr(c("PDF", "Postscript", 
-							"Encapsulated Postscript")), title = gettextRcmdr("Graphics File Type"), 
-			initialValue = dialog.values$initial.type)
-	sliderFrame <- tkframe(top)
-	widthVariable <- tclVar(dialog.values$initial.width)
-	widthSlider <- tkscale(sliderFrame, from = 3, to = 10, showvalue = TRUE, 
-			variable = widthVariable, resolution = 0.1, orient = "horizontal")
-	heightVariable <- tclVar(dialog.values$initial.height)
-	heightSlider <- tkscale(sliderFrame, from = 3, to = 10, showvalue = TRUE, 
-			variable = heightVariable, resolution = 0.1, orient = "horizontal")
-	pointSizeVariable <- tclVar(dialog.values$initial.pointsize)
-	pointSizeSlider <- tkscale(sliderFrame, from = 6, to = 14, 
-			showvalue = TRUE, variable = pointSizeVariable, resolution = 1, 
-			orient = "horizontal")
-	onOK <- function() {
-		closeDialog()
-		width <- tclvalue(widthVariable)
-		height <- tclvalue(heightVariable)
-		type <- tclvalue(filetypeVariable)
-		pointsize <- tclvalue(pointSizeVariable)
-		putDialog ("savePDF", list (initial.width = width, initial.height = height, initial.type = type,
-						initial.pointsize = pointsize))
-		if (type == "pdf") {
-			ext <- "pdf"
-			filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"PDF Files\" {\".pdf\" \".PDF\"}}")
-			initial <- "RGraph.pdf"
-		}
-		else if (type == "postscript") {
-			ext <- "ps"
-			filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"Postscript Files\" {\".ps\" \".PS\"}}")
-			initial <- "RGraph.ps"
-		}
-		else {
-			ext <- "eps"
-			filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"Encapsulated Postscript Files\" {\".eps\" \".EPS\"}}")
-			initial <- "RGraph.eps"
-		}
-		filename <- tclvalue(tkgetSaveFile(filetypes = filetypes, 
-						defaultextension = ext, initialfile = initial, parent = CommanderWindow()))
-		if (filename == "") 
-			return()
-		command <- if (type == "eps") 
-					paste("dev.copy2eps(file=\"", filename, "\", width=", 
-							width, ", height=", height, ", pointsize=", pointsize, 
-							")", sep = "")
-				else paste("dev.print(", type, ", file=\"", filename, 
-							"\", width=", width, ", height=", height, ", pointsize=", 
-							pointsize, ")", sep = "")
-		doItAndPrint(command)
-		Message(paste(gettextRcmdr("Graph saved to file"), filename), 
-				type = "note")
-	}
-	OKCancelHelp(helpSubject = "pdf", reset = "savePDF")
-	tkgrid(filetypeFrame, sticky = "w")
-	tkgrid(labelRcmdr(sliderFrame, text = gettextRcmdr("Width (inches)")), 
-			widthSlider, sticky = "sw")
-	tkgrid(labelRcmdr(sliderFrame, text = gettextRcmdr("Height (inches)")), 
-			heightSlider, sticky = "sw")
-	tkgrid(labelRcmdr(sliderFrame, text = gettextRcmdr("Text size (points)")), 
-			pointSizeSlider, sticky = "sw")
-	tkgrid(sliderFrame, sticky = "w")
-	tkgrid(buttonsFrame, sticky = "w")
-	dialogSuffix(rows = 3, columns = 1)
+    updateWidth <- function(...){
+        if (tclvalue(aspectVariable) == "1"){
+            tclvalue(heightVariable) <- round(aspect*as.numeric(tclvalue(widthVariable)), 1)
+        }
+    }
+    updateHeight <- function(...){
+        if (tclvalue(aspectVariable) == "1"){
+            tclvalue(widthVariable) <- round((1/aspect)*as.numeric(tclvalue(heightVariable)), 1)
+        }
+    }
+    updateSize <- function(...){
+        units <- tclvalue(unitsVariable)
+        size <- dev.size(units=units)
+        if (units == "in") {
+            wmin <- min(3, size[1])
+            wmax <- max(10, size[1])
+            hmin <- min(3, size[2])
+            hmax <- max(10, size[2])
+        }
+        else {
+            wmin <- min(8, size[1])
+            wmax <- max(25, size[1])
+            hmin <- min(8, size[2])
+            hmax <- max(25, size[2])
+        }
+        tkconfigure(widthSlider, from = wmin, to = wmax)
+        tkconfigure(heightSlider,  from = hmin, to = hmax)
+        tkconfigure(wlabel, text = paste(gettextRcmdr(c("Width", " (", all.units[units], ")")), collapse=""))
+        tkconfigure(hlabel, text = paste(gettextRcmdr(c("Height",  " (", all.units[units], ")")), collapse=""))
+        tclvalue(widthVariable) <- size[1]
+        tclvalue(heightVariable) <- size[2]
+    }
+    all.units <- c("inches", "cm")
+    names(all.units) <- c("in", "cm")
+    if (1 == dev.cur()) {
+        Message(gettextRcmdr("There is no current graphics device to save."), 
+                type = "error")
+        return()
+    }
+    defaults <- list (initial.type = "pdf", initial.pointsize = 12, initial.units="in")
+    dialog.values <- getDialog ("savePDF", defaults)
+    units <- dialog.values$initial.units
+    size <- dev.size(units=units)
+    aspect <- size[2]/size[1]
+    size <- round(size, 1)
+    if (units == "in") {
+        wmin <- min(3, size[1])
+        wmax <- max(10, size[1])
+        hmin <- min(3, size[2])
+        hmax <- max(10, size[2])
+    }
+    else {
+        wmin <- min(8, size[1])
+        wmax <- max(25, size[1])
+        hmin <- min(8, size[2])
+        hmax <- max(25, size[2])
+    }
+    initializeDialog(title = gettextRcmdr("Save Graph as PDF/Postscript"))
+    radioButtons(name = "filetype", buttons = c("pdf", "postscript", 
+                                                "eps"), labels = gettextRcmdr(c("PDF", "Postscript", 
+                                                                                "Encapsulated Postscript")), title = gettextRcmdr("Graphics File Type"), 
+                 initialValue = dialog.values$initial.type)
+    radioButtons(name = "units", buttons = c("in", "cm"), 
+                 labels = gettextRcmdr(c("inches", "cm")), title = gettextRcmdr("Units"),
+                 initialValue = dialog.values$initial.units, command=updateSize)
+    aspectVariable <- tclVar("1")
+    aspectFrame <- tkframe(top)
+    aspectCheckBox <- tkcheckbutton(aspectFrame, variable = aspectVariable)
+    sliderFrame <- tkframe(top)
+    widthVariable <- tclVar(size[1])
+    widthSlider <- tkscale(sliderFrame, from = wmin, to = wmax, 
+                           showvalue = TRUE, 
+                           variable = widthVariable, resolution = 0.1, orient = "horizontal", 
+                           command=updateWidth)
+    heightVariable <- tclVar(size[2])
+    heightSlider <- tkscale(sliderFrame, from = hmin, to = hmax, 
+                            showvalue = TRUE, 
+                            variable = heightVariable, resolution = 0.1, orient = "horizontal",
+                            command=updateHeight)
+    pointSizeVariable <- tclVar(dialog.values$initial.pointsize)
+    pointSizeSlider <- tkscale(sliderFrame, from = 6, to = 16, 
+                               showvalue = TRUE, variable = pointSizeVariable, resolution = 1, 
+                               orient = "horizontal")
+    onOK <- function() {
+        closeDialog()
+        width <- tclvalue(widthVariable)
+        height <- tclvalue(heightVariable)
+        type <- tclvalue(filetypeVariable)
+        units <- tclvalue(unitsVariable)
+        pointsize <- tclvalue(pointSizeVariable)
+        putDialog ("savePDF", list (initial.type = type, initial.pointsize = pointsize, initial.units=units))
+        if (units == "cm") {
+            width <- round(as.numeric(width)/2.54, 1)
+            height <- round(as.numeric(height)/2.54, 1)
+        } 
+        if (type == "pdf") {
+            ext <- "pdf"
+            filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"PDF Files\" {\".pdf\" \".PDF\"}}")
+            initial <- "RGraph.pdf"
+        }
+        else if (type == "postscript") {
+            ext <- "ps"
+            filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"Postscript Files\" {\".ps\" \".PS\"}}")
+            initial <- "RGraph.ps"
+        }
+        else {
+            ext <- "eps"
+            filetypes <- gettextRcmdr("{\"All Files\" {\"*\"}} {\"Encapsulated Postscript Files\" {\".eps\" \".EPS\"}}")
+            initial <- "RGraph.eps"
+        }
+        filename <- tclvalue(tkgetSaveFile(filetypes = filetypes, 
+                                           defaultextension = ext, initialfile = initial, parent = CommanderWindow()))
+        if (filename == "") 
+            return()
+        command <- if (type == "eps") 
+            paste("dev.copy2eps(file=\"", filename, "\", width=", 
+                  width, ", height=", height, ", pointsize=", pointsize, 
+                  ")", sep = "")
+        else paste("dev.print(", type, ", file=\"", filename, 
+                   "\", width=", width, ", height=", height, ", pointsize=", 
+                   pointsize, ")", sep = "")
+        doItAndPrint(command)
+        Message(paste(gettextRcmdr("Graph saved to file"), filename), 
+                type = "note")
+    }
+    OKCancelHelp(helpSubject = "pdf", reset = "savePDF")
+    tkgrid(filetypeFrame, sticky = "w")
+    tkgrid(unitsFrame, stick="w")
+    tkgrid(labelRcmdr(aspectFrame, text = gettextRcmdr("Fixed aspect ratio (height:width)")),
+           aspectCheckBox, sticky="w")
+    tkgrid(aspectFrame, sticky="w")
+    tkgrid(wlabel <- labelRcmdr(sliderFrame, text = paste(gettextRcmdr(c("Width", " (", all.units[units], ")")), collapse="")), 
+           widthSlider, sticky = "sw")
+    tkgrid(hlabel <- labelRcmdr(sliderFrame, text = paste(gettextRcmdr(c("Height",  " (", all.units[units], ")")), collapse="")), 
+           heightSlider, sticky = "sw")
+    tkgrid(labelRcmdr(sliderFrame, text = gettextRcmdr("Text size (points)")), 
+           pointSizeSlider, sticky = "sw")
+    tkgrid(sliderFrame, sticky = "w")
+    tkgrid(buttonsFrame, sticky = "w")
+    dialogSuffix(rows = 4, columns = 1)
 }
-
-saveRglGraph <- function(){
-	if (0 == rgl.cur()) {
-		Message(message=gettextRcmdr("There is no current RGL graphics device to save."),
-				type="error")
-		return()
-	}
-	ext <- "png"
-	filetypes <- gettextRcmdr('{"All Files" {"*"}} {"PNG Files" {".png" ".PNG"}}')
-	initial <- "RGLGraph.png"
-	filename <- tclvalue(tkgetSaveFile(filetypes=filetypes,
-					defaultextension=ext,
-					initialfile=initial,
-					parent=CommanderWindow()))
-	if (filename == "") return()
-	command <- paste('rgl.snapshot("', filename, '")', sep="")
-	doItAndPrint(command)
-	Message(paste(gettextRcmdr("Graph saved to file"), filename), type="note")
-}
-
-## The following function by Richard Heiberger, with small modifications by J. Fox
-## with more modifications by Richard Heiberger.
-## 2008-01-03 added conditions, layout, and multiple colors
-
-Xyplot <- function () {
-	Library("lattice")
-	defaults <- list(initial.predictor = NULL, initial.response = NULL, initial.auto.key = 1, 
-			initial.outer = 0, initial.x.relation = "same", initial.y.relation = "same",
-			initial.layoutColumns = "", initial.layoutRows = "", initial.conditions = FALSE,
-			initial.groups = FALSE) 
-	dialog.values <- getDialog("Xyplot", defaults)
-	initializeDialog(title = gettextRcmdr("XY Conditioning Plot"))
-	predictorFrame <- tkframe(top)
-	predictorBox <- variableListBox(predictorFrame, Numeric(), 
-			title = gettextRcmdr("Explanatory variables (pick one or more)"), 
-			selectmode = "multiple", initialSelection = varPosn (dialog.values$initial.predictor, "numeric"))
-	responseBox <- variableListBox(predictorFrame, Numeric(), 
-			title = gettextRcmdr("Response variables (pick one or more)"), 
-			selectmode = "multiple", initialSelection = varPosn (dialog.values$initial.response, "numeric"))
-	cgFrame <- tkframe(top)
-	conditionsBox <- variableListBox(cgFrame, Factors(), title = gettextRcmdr("Conditions '|' (pick zero or more)"), 
-			selectmode = "multiple", 
-			initialSelection = if (dialog.values$initial.conditions == FALSE) FALSE else varPosn (dialog.values$initial.conditions, "factor"))
-	groupsBox <- variableListBox(cgFrame, Factors(), title = gettextRcmdr("Groups 'groups=' (pick zero or more)"), 
-			selectmode = "multiple", 
-			initialSelection = if (dialog.values$initial.groups == FALSE) FALSE else varPosn (dialog.values$initial.groups, "factor"))
-	checkBoxes(frame = "optionsFrame", boxes = c("auto.key", 
-					"outer"), initialValues = c(dialog.values$initial.auto.key, dialog.values$initial.outer), 
-			labels = gettextRcmdr(c("Automatically draw key", "Different panels for different y~x combinations")))
-	relationFrame <- tkframe(top)
-	radioButtons(window = relationFrame, name = "x.relation", 
-			buttons = c("same", "free", "sliced"), labels = gettextRcmdr(c("Identical", 
-							"Free", "Same range")), title = gettextRcmdr("X-Axis Scales in Different Panels"), 
-			initialValue = dialog.values$initial.x.relation)
-	radioButtons(window = relationFrame, name = "y.relation", 
-			buttons = c("same", "free", "sliced"), labels = gettextRcmdr(c("Identical", 
-							"Free", "Same range")), title = gettextRcmdr("Y-Axis Scales in Different Panels"), 
-			initialValue = dialog.values$initial.y.relation)
-	scalarsFrame <- tkframe(top)
-	layoutColumnsVar <- tclVar(dialog.values$initial.layoutColumns)
-	layoutColumnsEntry <- tkentry(scalarsFrame, width = "6", 
-			textvariable = layoutColumnsVar)
-	layoutRowsVar <- tclVar(dialog.values$initial.layoutRows)
-	layoutRowsEntry <- tkentry(scalarsFrame, width = "6", textvariable = layoutRowsVar)
-	onOK <- function() {
-		predictor <- getSelection(predictorBox)
-		response <- getSelection(responseBox)
-		conditions <- getSelection(conditionsBox)
-		groups <- getSelection(groupsBox)
-		closeDialog()
-		if (0 == length(response)) {
-			errorCondition(recall = Xyplot.HH, message = gettextRcmdr("At least one response variable must be selected."))
-			return()
-		}
-		if (0 == length(predictor)) {
-			errorCondition(recall = Xyplot.HH, message = gettextRcmdr("At least one explanatory variable must be selected."))
-			return()
-		}
-		auto.key <- ("1" == tclvalue(auto.keyVariable))
-		outer <- ("1" == tclvalue(outerVariable))
-		x.relation <- as.character(tclvalue(x.relationVariable))
-		y.relation <- as.character(tclvalue(y.relationVariable))
-		layoutColumns <- as.numeric(tclvalue(layoutColumnsVar))
-		layoutRows <- as.numeric(tclvalue(layoutRowsVar))
-		putDialog ("Xyplot", list(initial.predictor = predictor, initial.response = response, 
-						initial.auto.key = auto.key, initial.outer = outer, initial.x.relation = x.relation, 
-						initial.y.relation = y.relation, initial.layoutColumns = tclvalue(layoutColumnsVar), 
-						initial.layoutRows = tclvalue(layoutRowsVar), initial.conditions = if (length(conditions) != 0) conditions else FALSE, 
-						initial.groups = if (length(groups) != 0) groups else FALSE))
-		layout.command <- ""
-		number.na <- is.na(layoutColumns) + is.na(layoutRows)
-		if (number.na == 1) {
-			errorCondition(recall = Xyplot.HH, message = gettextRcmdr("Both or neither layout values must be numbers."))
-			return()
-		}
-		if (number.na == 0) 
-			layout.command <- deparse(c(layoutColumns, layoutRows))
-		.activeDataSet <- ActiveDataSet()
-		condtions.command <- if (length(conditions) == 0) {
-					if (outer) {
-						if (layout.command == "") 
-							paste(", layout=c(", length(predictor), ",", 
-									length(response), ")")
-						else paste(", layout=", layout.command, sep = "")
-					}
-				}
-				else {
-					if (outer) {
-						condition.levels <- prod(sapply(conditions, d.f = get(.activeDataSet), 
-										function(g, d.f) length(levels(d.f[[g]]))))
-						paste(", layout=c(", condition.levels, "*", length(predictor), 
-								",", length(response), ")", ", between=list(x=c(", 
-								paste(rep(c(rep(0, condition.levels - 1), 1), 
-												length = condition.levels * length(predictor) - 
-														1), collapse = ","), "), y=1)")
-					}
-				}
-		groups.command <- if (length(groups) == 1) 
-					paste(", groups=", groups, sep = "")
-				else ""
-		xyplot.command <- paste("xyplot(", paste(response, collapse = " + "), 
-				" ~ ", paste(predictor, collapse = " + "), if (length(conditions) > 
-								0) 
-							paste(" | ", paste(conditions, collapse = " + "))
-						else "", if (outer) 
-					",\n outer=TRUE", condtions.command, groups.command, 
-				", pch=16", if (auto.key) 
-							",\n auto.key=list(border=TRUE), par.settings = simpleTheme(pch=16)"
-						else "", paste(", scales=list(x=list(relation='", 
-						x.relation, "'), y=list(relation='", y.relation, 
-						"'))", sep = ""), ",\n data=", .activeDataSet, 
-				")", sep = "")
-		doItAndPrint(xyplot.command)
-		activateMenus()
-		tkfocus(CommanderWindow())
-	}
-	OKCancelHelp(helpSubject = "xyplot", reset = "Xyplot")
-	tkgrid(getFrame(predictorBox), getFrame(responseBox), columnspan = 1, 
-			sticky = "w")
-	tkgrid(predictorFrame, sticky = "w")
-	tkgrid(getFrame(conditionsBox), tklabel(cgFrame, text = gettextRcmdr("           ")), 
-			getFrame(groupsBox), columnspan = 1, sticky = "w")
-	tkgrid(cgFrame, sticky = "w")
-	tkgrid(tklabel(top, text = gettextRcmdr("Options"), fg = "blue"), 
-			sticky = "w")
-	tkgrid(optionsFrame, sticky = "w")
-	tkgrid(x.relationFrame, y.relationFrame, columnspan = 2, 
-			sticky = "w")
-	tkgrid(relationFrame, sticky = "w")
-	tkgrid(tklabel(top, text = gettextRcmdr("Layout"), fg = "blue"), 
-			sticky = "w")
-	tkgrid(tklabel(scalarsFrame, text = gettextRcmdr("number of columns:")), 
-			layoutColumnsEntry, sticky = "w")
-	tkgrid(tklabel(scalarsFrame, text = gettextRcmdr("number of rows:")), 
-			layoutRowsEntry, sticky = "w")
-	tkgrid(scalarsFrame, sticky = "w")
-	tkgrid(buttonsFrame, columnspan = 2, sticky = "w")
-	dialogSuffix(rows = 6, columns = 2)
-}
-
 
 # set the colour palette
 

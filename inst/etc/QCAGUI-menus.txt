@@ -1,6 +1,6 @@
-# R Commander Menu Definitions
+# QCAGUI Menu Definitions
 
-# last modified 4 Sept 2005 by J. Fox
+# last modified 10 January 2013 by Adrian Dusa
 
 #   type    menu/item      operation/parent  label                                          command/menu                activation  install?
 

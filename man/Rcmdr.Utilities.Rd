@@ -4,12 +4,7 @@
 \alias{activeDataSet}
 \alias{ActiveDataSet}
 \alias{activeDataSetP}
-\alias{activeModel}
-\alias{ActiveModel}
-\alias{activeModelP}
-\alias{aicP}
 \alias{checkActiveDataSet}
-\alias{checkActiveModel}
 \alias{checkBoxes}
 \alias{checkClass}
 \alias{checkFactors}
@@ -31,6 +26,7 @@
 \alias{Factors}
 \alias{factorsP}
 \alias{flushDialogMemory}
+\alias{gassign}
 \alias{getDialog}
 \alias{getFrame}
 \alias{getFrame.listbox}
@@ -38,11 +34,9 @@
 \alias{getSelection}
 \alias{getSelection.listbox}
 \alias{gettextRcmdr}
-\alias{glmP}
 \alias{GrabFocus}
 \alias{groupsBox}
 \alias{groupsLabel}
-\alias{hclustSolutionsP}
 \alias{initializeDialog}
 \alias{is.valid.name}
 \alias{justDoIt}
@@ -59,21 +53,17 @@
 \alias{listProportionalOddsModels}
 \alias{listTwoLevelFactors}
 \alias{listVariables}
-\alias{lmP}
 \alias{logger}
 \alias{LogWindow}
 \alias{MacOSXP}
 \alias{Message}
 \alias{MessagesWindow}
 \alias{modelFormula}
-\alias{modelsP}
-\alias{multinomP}
 \alias{Numeric}
 \alias{numericP}
 \alias{OKCancelHelp}
 \alias{OutputWindow}
 \alias{packageAvailable}
-\alias{polrP}
 \alias{popCommand}
 \alias{popOutput}
 \alias{putDialog}
@@ -115,12 +105,7 @@ activateMenus()
 activeDataSet(dsname, flushModel=TRUE, flushDialogMemory=TRUE)
 ActiveDataSet(name)
 activeDataSetP()
-activeModel(model)
-ActiveModel(name)
-activeModelP()
-aicP()
 checkActiveDataSet()
-checkActiveModel()
 checkBoxes(window=top, frame, boxes, initialValues=NULL, labels, title=NULL)  # macro
 checkClass(object, class, message=NULL)  # macro
 checkFactors(n=1)
@@ -144,12 +129,12 @@ exists.method(generic, object, default=TRUE, strict=FALSE)
 Factors(names)
 factorsP(n=1)
 flushDialogMemory(what)
+gassign(x, value)
 getDialog(dialog, defaults=NULL)
 \method{getFrame}{listbox}(object)
 \method{getSelection}{listbox}(object)
 getRcmdr(x, mode="any")
 gettextRcmdr(...)
-glmP()
 GrabFocus(value)
 groupsBox(recall=NULL, label=gettextRcmdr("Plot by:"), 
     initialLabel=gettextRcmdr("Plot by groups"),
@@ -157,7 +142,6 @@ groupsBox(recall=NULL, label=gettextRcmdr("Plot by:"),
     plotLinesByGroupsText=gettextRcmdr("Plot lines by group"), 
     initialGroup=NULL, initialLinesByGroup=1)  # macro
 groupsLabel(frame=top, groupsBox=groupsBox, columnspan=1, initialText=NULL)  # macro
-hclustSolutionsP()
 initializeDialog(window=top, title="", offset=10, preventCrisp=FALSE)  # macro
 is.valid.name(x)
 justDoIt(command)
@@ -174,28 +158,24 @@ listPlugins(loaded=FALSE)
 listProportionalOddsModels(envir=.GlobalEnv, ...)
 listTwoLevelFactors(dataSet=ActiveDataSet())
 listVariables(dataSet=ActiveDataSet())
-lmP()
 logger(command)
 LogWindow()
 MacOSXP()
 Message(message, type=c("note", "error", "warning"))
 MessagesWindow()
 modelFormula(frame=top, hasLhs=TRUE)  # macro
-modelsP(n=1)
-multinomP()
 Numeric(names)
 numericP(n=1)
 OKCancelHelp(window=top, helpSubject=NULL, model=FALSE, reset=NULL)  # macro
 OutputWindow()
 packageAvailable(name)
-polrP()
 popCommand()
 popOutput()
 putDialog(dialog, values=NULL, resettable=TRUE)
 putRcmdr(x, value)
 radioButtons(window=top, name, buttons, values=NULL, 
 	initialValue=..values[1], labels, 
-	title="", title.color="blue", right.buttons=TRUE)  # macro
+	title="", title.color="blue", right.buttons=TRUE, command=function(){})  # macro
 RcmdrTclSet(name, value)
 RcmdrTkmessageBox(message, icon=c("info", "question", "warning",
     "error"), type=c("okcancel", "yesno", "ok"), default, title="")
@@ -230,7 +210,8 @@ commanderPosition()
   \item{buttons}{vector of quoted names for buttons in a set of related radio buttons.}
   \item{class}{quoted name of class.}
   \item{columnspan}{number of dialog-box columns to be spanned by frame.}
-  \item{command}{a character string that evaluates to an R command.}
+  \item{command}{a character string that evaluates to an R command or (in the case of \code{radioButton}) a
+    function to be called when a button is pressed.}
   \item{dataSet, dsname}{the quoted name of a data frame in memory.}
   \item{default}{default button: if not specified, "ok" for "okcancel", "yes" for "yesno", and "ok" for "ok";
     or look for a default method; for \code{putDialog}, a list of defaults for the dialog box if there are no
@@ -306,7 +287,7 @@ commanderPosition()
   \item{title.color}{color for title above radio buttons; defaults to \code{"blue"}.} 
   \item{type}{quoted type of object to check; used to generate check-replace dialog box;
     or type of message to print in Message window. For \code{varPosn}, type of variable list.}
-  \item{value}{an object to be stored.}
+  \item{value}{an object to be stored or assigned.}
   \item{values}{vector of quoted values associated with radio buttons or check boxes; for \code{putDialog},
   	a list of current selections to be stored in support of dialog memory.}
   \item{variableList}{a vector of variable names.}
@@ -336,6 +317,8 @@ commanderPosition()
   10 outputs. \code{popOutput()} ``pops'' (i.e., returns and removes) the first entry
   of the output stack. Note that, as a stack, the queue is LIFO (``last in, first out'').
   There is also a stack of commands, which is accessed similarly by \code{popCommand()}.
+  Ocassionally, it's necessary to assign an object directly in the global environment, and
+  this can be done with the \code{gassign} function.
   
   \emph{Checking for errors: }
   The function \code{is.valid.name} checks whether a character string specifies a valid name
@@ -404,7 +387,8 @@ commanderPosition()
   The function \code{trim.blanks} removes spaces from the beginning and end of a character string. The function
   \code{installPlugin} installs an Rcmdr plug-in from a ZIP file or directory; this function may be used to
   create self-installing plug-ins in the form of packages. The function \code{nobs} returns the number of 
-  observations on which a statistical model is based.
+  observations on which a statistical model is based. The function \code{formulaFields} returns information
+  about the left-hand side, right-hand side, data, subject, and (for GLMs) family and link, of a model object.
   The function \code{sortVarNames} sorts variable names, including those containing numerals, into a more
   "natural" order than does the standard \code{sort} function. The function \code{Library} may be used to
   load packages; it checks whether a package is already loaded, and if not by default puts it in position

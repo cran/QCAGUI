@@ -22,7 +22,7 @@ is.SciViews.TclTk <- function() {
 tkfocus <- function(...){
     # A call to tcltk:::tkfocus() causes a GPF in SciViews
     # => replaced by this version that check if we are in SciViews or not
-    if (!is.SciViews()) tcltk:::tkfocus(...)
+    if (!is.SciViews()) tkfocus(...)
     }
 
 svCommander <- function(Version = "1.1-0"){
@@ -132,7 +132,7 @@ svCommander <- function(Version = "1.1-0"){
         putRcmdr("outputWindow", NULL)
 		putRcmdr("messagesWindow", NULL)
 		putRcmdr("modelName", tclVar("<No active model>"))
-        putRcmdr("modelLabel", NULL)
+        # putRcmdr("modelLabel", NULL)
 		show.edit.button <- options("Rcmdr")[[1]]$show.edit.button
         show.edit.button <- if (is.null(show.edit.button)) TRUE else show.edit.button
         if (!packageAvailable("rgl")) Message(gettextRcmdr("The rgl package is absent; 3D plots are unavailable."), type="warning")
@@ -259,7 +259,7 @@ refreshStatus <- function() {
     # Refresh dataset and model indication in the status bar of SciViews Client
     DataSet <- ActiveDataSet()
     if (is.null(DataSet) || length(DataSet) == 0) DataSet <- "<no data>"
-    Model <- ActiveModel()
+    Model <- NULL
     if (is.null(Model) || length(Model) == 0) Model <- "<no model>"
     if (getRcmdr("log.commands")) Opts <- " [log]" else Opts <- " "
     if (getRcmdr("attach.data.set")) Opts <- paste(Opts, "[attach]", sep="")

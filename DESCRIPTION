@@ -1,15 +1,12 @@
 Package: QCAGUI
-Version: 1.8-4
-Date: 2012-04-23
+Version: 1.9-5
+Date: 2013-02-10
 Title: QCA Graphical User Interface
-Author: This package is 99% based on the Rcmdr package written by John
-        Fox <jfox@mcmaster.ca>.  Only some additional menus were
-        adapted for the QCA package by Adrian Dusa
-        <dusadrian@unibuc.ro>
-Maintainer: Adrian Dusa <dusadrian@unibuc.ro>
-Depends: R (>= 2.1.0), tcltk, grDevices, utils, abind, car, QCA (>=
-        0.4-6)
-Suggests: XML
+Authors@R: c(person("John", "Fox", role = c("aut", "cre"), email =
+        "jfox@mcmaster.ca"), person("Adrian", "Dusa", role = "aut",
+        email = "dusadrian@unibuc.ro") )
+Depends: R (>= 2.14.0), abind, tcltk, grDevices, utils, QCA (>= 0.4-6)
+Suggests: XML, RODBC, car
 ByteCompile: yes
 Description: QCAGUI is a graphical user interface (GUI) for the QCA
         package, derived from R Commander.  Because QCA has little to
@@ -24,6 +21,10 @@ Description: QCAGUI is a graphical user interface (GUI) for the QCA
         purpose.
 License: GPL (>= 2)
 URL: http://www.r-project.org
-Packaged: 2012-04-23 09:27:03 UTC; dusadrian
+Author: This package is 99% based on the Rcmdr package written by John
+        Fox <jfox@mcmaster.ca>.  Some additional menus were adapted for
+        the QCA package by Adrian Dusa <dusadrian@unibuc.ro>
+Maintainer: Adrian Dusa <dusadrian@unibuc.ro>
 Repository: CRAN
-Date/Publication: 2012-04-23 09:46:01
+Packaged: 2013-02-09 23:27:12 UTC; dusadrian
+Date/Publication: 2013-02-10 08:18:53

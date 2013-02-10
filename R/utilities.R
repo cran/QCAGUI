@@ -1,10 +1,12 @@
-# last modified 2012-03-16 by J. Fox
+# last modified 2013-01-27 by J. Fox
 #  applied patch to improve window behaviour supplied by Milan Bouchet-Valat 2011-09-22
 #  slight changes 12 Aug 04 by Ph. Grosjean
 
 # utility functions
 
 # listing objects etc.
+
+
 
 listDataSets <- function(envir=.GlobalEnv, ...) {
 	Vars <- ls(envir = envir, all.names = TRUE) # + PhG
@@ -93,7 +95,7 @@ activeDataSet <- function(dsname, flushModel=TRUE, flushDialogMemory=TRUE){
 	if (flushModel) {
 		putRcmdr(".activeModel", NULL)
 		RcmdrTclSet("modelName", gettextRcmdr("<No active model>"))
-		if (!is.SciViews()) tkconfigure(getRcmdr("modelLabel"), foreground="red") else refreshStatus()
+		# if (!is.SciViews()) tkconfigure(getRcmdr("modelLabel"), foreground="red") else refreshStatus()
 	}
 	if (flushDialogMemory) putRcmdr("dialog.values", list())
 	# -PhG tkconfigure(.modelLabel, foreground="red")
@@ -111,32 +113,15 @@ activeDataSet <- function(dsname, flushModel=TRUE, flushDialogMemory=TRUE){
 	RcmdrTclSet("dataSetName", paste(" ", dsname, " "))
 	# -PhG tkconfigure(.dataSetLabel, foreground="blue")
 	if (!is.SciViews()) tkconfigure(getRcmdr("dataSetLabel"), foreground="blue") else refreshStatus() # +PhG
-	if (getRcmdr("attach.data.set")){
-		attach(get(dsname, envir=.GlobalEnv), name=dsname)
-		logger(paste("attach(", dsname, ")", sep=""))
-	}
-	if (is.SciViews()) refreshStatus() else if (flushModel) tkconfigure(getRcmdr("modelLabel"), foreground="red") # +PhG (& J.Fox, 25Dec04)
+# 	if (getRcmdr("attach.data.set")){
+# 		attach(get(dsname, envir=.GlobalEnv), name=dsname)
+# 		logger(paste("attach(", dsname, ")", sep=""))
+# 	}
+	# if (is.SciViews()) refreshStatus() else if (flushModel) tkconfigure(getRcmdr("modelLabel"), foreground="red") # +PhG (& J.Fox, 25Dec04)
 	activateMenus()
 	dsname
 }
 
-
-activeModel <- function(model){
-	if (missing(model)) {
-		.activeModel <- ActiveModel()
-		if (is.null(.activeModel)){
-			Message(message=gettextRcmdr("There is no active model."), type="error")
-			return(FALSE)
-		}
-		else return(.activeModel)
-	}
-	ActiveModel(model)
-	RcmdrTclSet("modelName", paste(" ", model, " "))
-	# -PhG tkconfigure(.modelLabel, foreground="blue")
-	if (!is.SciViews()) tkconfigure(getRcmdr("modelLabel"), foreground="blue") else refreshStatus() # +PhG
-	activateMenus()
-	model
-}
 
 listVariables <- function(dataSet=ActiveDataSet()) {
 	vars <- names(get(dataSet, envir=.GlobalEnv))
@@ -172,30 +157,6 @@ is.valid.name <- function(x){
 
 
 # statistical
-
-colPercents <- function(tab, digits=1){
-	dim <- length(dim(tab))
-	if (is.null(dimnames(tab))){
-		dims <- dim(tab)
-		dimnames(tab) <- lapply(1:dim, function(i) 1:dims[i])
-	}
-	sums <- apply(tab, 2:dim, sum)
-	per <- apply(tab, 1, function(x) x/sums)
-	dim(per) <- dim(tab)[c(2:dim,1)]
-	per <- aperm(per, c(dim, 1:(dim-1)))
-	dimnames(per) <- dimnames(tab)
-	per <- round(100*per, digits)
-	result <- abind(per, Total=apply(per, 2:dim, sum), Count=sums, along=1)
-	names(dimnames(result)) <- names(dimnames(tab))
-	result
-}
-
-rowPercents <- function(tab, digits=1){
-	dim <- length(dim(tab))
-	if (dim == 2) return(t(colPercents(t(tab), digits=digits)))
-	tab <- aperm(tab, c(2,1,3:dim))
-	aperm(colPercents(tab, digits=digits), c(2,1,3:dim))
-}
 
 totPercents <- function(tab, digits=1){
 	dim <- length(dim(tab))
@@ -271,136 +232,128 @@ partial.cor <- function(X, ...){
 	R
 }
 
+
 numSummary <- function(data, 
-		statistics=c("mean", "sd", "quantiles", "cv", "skewness", "kurtosis"),
-		type=c("1", "2", "3"),
-		quantiles=c(0, .25, .5, .75, 1), groups){
-	sd <- function(x, type, ...){
-		apply(as.matrix(x), 2, stats::sd, na.rm=TRUE)
-	}
-	cv <- function(x, ...){
-		x <- as.matrix(x)
-		mean <- colMeans(x, na.rm=TRUE)
-		sd <- sd(x)
-		if (any(x <= 0, na.rm=TRUE)) warning("not all values are positive")
-		cv <- sd/mean
-		cv[mean <= 0] <- NA
-		cv
-	}
-	skewness <- function(x, type, ...){
-		
-	}
-	kurtosis <- function(x, type, ...){
-		
-	}
-	if(!require(abind)) stop("abind package missing")
-	
-	data <- as.data.frame(data)
-	if (!missing(groups)) groups <- as.factor(groups)
-	variables <- names(data)
-	if (missing(statistics)) statistics <- c("mean", "sd", "quantiles")
-	statistics <- match.arg(statistics, c("mean", "sd", "quantiles", "cv", "skewness", "kurtosis"),
-			several.ok=TRUE)
-	type <- match.arg(type)
-	type <- as.numeric(type)
-	ngroups <- if(missing(groups)) 1 else length(grps <- levels(groups))
-	quantiles <- if ("quantiles" %in% statistics) quantiles else NULL
-#	quants <- if (length(quantiles) > 1) paste(100*quantiles, "%", sep="")
-#			else NULL
-	quants <- paste(100*quantiles, "%", sep="")
-	nquants <- length(quants)
-	stats <- c(c("mean", "sd", "cv", "skewness", "kurtosis")[c("mean", "sd", "cv", "skewness", "kurtosis") %in% statistics], quants)
-	nstats <- length(stats)
-	nvars <- length(variables)
-	result <- list()
-	if ((ngroups == 1) && (nvars == 1) && (length(statistics) == 1)){
-		if (statistics == "quantiles")
-			table <- quantile(data[,variables], probs=quantiles, na.rm=TRUE)
-		else {
-			table <- do.call(statistics, list(x=data[,variables], na.rm=TRUE, type=type))
-			names(table) <- statistics
-		}
-		NAs <- sum(is.na(data[,variables]))
-		n <- nrow(data) - NAs
-		result$type <- 1
-	}
-	else if ((ngroups > 1)  && (nvars == 1) && (length(statistics) == 1)){
-		if (statistics == "quantiles"){
-			table <- matrix(unlist(tapply(data[, variables], groups,
-									quantile, probs=quantiles, na.rm=TRUE)), ngroups, nquants,
-					byrow=TRUE)
-			rownames(table) <- grps
-			colnames(table) <- quants
-		}
-		else table <- tapply(data[,variables], groups, statistics,
-					na.rm=TRUE, type=type)
-		NAs <- tapply(data[, variables], groups, function(x)
-					sum(is.na(x)))
-		n <- table(groups) - NAs
-		result$type <- 2
-	}
-	else if ((ngroups == 1) ){
-		X <- as.matrix(data[, variables])
-		table <- matrix(0, nvars, nstats)
-		rownames(table) <- if (length(variables) > 1) variables else ""
-		colnames(table) <- stats
-		if ("mean" %in% stats) table[,"mean"] <- colMeans(X, na.rm=TRUE)
-		if ("sd" %in% stats) table[,"sd"] <- sd(X)
-		if ("cv" %in% stats) table[,"cv"] <- cv(X)
-		if ("skewness" %in% statistics) table[, "skewness"] <- skewness(X, type=type)
-		if ("kurtosis" %in% statistics) table[, "kurtosis"] <- kurtosis(X, type=type)
-		if ("quantiles" %in% statistics){
-			table[,quants] <- t(apply(data[, variables, drop=FALSE], 2, quantile,
-							probs=quantiles, na.rm=TRUE))
-		}
-		NAs <- colSums(is.na(data[,variables, drop=FALSE]))
-		n <- nrow(data) - NAs
-		result$type <- 3
-	}
-	else {
-		table <- array(0, c(ngroups, nstats, nvars),
-				dimnames=list(Group=grps, Statistic=stats, Variable=variables))
-		NAs <- matrix(0, nvars, ngroups)
-		rownames(NAs) <- variables
-		colnames(NAs) <- grps
-		for (variable in variables){
-			if ("mean" %in% stats)
-				table[, "mean", variable] <- tapply(data[, variable],
-						groups, mean, na.rm=TRUE)
-			if ("sd" %in% stats)
-				table[, "sd", variable] <- tapply(data[, variable],
-						groups, sd, na.rm=TRUE)
-			if ("cv" %in% stats)
-				table[, "cv", variable] <- tapply(data[, variable],
-						groups, cv)
-			if ("skewness" %in% stats)
-				table[, "skewness", variable] <- tapply(data[, variable],
-						groups, skewness, type=type)
-			if ("kurtosis" %in% stats)
-				table[, "kurtosis", variable] <- tapply(data[, variable],
-						groups, kurtosis, type=type)
-			if ("quantiles" %in% statistics) {
-				res <- matrix(unlist(tapply(data[, variable], groups,
-										quantile, probs=quantiles, na.rm=TRUE)), ngroups, nquants,
-						byrow=TRUE)
-				table[, quants, variable] <- res
-			}
-			NAs[variable,] <- tapply(data[, variable], groups, function(x)
-						sum(is.na(x)))
-		}
-		if (nstats == 1) table <- table[,1,]
-		if (nvars == 1) table <- table[,,1]
-		n <- table(groups)
-		n <- matrix(n, nrow=nrow(NAs), ncol=ncol(NAs), byrow=TRUE)
-		n <- n - NAs
-		result$type <- 4
-	}
-	result$table <- table
-	result$statistics <- statistics
-	result$n <- n
-	if (any(NAs > 0)) result$NAs <- NAs
-	class(result) <- "numSummary"
-	result
+                       statistics=c("mean", "sd", "IQR", "quantiles", "cv", "skewness", "kurtosis"),
+                       type=c("2", "1", "3"),
+                       quantiles=c(0, .25, .5, .75, 1), groups){
+    sd <- function(x, type, ...){
+        apply(as.matrix(x), 2, stats::sd, na.rm=TRUE)
+    }
+    IQR <- function(x, type, ...){
+        apply(as.matrix(x), 2, stats::IQR, na.rm=TRUE)
+    }
+    cv <- function(x, ...){
+        x <- as.matrix(x)
+        mean <- colMeans(x, na.rm=TRUE)
+        sd <- sd(x)
+        if (any(x <= 0, na.rm=TRUE)) warning("not all values are positive")
+        cv <- sd/mean
+        cv[mean <= 0] <- NA
+        cv
+    }
+    if(!require(abind)) stop("abind package missing")
+    data <- as.data.frame(data)
+    if (!missing(groups)) groups <- as.factor(groups)
+    variables <- names(data)
+    if (missing(statistics)) statistics <- c("mean", "sd", "quantiles", "IQR")
+    statistics <- match.arg(statistics, c("mean", "sd", "IQR", "quantiles", "cv"),
+                            several.ok=TRUE)
+    type <- match.arg(type)
+    type <- as.numeric(type)
+    ngroups <- if(missing(groups)) 1 else length(grps <- levels(groups))
+    quantiles <- if ("quantiles" %in% statistics) quantiles else NULL
+    quants <- if (length(quantiles) > 1) paste(100*quantiles, "%", sep="") else NULL
+#    quants <- paste(100*quantiles, "%", sep="")
+    nquants <- length(quants)
+    stats <- c(c("mean", "sd", "IQR", "cv")[c("mean", "sd", "IQR", "cv") %in% statistics], quants)
+    nstats <- length(stats)
+    nvars <- length(variables)
+    result <- list()
+    if ((ngroups == 1) && (nvars == 1) && (length(statistics) == 1)){
+        if (statistics == "quantiles")
+            table <- quantile(data[,variables], probs=quantiles, na.rm=TRUE)
+        else {
+            table <- do.call(statistics, list(x=data[,variables], na.rm=TRUE, type=type))
+            names(table) <- statistics
+        }
+        NAs <- sum(is.na(data[,variables]))
+        n <- nrow(data) - NAs
+        result$type <- 1
+    }
+    else if ((ngroups > 1)  && (nvars == 1) && (length(statistics) == 1)){
+        if (statistics == "quantiles"){
+            table <- matrix(unlist(tapply(data[, variables], groups,
+                                          quantile, probs=quantiles, na.rm=TRUE)), ngroups, nquants,
+                            byrow=TRUE)
+            rownames(table) <- grps
+            colnames(table) <- quants
+        }
+        else table <- tapply(data[,variables], groups, statistics,
+                             na.rm=TRUE, type=type)
+        NAs <- tapply(data[, variables], groups, function(x)
+            sum(is.na(x)))
+        n <- table(groups) - NAs
+        result$type <- 2
+    }
+    else if ((ngroups == 1) ){
+        X <- as.matrix(data[, variables])
+        table <- matrix(0, nvars, nstats)
+        rownames(table) <- if (length(variables) > 1) variables else ""
+        colnames(table) <- stats
+        if ("mean" %in% stats) table[,"mean"] <- colMeans(X, na.rm=TRUE)
+        if ("sd" %in% stats) table[,"sd"] <- sd(X)
+        if ("IQR" %in% stats) table[, "IQR"] <- IQR(X)
+        if ("cv" %in% stats) table[,"cv"] <- cv(X)
+        if ("quantiles" %in% statistics){
+            table[,quants] <- t(apply(data[, variables, drop=FALSE], 2, quantile,
+                                      probs=quantiles, na.rm=TRUE))
+        }
+        NAs <- colSums(is.na(data[, variables, drop=FALSE]))
+        n <- nrow(data) - NAs
+        result$type <- 3
+    }
+    else {
+        table <- array(0, c(ngroups, nstats, nvars),
+                       dimnames=list(Group=grps, Statistic=stats, Variable=variables))
+        NAs <- matrix(0, nvars, ngroups)
+        rownames(NAs) <- variables
+        colnames(NAs) <- grps
+        for (variable in variables){
+            if ("mean" %in% stats)
+                table[, "mean", variable] <- tapply(data[, variable],
+                                                    groups, mean, na.rm=TRUE)
+            if ("sd" %in% stats)
+                table[, "sd", variable] <- tapply(data[, variable],
+                                                  groups, sd, na.rm=TRUE)
+            if ("IQR" %in% stats)
+                table[, "IQR", variable] <- tapply(data[, variable],
+                                                   groups, IQR, na.rm=TRUE)
+            if ("cv" %in% stats)
+                table[, "cv", variable] <- tapply(data[, variable],
+                                                  groups, cv)
+            if ("quantiles" %in% statistics) {
+                res <- matrix(unlist(tapply(data[, variable], groups,
+                                            quantile, probs=quantiles, na.rm=TRUE)), ngroups, nquants,
+                              byrow=TRUE)
+                table[, quants, variable] <- res
+            }
+            NAs[variable,] <- tapply(data[, variable], groups, function(x)
+                sum(is.na(x)))
+        }
+        if (nstats == 1) table <- table[,1,]
+        if (nvars == 1) table <- table[,,1]
+        n <- table(groups)
+        n <- matrix(n, nrow=nrow(NAs), ncol=ncol(NAs), byrow=TRUE)
+        n <- n - NAs
+        result$type <- 4
+    }
+    result$table <- table
+    result$statistics <- statistics
+    result$n <- n
+    if (any(NAs > 0)) result$NAs <- NAs
+    class(result) <- "numSummary"
+    result
 }
 
 print.numSummary <- function(x, ...){
@@ -475,23 +428,6 @@ print.numSummary <- function(x, ...){
 			}
 	)
 	invisible(x)
-}
-
-stepwise <- function(mod, 
-		direction=c("backward/forward", "forward/backward", "backward", "forward"), 
-		criterion=c("BIC", "AIC"), ...){
-	criterion <- match.arg(criterion)
-	cat("\nDirection: ", direction)
-	cat("\nCriterion: ", criterion, "\n\n")
-	k <- if (criterion == "BIC") log(nrow(model.matrix(mod))) else 2
-	rhs <- paste(c("~", deparse(formula(mod)[[3]])), collapse="")
-	rhs <- gsub(" ", "", rhs)
-	if (direction == "forward" || direction == "forward/backward")
-		mod <- update(mod, . ~ 1)
-	if (direction == "backward/forward" || direction == "forward/backward") direction <- "both"
-	lower <- ~ 1
-	upper <- eval(parse(text=rhs))   
-	stepAIC(mod, scope=list(lower=lower, upper=upper), direction=direction, k=k, ...)
 }
 
 # wrapper function for histograms
@@ -586,50 +522,6 @@ plotMeans <- function(response, factor1, factor2, error.bars = c("se", "sd", "co
 	invisible(NULL)
 }
 
-bin.var <- function (x, bins=4, method=c("intervals", "proportions", "natural"), labels=FALSE){
-	method <- match.arg(method)
-# Author: Dan Putler (revision by J. Fox, 5 Dec 04)
-	if(length(x) < bins) {
-		stop(gettextRcmdr("The number of bins exceeds the number of data values"))
-	}
-	x <- if(method == "intervals") cut(x, bins, labels=labels)
-			else if (method == "proportions") cut(x, quantile(x, probs=seq(0,1,1/bins), na.rm=TRUE),
-						include.lowest = TRUE, labels=labels)
-			else {
-				xx <- na.omit(x)
-				breaks <- c(min(xx), tapply(xx, KMeans(xx, bins)$cluster, max))
-				cut(x, breaks, include.lowest=TRUE, labels=labels)
-			}
-	as.factor(x)
-}
-
-# the following function is adapted from a suggestion by Robert Muenchen
-
-rcorr.adjust <- function(x, type=c("pearson", "spearman"), 
-		use=c("complete.obs", "pairwise.complete.obs")){
-	type <- match.arg(type)
-	use <- match.arg(use)
-	x <- if (use == "complete.obs") as.matrix(na.omit(x)) else as.matrix(x)
-	R <- rcorr(x, type=type)
-	P <- R$P
-	p <- P[lower.tri(P)]
-	adj.p <- p.adjust(p, method="holm")
-	P[lower.tri(P)] <- adj.p
-	P[upper.tri(P)] <- 0
-	P <- P + t(P)
-	P <- ifelse(P < 1e-04, 0, P)
-	P <- format(round(P, 4))
-	P[grep("NA", P)] <- ""
-	res <- list(R=R, P=P)
-	class(res) <- "rcorr.adjust"
-	res
-}
-
-print.rcorr.adjust <- function(x, ...){
-	print(x$R)
-	cat("\n Adjusted p-values (Holm's method)\n")
-	print(x$P, quote = FALSE)
-}
 
 # Pager
 
@@ -642,6 +534,7 @@ RcmdrPager <- function (file, header, title, delete.file)
 	for (i in seq(along = file)) {
 		zfile <- file[[i]]
 		tt <- tktoplevel()
+		if (.Platform$OS.type == "windows") tkwm.iconbitmap(tt, system.file("etc", "R-logo.ico", package="Rcmdr"))
 		tkwm.title(tt, if (length(title))
 							title[(i - 1)%%length(title) + 1]
 						else "")
@@ -735,21 +628,23 @@ OKCancelHelp <- defmacro(window=top, helpSubject=NULL,  model=FALSE, reset=NULL,
 			memory <- getRcmdr("retain.selections")
 			buttonsFrame <- tkframe(window, borderwidth=5)
 			OKbutton <- buttonRcmdr(buttonsFrame, text=gettextRcmdr("OK"), foreground="darkgreen", width="12", command=onOK, default="active",
-					borderwidth=3)
+					borderwidth=3, image="::image::okIcon", compound="left")
 			onCancel <- function() {
 				if (model) putRcmdr("modelNumber", getRcmdr("modelNumber") - 1)
 				if (GrabFocus()) tkgrab.release(window)
 				tkdestroy(window)
 				tkfocus(CommanderWindow())
 			}
-			cancelButton <- buttonRcmdr(buttonsFrame, text=gettextRcmdr("Cancel"), foreground="red", width="12", command=onCancel, borderwidth=3)
+			cancelButton <- buttonRcmdr(buttonsFrame, text=gettextRcmdr("Cancel"), foreground="red", width="12", command=onCancel, borderwidth=3,
+					image="::image::cancelIcon", compound="left")
 			if (!is.null(helpSubject)){
 				onHelp <- function() {
 					if (GrabFocus() && .Platform$OS.type != "windows") tkgrab.release(window)
 					if (as.numeric(R.Version()$major) >= 2) print(help(helpSubject))
 					else help(helpSubject)
 				}
-				helpButton <- buttonRcmdr(buttonsFrame, text=gettextRcmdr("Help"), width="12", command=onHelp, borderwidth=3)
+				helpButton <- buttonRcmdr(buttonsFrame, text=gettextRcmdr("Help"), width="12", command=onHelp, borderwidth=3,
+						image="::image::helpIcon", compound="left")
 			}
 			if (!is.null(reset) && memory){
 				onReset <- function(){
@@ -759,7 +654,8 @@ OKCancelHelp <- defmacro(window=top, helpSubject=NULL,  model=FALSE, reset=NULL,
 					closeDialog()
 					eval(parse(text=paste(reset, "()")))
 				}
-				resetButton <- buttonRcmdr(buttonsFrame, text=gettextRcmdr("Reset"), width=12, command=onReset)
+				resetButton <- buttonRcmdr(buttonsFrame, text=gettextRcmdr("Reset"), width=12, command=onReset,
+						image="::image::resetIcon", compound="left")
 			}
 			tkgrid(OKbutton, labelRcmdr(buttonsFrame, text="  "), cancelButton, labelRcmdr(buttonsFrame, text="            "),
 					if(!is.null(reset) && memory) resetButton, if(!is.null(reset) && memory) labelRcmdr(buttonsFrame, text="  "), 
@@ -770,21 +666,22 @@ subOKCancelHelp <- defmacro(window=subdialog, helpSubject=NULL,
 		expr={
 			subButtonsFrame <- tkframe(window, borderwidth=5)
 			subOKbutton <- buttonRcmdr(subButtonsFrame, text=gettextRcmdr("OK"), foreground="darkgreen", width="12", command=onOKsub, default="active",
-					borderwidth=3)
+					borderwidth=3, image="::image::okIcon", compound="left")
 			onCancelSub <- function() {
 				if (GrabFocus()) tkgrab.release(window)
 				tkdestroy(window)
 				tkfocus(CommanderWindow())
 			}
 			subCancelButton <- buttonRcmdr(subButtonsFrame, text=gettextRcmdr("Cancel"), foreground="red", width="12", command=onCancelSub,
-					borderwidth=3)
+					borderwidth=3, image="::image::cancelIcon", compound="left")
 			if (!is.null(helpSubject)){
 				onHelpSub <- function(){
 					if (GrabFocus() && .Platform$OS.type != "windows") tkgrab.release(window)
 					if (as.numeric(R.Version()$major) >= 2) print(help(helpSubject))
 					else help(helpSubject)
 				}
-				subHelpButton <- buttonRcmdr(subButtonsFrame, text=gettextRcmdr("Help"), width="12", command=onHelpSub, borderwidth=3)
+				subHelpButton <- buttonRcmdr(subButtonsFrame, text=gettextRcmdr("Help"), width="12", command=onHelpSub, borderwidth=3,
+						image="::image::helpIcon", compound="left")
 			}
 			tkgrid(subOKbutton, labelRcmdr(subButtonsFrame, text="  "), subCancelButton,
 					labelRcmdr(subButtonsFrame, text="            "), if (!is.null(helpSubject)) subHelpButton, sticky="w")
@@ -792,14 +689,6 @@ subOKCancelHelp <- defmacro(window=subdialog, helpSubject=NULL,
 
 checkActiveDataSet <- function(){
 	if (activeDataSet() == FALSE) {
-		tkfocus(CommanderWindow())
-		FALSE
-	}
-	else TRUE
-}
-
-checkActiveModel <- function(){
-	if (activeModel() == FALSE) {
 		tkfocus(CommanderWindow())
 		FALSE
 	}
@@ -869,11 +758,16 @@ initializeDialog <- defmacro(window=top, title="", offset=10, preventCrisp=FALSE
 			if ((!preventCrisp) && getRcmdr("crisp.dialogs")) tclServiceMode(on=FALSE)
 			window <- tktoplevel(borderwidth=10)
 			tkwm.title(window, title)
-			tkwm.transient(window, CommanderWindow())
 			position <- if (is.SciViews()) -1 else commanderPosition() # +PhG
 			position <- if (any(position < 0)) "-50+50"
 					else paste("+", paste(offset + position, collapse="+"), sep="")
 			tkwm.geometry(window, position)
+		    tcl("wm", "iconphoto", window, "::image::RlogoIcon")
+# 		    if (.Platform$OS.type == "windows") {
+# 		        tkwm.iconify(window)
+# 		        tkwm.iconbitmap(window, system.file("etc", "R-logo.ico", package="Rcmdr"))
+# 		    }
+		    tkwm.transient(window, CommanderWindow())
 		}
 )
 
@@ -967,7 +861,7 @@ variableListBox <- function(parentWindow, variableList=Variables(), bg="white",
 	tkgrid(labelRcmdr(frame, text=title, foreground="blue"), columnspan=2, sticky="w")
 	tkgrid(listbox, scrollbar, sticky="nw")
 	tkgrid.configure(scrollbar, sticky="wns")
-	tkgrid.configure(listbox, sticky="ew")
+	tkgrid.configure(listbox, sticky="ewns")
 	result <- list(frame=frame, listbox=listbox, scrollbar=scrollbar,
 			selectmode=selectmode, varlist=variableList)
 	class(result) <- "listbox"
@@ -986,26 +880,32 @@ getFrame.listbox <- function(object){
 	object$frame
 }
 
-# This function modified based on code by Liviu Andronic (13 Dec 09):
+# This function modified based on code by Liviu Andronic (13 Dec 09) and on code by Milan Bouchet-Valat (29 Jun 12):
 radioButtons <- defmacro(window=top, name, buttons, values=NULL, initialValue=..values[1], labels, 
-		title="", title.color="blue", right.buttons=TRUE,
-		expr={
-			..values <- if (is.null(values)) buttons else values
-			..frame <- paste(name, "Frame", sep="")
-			assign(..frame, tkframe(window))
-			..variable <- paste(name, "Variable", sep="")
-			assign(..variable, tclVar(initialValue))
-			if(title != ""){
-				tkgrid(labelRcmdr(eval(parse(text=..frame)), text=title, foreground=title.color), columnspan=2, sticky="w")
-			}
-			for (i in 1:length(buttons)) {
-				..button <- paste(buttons[i], "Button", sep="")
-				assign(..button,
-						ttkradiobutton(eval(parse(text=..frame)), variable=eval(parse(text=..variable)), value=..values[i]))
-				if (right.buttons) tkgrid(labelRcmdr(eval(parse(text=..frame)), text=labels[i], justify="left"), eval(parse(text=..button)), sticky="w")
-				else  tkgrid(eval(parse(text=..button)), labelRcmdr(eval(parse(text=..frame)), text=labels[i], justify="left"), sticky="w")
-			}
-		}
+                         title="", title.color="blue", right.buttons=TRUE, command=function(){},
+                         expr={
+                             ..values <- if (is.null(values)) buttons else values
+                             ..frame <- paste(name, "Frame", sep="")
+                             assign(..frame, tkframe(window))
+                             ..variable <- paste(name, "Variable", sep="")
+                             assign(..variable, tclVar(initialValue))
+                             if(title != ""){
+                                 tkgrid(labelRcmdr(eval(parse(text=..frame)), text=title, foreground=title.color), columnspan=2, sticky="w")
+                             }
+                             for (i in 1:length(buttons)) {
+                                 ..button <- paste(buttons[i], "Button", sep="")
+                                 if (right.buttons) {
+                                     assign(..button, ttkradiobutton(eval(parse(text=..frame)), variable=eval(parse(text=..variable)), 
+                                                                     value=..values[i], command=command))
+                                     tkgrid(labelRcmdr(eval(parse(text=..frame)), text=labels[i], justify="left"), eval(parse(text=..button)), sticky="w")
+                                 }
+                                 else{
+                                     assign(..button, ttkradiobutton(eval(parse(text=..frame)), variable=eval(parse(text=..variable)), 
+                                                                     value=..values[i], text=labels[i], command=command))
+                                     tkgrid(eval(parse(text=..button)), sticky="w")
+                                 }
+                             }
+                         }
 )
 
 
@@ -1019,8 +919,10 @@ checkBoxes <- defmacro(window=top, frame, boxes, initialValues=NULL, labels, tit
 				assign(..variables[i], tclVar(..initialValues[i]))
 				..checkBox <- paste(boxes[i], "CheckBox", sep="")
 				assign(..checkBox,
-						tkcheckbutton(eval(parse(text=frame)), variable=eval(parse(text=..variables[i]))))
-				tkgrid(labelRcmdr(eval(parse(text=frame)), text=labels[i]), eval(parse(text=..checkBox)), sticky="w")
+				#		tkcheckbutton(eval(parse(text=frame)), variable=eval(parse(text=..variables[i]))))
+				# tkgrid(labelRcmdr(eval(parse(text=frame)), text=labels[i]), eval(parse(text=..checkBox)), sticky="w")
+						tkcheckbutton(eval(parse(text=frame)), variable=eval(parse(text=..variables[i])), text=labels[i]))
+				tkgrid(eval(parse(text=..checkBox)), sticky="w")
 			}
 		}
 )
@@ -1373,25 +1275,19 @@ isS4object <- function(object) {
 	}
 	else isS4(object)
 }
+    
+.RcmdrEnv <- new.env(parent=emptyenv())
 
-# the following three functions are slightly adapted with permission from Philippe Grosjean
+# putRcmdr <- function(x, value) assign(x, value, envir=.RcmdrEnv)
+# 
+# getRcmdr <- function(x, mode="any") get(x, envir=.RcmdrEnv, mode=mode, inherits=FALSE)
 
-RcmdrEnv <- function() {
-	pos <-  match("RcmdrEnv", search())
-	if (is.na(pos)) { # Must create it
-		RcmdrEnv <- list()
-		attach(RcmdrEnv, pos = length(search()) - 1)
-		rm(RcmdrEnv)
-		pos <- match("RcmdrEnv", search())
-	}
-	return(pos.to.env(pos))
-}
+RcmdrEnv <- function() .RcmdrEnv
 
-putRcmdr <- function(x, value)
-	assign(x, value, envir = RcmdrEnv())
+putRcmdr <- function(x, value) assign(x, value, envir=RcmdrEnv())
 
-getRcmdr <- function(x, mode="any")
-	get(x, envir = RcmdrEnv(), mode = mode, inherits = FALSE)
+getRcmdr <- function(x, mode="any") get(x, envir=RcmdrEnv(), mode=mode, inherits=FALSE)
+
 
 RcmdrTclSet <- function(name, value){
 	if (is.SciViews()) return()   # + PhG
@@ -1439,7 +1335,7 @@ ActiveDataSet <- function(name){
 			RcmdrTclSet("modelName", gettextRcmdr("<No active model>"))
 			if (!is.SciViews()) {
 				tkconfigure(getRcmdr("dataSetLabel"), foreground="red") 
-				tkconfigure(getRcmdr("modelLabel"), foreground="red") 
+				# tkconfigure(getRcmdr("modelLabel"), foreground="red") 
 			} 
 			else refreshStatus()
 			activateMenus()
@@ -1448,26 +1344,6 @@ ActiveDataSet <- function(name){
 		return(temp)
 	}
 	else putRcmdr(".activeDataSet", name)
-}
-
-ActiveModel <- function(name){
-	if (missing(name)) {
-		temp <- getRcmdr(".activeModel")
-		if (is.null(temp))
-			return(NULL)
-		else
-		if (!exists(temp) || !is.model(get(temp,envir=.GlobalEnv))) {
-			Message(sprintf(gettextRcmdr("the model %s is no longer available"),
-							temp), type="error")
-			putRcmdr(".activeModel", NULL)
-			RcmdrTclSet("modelName", gettextRcmdr("<No active model>"))
-			if (!is.SciViews()) tkconfigure(getRcmdr("modelLabel"), foreground="red") else refreshStatus()
-			activateMenus()
-			return(NULL)
-		}
-		else return(temp)
-	}
-	else putRcmdr(".activeModel", name)
 }
 
 GrabFocus <- function(value){
@@ -1504,22 +1380,6 @@ numericP <- function(n=1) activeDataSetP() && length(listNumeric()) >= n
 factorsP <- function(n=1) activeDataSetP() && length(listFactors()) >= n
 
 twoLevelFactorsP <- function(n=1) activeDataSetP() && length(listTwoLevelFactors()) >= n
-
-modelsP <- function(n=1) activeDataSetP() && length(listAllModels()) >= n
-
-activeModelP <- function() !is.null(ActiveModel())
-
-lmP <- function() activeModelP() && any(class(get(ActiveModel()))[1] == c('lm', 'aov'))
-
-glmP <- function() activeModelP() && class(get(ActiveModel()))[1] == 'glm'
-
-aicP <- function() activeModelP() && exists.method("extractAIC", get(ActiveModel()))
-
-polrP <- function() activeModelP() && class(get(ActiveModel()))[1] == 'polr'
-
-multinomP <- function() activeModelP() && class(get(ActiveModel()))[1] == 'multinom'
-
-hclustSolutionsP <- function() length(listHclustSolutions()) > 0
 
 MacOSXP <- function() {
 	sys <- Sys.info()
@@ -1777,13 +1637,17 @@ splitCmd <- function(cmd, width=getOption("width") - 4, at="[ ,]"){
 	if (singleQuotes[1] > 0 && (singleQuotes[1] < doubleQuotes[1] || doubleQuotes[1] < 0 ) && (singleQuotes[1] < comment[1] || comment[1] < 0 )){
 		nquotes <- length(singleQuotes)
 		if (nquotes < 2) stop("unbalanced quotes")
-		where[(where > singleQuotes[1]) & (where < singleQuotes[2])] <- NA
+#		where[(where > singleQuotes[1]) & (where < singleQuotes[2])] <- NA
+		for(i in seq(nquotes/2))
+		    where[(where > singleQuotes[2 * i - 1]) & (where < singleQuotes[2 * i])] <- NA
 		where <- na.omit(where)
 	}  
 	else if (doubleQuotes[1] > 0 && (doubleQuotes[1] < singleQuotes[1] || singleQuotes[1] < 0) && (doubleQuotes[1] < comment[1] || comment[1] < 0 )){
 		nquotes <- length(doubleQuotes)
 		if (nquotes < 2) stop("unbalanced quotes")
-		where[(where > doubleQuotes[1]) & (where < doubleQuotes[2])] <- NA
+#		where[(where > doubleQuotes[1]) & (where < doubleQuotes[2])] <- NA
+		for(i in seq(nquotes/2))
+		    where[(where > doubleQuotes[2 * i - 1]) & (where < doubleQuotes[2 * i])] <- NA
 		where <- na.omit(where)
 	}
 	else if (comment > 0){
@@ -1925,3 +1789,64 @@ flushDialogMemory <- function(what){
 		putRcmdr("dialog.values.noreset", dialog.values.noreset)
 	}
 }
+
+# for assignments to the global environment
+
+gassign <- function(x, value){
+    if (!(is.valid.name(x))) stop("argument x not a valid R name")
+    G <- .GlobalEnv
+    assign(x, value, envir=G)
+}
+
+# because it's no longer possible to access these functions from their packages:
+
+# from car:
+
+coef.multinom <- function (object, ...) 
+{
+    # the following from nnet:
+    cf <- function (object, ...) 
+    {
+        r <- length(object$vcoefnames)
+        if (length(object$lev) == 2L) {
+            coef <- object$wts[1L + (1L:r)]
+            names(coef) <- object$vcoefnames
+        }
+        else {
+            coef <- matrix(object$wts, nrow = object$n[3L], byrow = TRUE)[, 
+                                                                          1L + (1L:r), drop = FALSE]
+            if (length(object$lev)) 
+                dimnames(coef) <- list(object$lev, object$vcoefnames)
+            if (length(object$lab)) 
+                dimnames(coef) <- list(object$lab, object$vcoefnames)
+            coef <- coef[-1L, , drop = FALSE]
+        }
+        coef
+    }
+    b <- cf(object, ...)
+    cn <- colnames(b)
+    rn <- rownames(b)
+    b <- as.vector(t(b))
+    names(b) <- as.vector(outer(cn, rn, function(c, r) paste(r, 
+                                                             c, sep = ":")))
+    b
+}
+
+# from MASS:
+
+confint.glm <- function (object, parm, level = 0.95, trace = FALSE, ...) 
+{
+    pnames <- names(coef(object))
+    if (missing(parm)) 
+        parm <- seq_along(pnames)
+    else if (is.character(parm)) 
+        parm <- match(parm, pnames, nomatch = 0L)
+    message("Waiting for profiling to be done...")
+    utils::flush.console()
+    object <- profile(object, which = parm, alpha = (1 - level)/4, 
+                      trace = trace)
+    confint(object, parm = parm, level = level, trace = trace, 
+            ...)
+}
+
+tkfocus <- function(...) tcl("focus", ...)
