@@ -1,27 +1,28 @@
-# last modified 2012-01-27 by J. Fox
+# last modified 2012-12-19 by J. Fox
 #  applied patch to improve window behaviour supplied by Milan Bouchet-Valat 2011-09-22
 
 .onAttach <- function(...){
-	if(interactive()) {
+    if(interactive()){
         QCA.version <- read.dcf(file = system.file("DESCRIPTION", package="QCA"), fields="Version") 
         if (compareVersion(QCA.version, "0.6-5") > 0) {
             packageStartupMessage("\n\n\n======= For the time being, QCA versions greater than 0.6-5 are unsupported. =======\n\n",
 				domain="R-Rcmdr")
 			return()
         }
-	    Commander()
-	}
-	else {
-		packageStartupMessage("The Commander GUI is launched only in interactive sessions",
-				domain="R-Rcmdr")
-		return()
-	}
-	packageStartupMessage(gettext("\nQCAGUI based on Rcmdr Version", domain="R-Rcmdr"), " ",
-			getRcmdr("RcmdrVersion"), "\n")
-#	if (.Platform$GUI == "Rgui"  && ismdi()) packageStartupMessage(paste(gettextRcmdr("NOTE"), ": ",
-#		gettextRcmdr(
-#		"The Windows version of the R Commander works best under RGui with the single-document interface (SDI)\nSee ?Commander"),
-#		sep=""))
+        
+        if (!(exists(".RcmdrEnv") && is.environment(RcmdrEnv()) &&
+                 exists("commanderWindow", RcmdrEnv()) &&
+                 !is.null(get("commanderWindow", RcmdrEnv())))){
+            Commander()
+            packageStartupMessage(gettext("\nQCAGUI based on Rcmdr Version", domain="R-Rcmdr"), " ",
+                                  getRcmdr("RcmdrVersion"), "\n")
+        }
+    }
+    else {
+        packageStartupMessage("The Commander GUI is launched only in interactive sessions",
+                              domain="R-Rcmdr")
+        return()
+    }
 }
 
 .onLoad <- function(...){
@@ -32,7 +33,8 @@
 	if (!interactive()) return()
 	save.options <- options(warn=-1)
 	on.exit(options(save.options))
-	required.packages <- rev(c("abind", "car", "foreign", "XML", "MASS", "QCA"))
+	required.packages <- rev(c("abind", "car", "foreign", "XML"))
+	if (.Platform$OS.type == "windows") required.packages <- c(required.packages, c("RODBC", "XLConnect"))
 	check <- options("Rcmdr")[[1]]$check.packages
 	if (length(check) > 0 && !check) return()
 	packages.to.check <- required.packages
@@ -46,6 +48,7 @@
 				icon="error", type="yesno")
 		if (tclvalue(response) == "yes") {
 			top <- tktoplevel(borderwidth=10)
+#			tkwm.iconbitmap(top, system.file("etc", "R-logo.ico", package="Rcmdr"))
 			tkwm.title(top, gettext("Install Missing Packages", domain="R-Rcmdr"))
 			locationFrame <- tkframe(top)
 			locationVariable <- tclVar("CRAN")
@@ -82,11 +85,11 @@
 				tkdestroy(top)
 				location <- tclvalue(locationVariable)
 				if (location == "CRAN") {
-					packages <- utils:::CRAN.packages()[,1]
+					packages <- available.packages()[,1]
 					present <- missing.packages %in% packages
 					if (!all(present)) errorMessage()
 					if (!any(present)) return()
-					utils:::install.packages(missing.packages[present], lib=.libPaths()[1])		
+					install.packages(missing.packages[present], lib=.libPaths()[1])		
 				}
 #                else if (location == "Bioconductor") {
 #                    packages <- CRAN.packages(CRAN=getOption("BIOC"))[,1]
@@ -97,11 +100,11 @@
 #                    }
 				else {
 					directory <- paste("file:", tclvalue(directoryVariable), sep="")
-					packages <- utils:::CRAN.packages(contriburl=directory)[,1]
+					packages <- available.packages(contriburl=directory)[,1]
 					present <- missing.packages %in% packages
 					if (!all(present)) errorMessage()
 					if (!any(present)) return()
-					utils:::install.packages(missing.packages[present], contriburl=directory,
+					install.packages(missing.packages[present], contriburl=directory,
 							lib=.libPaths()[1])
 				}
 			}
@@ -128,7 +131,7 @@
 			tkbind(top, "<Return>", onOK)
 			tkwm.deiconify(top)
 			tkgrab.set(top)
-			tkfocus(top)
+		#	tkfocus(top)
 			tkwait.window(top)
 		}
 	}

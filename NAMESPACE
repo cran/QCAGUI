@@ -1,40 +1,57 @@
-# last modified 25 July 2011 by J. Fox
+# last modified 2013-02-08 by A. Dusa
 
 useDynLib(QCAGUI)
 
 import(tcltk)
 
-export(activateMenus, activeDataSet, ActiveDataSet, activeDataSetP, activeModel,
-ActiveModel, activeModelP, aicP, assignCluster, bin.var, buttonRcmdr,
+importFrom(utils, available.packages, install.packages)
+
+export(tkfocus,
+activateMenus, activeDataSet, ActiveDataSet, activeDataSetP,
+buttonRcmdr,
 checkActiveDataSet,
-checkActiveModel, checkBoxes, checkClass, checkFactors, checkMethod, 
+checkBoxes, checkClass, checkFactors, checkMethod, 
 checkNumeric, checkReplace,
 checkTwoLevelFactors, checkVariables, closeCommander,
-closeDialog, colPercents, Commander,
+closeDialog, Commander,
 commanderPosition, CommanderWindow, dataSetsP, defmacro,
 dialogSuffix, doItAndPrint, errorCondition, exists.method,
 Factors, factorsP, flushDialogMemory, 
-getDialog, getFrame, getRcmdr, getSelection, gettextRcmdr,
-glmP, GrabFocus, groupsBox, groupsLabel, hclustSolutionsP, Hist, initializeDialog, 
-is.valid.name, is.SciViews, justDoIt, KMeans, labelRcmdr, Library,
+gassign, getDialog, getFrame, getRcmdr, getSelection, gettextRcmdr,
+GrabFocus, groupsBox, groupsLabel, Hist, initializeDialog, 
+is.valid.name, is.SciViews, justDoIt, labelRcmdr, Library,
 listAllModels, listAOVModels, listDataSets, listFactors, listGeneralizedLinearModels, 
 listLinearModels, listMultinomialLogitModels, listNumeric, listPlugins, 
 listProportionalOddsModels, listTwoLevelFactors, listVariables, 
-lmP, logger, LogWindow, MacOSXP, mergeRows,
-Message, MessagesWindow, modelFormula, modelsP, multinomP, Numeric,
+logger, LogWindow, MacOSXP, mergeRows,
+Message, MessagesWindow, modelFormula, Numeric,
 numericP, numSummary, OKCancelHelp, OutputWindow, packageAvailable, partial.cor,
-plotMeans, polrP, popCommand, popOutput, putDialog, putRcmdr, 
+plotMeans, popCommand, popOutput, putDialog, putRcmdr, 
 radioButtons, rglLoaded, RcmdrPager, RcmdrTclSet, 
-RcmdrTkmessageBox, rcorr.adjust,
-reliability, RExcelSupported, rowPercents, sortVarNames, stepwise, subOKCancelHelp,
+RcmdrTkmessageBox,
+reliability, RExcelSupported, sortVarNames, subOKCancelHelp,
 subsetBox, tclvalue, totPercents, trim.blanks, ttkentry, ttkframe, ttkradiobutton,
 ttkscrollbar, TwoLevelFactors, twoLevelFactorsP, 
-UpdateModelNumber, variableListBox, Variables, varPosn)
+UpdateModelNumber, variableListBox, Variables, varPosn,
+    
+.Tcl, tcl, tclRequire, tclServiceMode, "tclvalue<-",
+tclVar, tkbind, tkcget, tkcheckbutton, tkconfigure,
+tkchooseDirectory, tkcurselection, tkdelete, tkdestroy, tkentry,
+tkframe, tkgrab.release, tkgrab.set, tkgetOpenFile, tkgetSaveFile,
+tkgrid, tkgrid.columnconfigure, tkgrid.configure, tkgrid.rowconfigure,
+tkicursor, tkindex, tkinsert,
+tkinvoke, tkitemconfigure, tklabel, tklistbox, tkmark.set,
+tkmessageBox, tkpack, tkradiobutton, tkraise, tkscale,
+tkscrollbar, tk_select.list, tkselection.clear, tkselection.present,
+tkselection.set, tkset, tktag.configure, tktext, tktoplevel,
+tkwait.window, tkwm.deiconify, tkwm.iconbitmap, tkwm.geometry, tkwm.protocol,
+tkwm.resizable, tkwm.title, tkwm.transient,
+tkxview.moveto, tkxview, tkyview, tkyview.scroll)
 
+S3method(coef, multinom)
 S3method(mergeRows, data.frame)
 S3method(print, numSummary)
 S3method(print, reliability)
-S3method(print, rcorr.adjust)
 S3method(getFrame, listbox)
 S3method(getSelection, listbox)
 
