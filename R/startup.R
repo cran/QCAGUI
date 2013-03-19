@@ -25,9 +25,9 @@
     }
 }
 
-.onLoad <- function(...){
+.onLoad <- function(...) {
 	packagesAvailable <- function(packages){
-		sapply(sapply(packages, .find.package, quiet=TRUE),
+		sapply(sapply(packages, find.package, quiet=TRUE),
 				function(x) length(x) != 0)
 	}
 	if (!interactive()) return()

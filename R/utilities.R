@@ -560,10 +560,10 @@ RcmdrPager <- function (file, header, title, delete.file)
 # help functions
 
 helpCommander <- function() {
-	PDF <- file.access(paste(file.path(.path.package(package="Rcmdr")[1], "doc"), 
+	PDF <- file.access(paste(file.path(path.package(package="Rcmdr")[1], "doc"), 
 					"/", gettextRcmdr("Commander"), ".pdf", sep=""), mode=4)
 	if (PDF == 0){
-		browseURL(paste(file.path(.path.package(package="Rcmdr")[1], "doc"),
+		browseURL(paste(file.path(path.package(package="Rcmdr")[1], "doc"),
 						"/", gettextRcmdr("Commander"), ".pdf", sep=""))
 	} 
 	else if (as.numeric(R.Version()$major) >= 2) print(help(gettextRcmdr("Commander")))
@@ -576,7 +576,7 @@ helpAboutCommander <- function() {
 }
 
 browseManual <- function() {
-	browseURL(paste(file.path(.path.package(package="QCAGUI")[1], "doc"),
+	browseURL(paste(file.path(path.package(package="QCAGUI")[1], "doc"),
 					"/", gettextRcmdr("User-Manual-QCAGUI"), ".pdf", sep=""))
 }
 
@@ -1386,7 +1386,7 @@ MacOSXP <- function() {
 	!is.null(sys) && length(grep("[Dd]arwin", sys["sysname"]) > 0)
 }
 
-packageAvailable <- function(name) 0 != length(.find.package(name, quiet=TRUE))
+packageAvailable <- function(name) 0 != length(find.package(name, quiet=TRUE))
 
 rglLoaded <- function() 0 != length(grep("^rgl", loadedNamespaces()))
 
@@ -1534,7 +1534,7 @@ trim.col.na <- function(dat){
 # check whether packages are available
 
 packagesAvailable <- function(packages){
-	sapply(sapply(packages, .find.package, quiet=TRUE),
+	sapply(sapply(packages, find.package, quiet=TRUE),
 			function(x) length(x) != 0)
 }
 

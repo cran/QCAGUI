@@ -36,7 +36,7 @@ svCommander <- function(Version = "1.1-0"){
             if (global) putRcmdr(option, opt)
             else opt
             }
-        etc <- file.path(.path.package(package="Rcmdr")[1], "etc")
+        etc <- file.path(path.package(package="Rcmdr")[1], "etc")
         # Do NOT sink error messages!
         #assign(".messages.connection", textConnection(".messages", open = "w"), envir=.GlobalEnv)
         #sink(.messages.connection, type="message")

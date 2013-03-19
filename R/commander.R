@@ -29,7 +29,7 @@ Commander <- function(){
         
     }
 	RStudioP <- function() nzchar(Sys.getenv("RSTUDIO_USER_IDENTITY"))
-	DESCRIPTION <- readLines(file.path(.find.package("QCAGUI"), "DESCRIPTION")[1])
+	DESCRIPTION <- readLines(file.path(find.package("QCAGUI"), "DESCRIPTION")[1])
 	RcmdrVersion <- trim.blanks(sub("^Version:", "",
 					grep("^Version:", DESCRIPTION, value=TRUE)))
 	putRcmdr("quotes", options(useFancyQuotes=FALSE))
@@ -68,7 +68,7 @@ Commander <- function(){
 	tkimage.create("photo", "::image::dataIcon", file = system.file("etc", "data.gif", package="QCAGUI"))
 	tkimage.create("photo", "::image::modelIcon", file = system.file("etc", "model.gif", package="QCAGUI"))
 	setOption("number.messages", TRUE)
-#etc <- setOption("etc", file.path(.path.package(package="QCAGUI")[1], "etc"))
+#etc <- setOption("etc", file.path(path.package(package="QCAGUI")[1], "etc"))
 	etc <- setOption("etc", system.file("etc", package="QCAGUI"))
 	etcMenus <- setOption("etcMenus", etc)
 	putRcmdr("etcMenus", etcMenus)
@@ -293,7 +293,7 @@ Commander <- function(){
 				"commandOrMenu", "activation", "install")
 		names(Menus) <- nms
 		for (plugin in Plugins) {
-			MenusToAdd <- read.table(file.path(.path.package(package=plugin)[1], "etc/menus.txt"),
+			MenusToAdd <- read.table(file.path(path.package(package=plugin)[1], "etc/menus.txt"),
 					colClasses = "character")
 			names(MenusToAdd) <- nms
 			for (i in 1:nrow(MenusToAdd)){
@@ -355,7 +355,7 @@ Commander <- function(){
 	## end of change ###############################
 	modelClasses <- scan(file.path(etc, "model-classes.txt"), what="", quiet=TRUE, comment.char="#")
 	for (plugin in Plugins){
-		description <- readLines(file.path(.path.package(package=plugin)[1], "DESCRIPTION"))
+		description <- readLines(file.path(path.package(package=plugin)[1], "DESCRIPTION"))
 		addModels <- description[grep("Models:", description)]
 		addModels <- gsub(" ", "", sub("^Models:", "", addModels))
 		addModels <- unlist(strsplit(addModels, ","))

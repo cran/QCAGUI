@@ -1,6 +1,6 @@
 Package: QCAGUI
-Version: 1.9-5
-Date: 2013-02-10
+Version: 1.9-6
+Date: 2013-03-19
 Title: QCA Graphical User Interface
 Authors@R: c(person("John", "Fox", role = c("aut", "cre"), email =
         "jfox@mcmaster.ca"), person("Adrian", "Dusa", role = "aut",
@@ -26,5 +26,6 @@ Author: This package is 99% based on the Rcmdr package written by John
         the QCA package by Adrian Dusa <dusadrian@unibuc.ro>
 Maintainer: Adrian Dusa <dusadrian@unibuc.ro>
 Repository: CRAN
-Packaged: 2013-02-09 23:27:12 UTC; dusadrian
-Date/Publication: 2013-02-10 08:18:53
+Packaged: 2013-03-19 14:09:08 UTC; dusadrian
+NeedsCompilation: yes
+Date/Publication: 2013-03-19 15:54:27
