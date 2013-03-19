@@ -12,8 +12,8 @@ QCAGUI is a graphical user interface (GUI) for the QCA package, derived from R C
 \details{
 \tabular{ll}{
 Package: \tab QCAGUI\cr
-Version: \tab 1.9-5\cr
-Date: \tab 2013-02-10\cr
+Version: \tab 1.9-6\cr
+Date: \tab 2013-03-19\cr
 Depends: \tab R (>= 2.1.0), tcltk, grDevices, utils\cr
 Suggests: \tab XML\cr
 LazyLoad: \tab no\cr
