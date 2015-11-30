@@ -1,57 +1,87 @@
-# last modified 2013-02-08 by A. Dusa
-
 useDynLib(QCAGUI)
-
-import(tcltk)
-
-importFrom(utils, available.packages, install.packages)
-
-export(tkfocus,
-activateMenus, activeDataSet, ActiveDataSet, activeDataSetP,
-buttonRcmdr,
-checkActiveDataSet,
-checkBoxes, checkClass, checkFactors, checkMethod, 
-checkNumeric, checkReplace,
-checkTwoLevelFactors, checkVariables, closeCommander,
-closeDialog, Commander,
-commanderPosition, CommanderWindow, dataSetsP, defmacro,
-dialogSuffix, doItAndPrint, errorCondition, exists.method,
-Factors, factorsP, flushDialogMemory, 
-gassign, getDialog, getFrame, getRcmdr, getSelection, gettextRcmdr,
-GrabFocus, groupsBox, groupsLabel, Hist, initializeDialog, 
-is.valid.name, is.SciViews, justDoIt, labelRcmdr, Library,
-listAllModels, listAOVModels, listDataSets, listFactors, listGeneralizedLinearModels, 
-listLinearModels, listMultinomialLogitModels, listNumeric, listPlugins, 
-listProportionalOddsModels, listTwoLevelFactors, listVariables, 
-logger, LogWindow, MacOSXP, mergeRows,
-Message, MessagesWindow, modelFormula, Numeric,
-numericP, numSummary, OKCancelHelp, OutputWindow, packageAvailable, partial.cor,
-plotMeans, popCommand, popOutput, putDialog, putRcmdr, 
-radioButtons, rglLoaded, RcmdrPager, RcmdrTclSet, 
-RcmdrTkmessageBox,
-reliability, RExcelSupported, sortVarNames, subOKCancelHelp,
-subsetBox, tclvalue, totPercents, trim.blanks, ttkentry, ttkframe, ttkradiobutton,
-ttkscrollbar, TwoLevelFactors, twoLevelFactorsP, 
-UpdateModelNumber, variableListBox, Variables, varPosn,
-    
-.Tcl, tcl, tclRequire, tclServiceMode, "tclvalue<-",
-tclVar, tkbind, tkcget, tkcheckbutton, tkconfigure,
-tkchooseDirectory, tkcurselection, tkdelete, tkdestroy, tkentry,
-tkframe, tkgrab.release, tkgrab.set, tkgetOpenFile, tkgetSaveFile,
-tkgrid, tkgrid.columnconfigure, tkgrid.configure, tkgrid.rowconfigure,
-tkicursor, tkindex, tkinsert,
-tkinvoke, tkitemconfigure, tklabel, tklistbox, tkmark.set,
-tkmessageBox, tkpack, tkradiobutton, tkraise, tkscale,
-tkscrollbar, tk_select.list, tkselection.clear, tkselection.present,
-tkselection.set, tkset, tktag.configure, tktext, tktoplevel,
-tkwait.window, tkwm.deiconify, tkwm.iconbitmap, tkwm.geometry, tkwm.protocol,
-tkwm.resizable, tkwm.title, tkwm.transient,
-tkxview.moveto, tkxview, tkyview, tkyview.scroll)
-
-S3method(coef, multinom)
-S3method(mergeRows, data.frame)
-S3method(print, numSummary)
-S3method(print, reliability)
-S3method(getFrame, listbox)
-S3method(getSelection, listbox)
+export(.onAttach,
+    allExpressions,
+    base3rows,
+    calibrate,
+    createChart,
+    createMatrix,
+    createString,
+    demoChart,
+    deMorgan,
+    deMorganLoop,
+    eqmcc,
+    eqmccLoop,
+        export,
+            factor.function,
+    factorize,
+    findSubsets,
+    findSupersets,
+    findTh,
+    fuzzyand,
+    fuzzyor,
+            getBigList,
+            getNonChars,
+    getRow,
+    getSolution,
+            intersection,
+    is.deMorgan,
+    is.pof,
+    is.qca,
+    is.tt,
+    is.sS,
+            negateValues,
+    pof,
+        possibleNumeric,
+    prettyString,
+    prettyTable,
+    print.aE,
+    print.deMorgan,
+    print.fctr,
+    print.pof,
+    print.qca,
+    print.mqca,
+    print.pic,
+    print.sS,
+    print.tt,
+        recode,
+            removeDuplicates,
+            removeSingleStars,
+    rowDominance,
+        runGUI,
+            simplifyList,
+            solveBrackets,
+    solveChart,
+    sortMatrix,
+    sortVector,
+    splitstr,
+            splitBrackets,
+            splitMainComponents,
+            splitPluses,
+            splitStars,
+            splitTildas,
+    superSubset,
+        trimst,
+    truthTable,
+    verify.data,
+    verify.dir.exp,
+    verify.expl,
+    verify.inf.test,
+    verify.qca,
+    verify.mqca,
+    verify.tt,
+    writePrimeimp,
+    writeSolution)
+import(lpSolve)
+import(shiny)
+importFrom("utils", "packageDescription", "combn")
+importFrom("stats", "binom.test", "cutree", "dist", "hclust", "na.omit")
+S3method(print, "aE")
+S3method(print, "deMorgan")
+S3method(print, "fctr")
+S3method(print, "mqca")
+S3method(print, "pic")
+S3method(print, "pof")
+S3method(print, "qca")
+S3method(print, "sS")
+S3method(print, "tt")
 

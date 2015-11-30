@@ -1,14 +1,61 @@
- citHeader("To cite the 'Rcmdr' package in publications use:")
- 
-  bibentry(
-     bibtype = "Article",
-     title = "The {R} {C}ommander: A Basic Statistics Graphical User Interface to {R}",
-     author = as.person("John Fox [aut]"),
-     year = "2005",
-     journal = "Journal of Statistical Software",
-     volume = "14",
-     number = "9",
-     pages = "1--42",
-     url = "http://www.jstatsoft.org/v14/i09",
-     textVersion="Fox, J. (2005). The R Commander: A Basic Statistics Graphical User Interface to R. Journal of Statistical Software, 14(9): 1--42."
-  )
+meta <- packageDescription("QCAGUI")
+# year <- sub("-.*", "", meta$Date)
+year <- "2015"
+# note <- sprintf("R Package Version %s", meta$Version)
+note <- "R Package Version 2.0-0"
+# title <- sprintf("%s", meta$Title)
+title <- "QCAGUI: Modern functions for Qualitative Comparative Analysis"
+
+citHeader("To cite this package in publications, please use:")
+
+citEntry(entry = "Article",
+    author      = personList(as.person("Adrian Dusa")),
+    year        = "2007",
+    journal     = "Journal of Business Research",
+    volume      = "60",
+    number      = "5",
+    pages       = "576--586",
+    title       = "User manual for the QCA(GUI) package in R",
+    textVersion = paste("Dusa, Adrian (2007).",
+                     "User manual for the QCA(GUI) package in R,",
+                     "Journal of Business Research 60(5), 576-586.")
+)
+
+citEntry(entry = "Manual",
+    author      = personList(as.person("Adrian Dusa")),
+    year        = "2015",
+    title       = title,
+    note        = note,
+    url         = "http://cran.r-project.org/package=QCAGUI",
+    textVersion = paste(paste("Dusa, Adrian (", sprintf("%s", year), ")", sep=""),
+                      title, note, "URL: http://cran.r-project.org/package=QCAGUI.", sep = ". "),
+    header      = "For the package itself:"
+)
+
+citEntry(entry = "Article",
+    author      = personList(as.person("Adrian Dusa")),
+    year        = "2010",
+    journal     = "Quality & Quantity",
+    volume      = "44",
+    number      = "1",
+    pages       = "99--113",
+    title       = "A mathematical approach to the boolean minimization problem",
+    textVersion = paste("Dusa, Adrian (2010).",
+                     "A mathematical approach to the boolean minimization problem, ",
+                     "Quality & Quantity 44(1), pp.99-113."),
+    header      = "Users might also be interested in:"
+)
+
+citEntry(entry = "Article",
+    author      = personList(as.person("Adrian Dusa"), as.person("Alrik Thiem")),
+    year        = "2015",
+    journal     = "Journal of Mathematical Sociology",
+    volume      = "39",
+    pages       = "92--108",
+    title       = "Enhancing the Minimization of Boolean and Multivalue Output Functions With eQMC",
+    textVersion = paste("Dusa, Adrian and Alrik Thiem (2015).",
+                     "Enhancing the Minimization of Boolean and Multivalue Output Functions With eQMC, ",
+                     "Journal of Mathematical Sociology vol.39, pp.92-108,",
+                     "DOI: 10.1080/0022250X.2014.897949"),
+    header      = "The current algorithm has been described in:"
+)
