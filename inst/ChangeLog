@@ -1,4 +1,27 @@
-Version 1.2-0
+Version 2.1
+    o New: function translate() for an DNF expression
+    o New: function compute() for an DNF expression, using translate()
+      (thanks to Jirka Lewandowski for suggesting both functions)
+    o New: function retention() for calculating the retention probability of a csQCA
+      solution, in different perturbation scenarios
+    o New: the GUI is now able to draw Venn diagrams up to 7 sets
+    o New: better shapes of the Venn diagrams for 4 and 5 sets (especially for
+      small intersections)
+    o Fixed: minor bugs at the web interface
+    o Fixed: minor bugs at the printing functions
+    o Changed: function intersection() now uses translate(), which makes the
+      argument "prod.split" obsolete, and argument "conditions" renamed to "snames"
+    o Changed: argument "neg.out" in pof() and eqmcc() is now deprecated, but still
+      backwards compatible. Negation of the outcome is detected by a "~" sign
+      in front of the outcome name
+    o Changed: complete rewrite of the factorize() function, now orders of magnitude
+      faster for very complex inputs and producing more accurate results; it also
+      automatically detects the product split, if a "*"
+    o Improved: deMorgan() can also return products of sums
+    o Improved: pof() function now accepts a DNF expression, in addition to current
+      functionality
+    
+Version 2.0
     o New: first attempt of a Javascript based, graphical user interface
     o New: introduced function intersection()
     o New: introduced function recode()
@@ -15,6 +38,7 @@ Version 1.2-0
     o Improved: functions pof() and superSubset() now accept additional measures,
       a first one being "ron" (for relevance of necessity), using the argument "add"
     o Improved: function pof() now recognizes "1 - " to automatically negate the input
+    o Changed: component "opts" from the output of eqmcc() is now called "options"
     o Changed: argument "logistic" in the calibrate() function is now TRUE by default,
       for compatibility with fsQCA
     o Changed: removed formal argument "decreasing" in the truthTable() function

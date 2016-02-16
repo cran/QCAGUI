@@ -1,6 +1,7 @@
 `calibrate` <-
 function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
           idm = 0.95, ecdf = FALSE, p = 1, q = 1) {
+    
     if (!is.numeric(x)) {
         cat("\n")
         stop("x is not numeric.\n\n", call. = FALSE)

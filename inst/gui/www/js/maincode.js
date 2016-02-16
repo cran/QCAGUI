@@ -8,20 +8,16 @@ $('#main_menu').smartmenus({
 
 
 
-// initialize all globals
 var theData = "";
 var dataCoords = "";
 
-// These are zero based (there are actually 17 rows and 8 columns)
 var visiblerows = 16, visiblecols = 7;
 
 
 var gridset, datacover;
 
-//data editor dialog (outer) heigth and width, must store in case of resize
 var deheight = 400, dewidth = 659;
 
-// 0. start row; 1. start col; 2. how many rows, 3. how many cols
 var scrollvh = [0, 0, visiblerows, visiblecols];
 
 var tempdirfile = "";
@@ -32,7 +28,7 @@ var rects_width;
 var canvas_height;
 var tempdatainfo = {ncols: 0, nrows: 0, colnames: [], rownames: []};
 var datainfo = {ncols: 0, nrows: 0, colnames: [], rownames: []};
-var ovBox, input; // input is needed as a global, used in mycode.js
+var ovBox, input; 
 var tasta = "enter";
 var import_open = "";
     import_open.obj = ["dir", ""];
@@ -52,34 +48,22 @@ var string_command = "";
 var dirfilevisit = false;
 var eqmcc2R, tt2R, calib2R;
 
-// to store which variables are selected (clicked)
-// from which dialogs, from which columns div
-// true / false
 var colclicks = new Array();
 
 
 var current_command = "";
 var objname = "";
 
-// object to send something to R when the user changed something
-// in the data editor
-// ex. [row, col, value], but also ["r", 3, value] for the third rowname
 var dataModif = new Array(3);
 
 var testX = 80, testY = 33;
 
-// size of either width or height of the scrollbars
 var scrollbarsWH = getScrollBarWidth();
 
-// necessary to check when and if the visible data has changed
-// updatecounter is a safety device to break the updateWhenDataChanged() function
-// if both visible data and data coordinates are the same
 var visibledata, updatecounter = 0, updatecounter2 = 0;
 
-// necessary to check when and if the structure of files and directories changed
 var pathcopy;
 
-// necessary to check when and if the output window information changed
 var outputcopy, coordscopy;
 
 var dirsfilescopy;
@@ -89,15 +73,12 @@ var dirfilist = {
 }
 
 
-// to get the thresholds in the calibrate dialog
-// number of thresholds (crisp sets); name of the condition; something to produce any change
 var thinfo = [1, "", 0];
 
 var thvalsfromR = new Array();
 var ths = new Array(6);
 
 
-// to get all values for a certain causal condition, for the thresholds setter
 var thsetter2R = {
     counter: 0,
     cond: ""
@@ -114,7 +95,7 @@ var rloadcycles = 0;
 var eqmccfromR = new Array();
 var ttfromR = new Array();
 
-var papers = {}; // the Raphael papers
+var papers = {};
 
 
 
@@ -125,7 +106,7 @@ var papers = {}; // the Raphael papers
 
 
 var read_table, importobj, exportobj, eqmcc, tt, calibrate, recode, xyplot;
-// create the communication (with R) objects 
+
 
 
 
@@ -287,10 +268,8 @@ reset_xyplot();
 
 
 
-// create functions to receive answers from R
 
 
-// temporary information for the read.table() communication
 Shiny.addCustomMessageHandler("tempdirfile",
     function(object) {
         tempdirfile = object;
@@ -315,7 +294,6 @@ Shiny.addCustomMessageHandler("datainfo",
         datainfo = object[0];
         theData = object[1];
         dataCoords = object[2];
-        //refresh_cols("all");
     }
 );
 
@@ -330,12 +308,11 @@ Shiny.addCustomMessageHandler("eqmcc",
     function(object) {
         outres = object[0];
         if (object[1] != null) {
-            ttfromR = object[1][0]; // I could just make it object[1] but maybe I need something else from eqmcc
+            ttfromR = object[1][0];
             if ($("#venn").length) {
                 papers["venn_main"].customtext = "";
             }
             draw_venn(papers["venn_main"]);
-            // eqmccfromR = something else from object[1][...1...] etc.
         }
     }
 );
@@ -427,16 +404,12 @@ function console_command(type) {
     objname = "";
     
     if (type == "import") {
-        //console.trace("console_command: import");
         
         if (dirfile.filepath != "") {
-            
-            //console.log(dirfile.filepath[0][0]);
             
             string_command = ((read_table.filename != "")?read_table.filename:dirfile.filename) + " <- ";
             if (read_table.sep == ",") {
                 string_command = string_command + "read.csv(\"" + 
-                //dirfile.filepath + "\"" + 
                 dirfile.filepath[0][0].replace(/\s/g, "≠") + "\"" + 
                 (!read_table.header?", header = FALSE":"") + 
                 ((read_table.dec == ",")?", dec = \",\"":"");
@@ -461,7 +434,6 @@ function console_command(type) {
     }
     else {
         
-        // for both eqmcc and tt, the filename should exist, otherwise nothing
         if (datainfo.rownames != "" && imported_filename != "" && !dirfilist.refresh) {
             
             if (type == "export") {
@@ -494,7 +466,6 @@ function console_command(type) {
             
             if (type == "eqmcc") {
                 
-                //console.log(colclicks.eqmcc.outcome);
                 var outcome = getTrueKeys(colclicks.eqmcc.outcome);
                 var conditions = getTrueKeys(colclicks.eqmcc.conditions);
                 objname <- "qmc";
@@ -613,7 +584,6 @@ function console_command(type) {
             
             if (type == "tt") {
                 
-                //console.log(colclicks.tt);
                 var outcome = getTrueKeys(colclicks.tt.outcome);
                 var conditions = getTrueKeys(colclicks.tt.conditions);
                 objname = "tt";
@@ -683,7 +653,6 @@ function console_command(type) {
                 string_command += ")";
                 
             }
-            
             
             
             
@@ -799,7 +768,6 @@ function console_command(type) {
                     for (var i = 0; i < uniques.length; i++) {
                         temp = new Array();
                         oldvals = "";
-                        // identify oldv with the same newv
                         
                         for (var j = 0; j < nl; j++) {
                             if (recode.newv[j] == uniques[i]) {
@@ -858,11 +826,11 @@ function print_cols(paper, options) {
     
     paper.clear();
     if (cols.length > 0) {
-        // selection can be one of "none", "single", "multiple"
         
         if (selection == void 0) {
             selection = "single";
         }
+        
         
         if (getKeys(colclicks).indexOf(dialog) < 0) {
             colclicks[dialog] = new Array();
@@ -914,7 +882,7 @@ function print_cols(paper, options) {
             
         }
         else {
-                if (datainfo.rownames != "") { // which means a valid datafile has been read
+                if (datainfo.rownames != "") { 
                 
                 for (var i = 0; i < cols.length; i++) {
                     rects_back[i] = paper.rect(0, i*20 + 0.5, 220, 19).attr({fill: colclicks[dialog][identifier][cols[i]]?"#79a74c":"#ffffff", stroke: "none"});
@@ -968,7 +936,7 @@ function print_cols(paper, options) {
                                 }
                                 
                             }
-                            else { // simple click, without Shift
+                            else {
                                 
                                 clicks[0] = this.id;
                                 colclicks[dialog][identifier][this.name] = !colclicks[dialog][identifier][this.name];
@@ -1121,8 +1089,6 @@ function strwrap(str, width, prefix) {
             return (left + "<br>" + strwrap(right, width, prefix));
         }
         else {
-            //try again, this time from the beginning
-            //maybe this is a very long string without many spaces or break characters
             var q = 0;
             for (var p = 1; p < str.length; p++) {
                 if (["£", "§", "∞"].indexOf(str[p]) >= 0 && q == 0) {
@@ -1227,9 +1193,7 @@ function print_data() {
             papers["data_rownames"].setSize(70  , 20*17);
             papers["data_colnames"].setSize(70*8, 20   );
         }
-        
-        update_data();
-        
+            update_data();
     }
 }
 
@@ -1269,35 +1233,29 @@ function update_data() {
     .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
     
     for (var i = Xshift - 25; i < Xshift + 60; i++) { // 25 columns leftside and another 35 in the rightside (about 10 are already visible)
-        // vertical grid
+        
         bodygridtext += "M" + 70*i + "," + 20*(Yshift - 50) + "L" + 70*i + "," + 20*(Yshift + 120);
         colgridtext += "M" + 70*i + ",0 L" + 70*i + ",20";
-        //papers["data_colnames"].path("M" + 70*i + ",0 L" + 70*i + ",20").attr({stroke: "#d7d7d7"});
+        
     }
     
     
     for (var i = Yshift - 50; i < Yshift + 120; i++) { // 50 rows above and another 50 below (about 20 are already visible)
-        // horizontal grid
+        
         bodygridtext += "M" + 70*(Xshift - 25) + "," + 20*i + "L" + 70*(Xshift + 60) + "," + 20*i;
         papers["data_rownames"].path("M" + 0 + "," + 20*i + "L 70" + "," + 20*i).attr({stroke: "#d7d7d7"});
     }
     
-    // gridset is a global... why?
+    
     gridset = papers["data_body"].path(bodygridtext).attr({stroke: "#d7d7d7"});
     papers["data_colnames"].path(colgridtext).attr({stroke: "#d7d7d7"});
     
     
     
     var getCoords = function(event) {
-        // event.clientX si event.clientY sunt coordonatele mouse-ului in total fereastra
-        // testX si testY reprezinta coordonatele dialogului in total fereastra
         
         var scrollX = $("#data_body").scrollLeft()%70;
         var scrollY = $("#data_body").scrollTop()%20;
-        
-        // 70 is the width of the columns
-        // 20 is the height of the rows
-        // 40 is 20px the header and 20px the column names
         
         var mouseX = Math.floor((event.clientX + $(window).scrollLeft() - testX - 70 + scrollX)/70);
         var mouseY = Math.floor((event.clientY + $(window).scrollTop() - 3*(navigator.browserType == "Firefox") - testY - 40 + scrollY)/20);
@@ -1394,7 +1352,6 @@ function update_data() {
                     Shiny.onInputChange("dataModif", dataModif);
                     
                     refresh_cols("exclude", "import");
-                    //filldirexp();
                     
                     console_command(current_command);
                     
@@ -1411,11 +1368,9 @@ function update_data() {
                         draw_xyplot(papers["xyplot_main"]);
                     }
                     
-                    // cover the old text (can't replace it because it's not stored anywhere
                     papers["data_colnames"].rect(70*(coords.mouseX + coords.Xshift), 0, 70, 20)
                     .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
                     
-                    // print the new text
                     sat(papers["data_colnames"].text(5 + 70*(coords.mouseX + coords.Xshift), 10, tocompare),
                         {"clip": 70*(coords.mouseX + coords.Xshift) + ", 0, 68, 20"});
                     
@@ -1430,7 +1385,7 @@ function update_data() {
             colsrect.show();
             colsrect.toFront();
         });
-        //
+        
         
         var rownamescover = papers["data_rownames"].rect(0, 0, 70, 20*datainfo.nrows)
         .attr({fill: "#ffffff", stroke: "none", "fill-opacity": "0"})
@@ -1485,11 +1440,9 @@ function update_data() {
                         }
                     }
                     
-                    // cover the old text (can't replace it because it's not stored anywhere
                     papers["data_rownames"].rect(0, 20*(coords.mouseY + coords.Yshift), 70, 20)
                     .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
                     
-                    // print the new text
                     sat(papers["data_rownames"].text(5, 10 + 20*(coords.mouseY + coords.Yshift), tocompare).toFront(),
                         {"clip": "0, " + 20*(coords.mouseY + coords.Yshift) + ", 68, 20"});
                     
@@ -1780,7 +1733,6 @@ function draw_import(paper) {
     
     
     
-    //sat(paper.text(stx + 285, sty + 15, "Choose file or set working directory:"));
     sat(paper.text(stx + 251, sty + 15, "Directory:"));
     paper.stdir_text = sat(paper.text(stx + 320, sty + 15, read_table.row_names),
                         {"clip": (stx + 315) + ", " + (sty + 5) + ", 337, 20"});
@@ -1789,7 +1741,6 @@ function draw_import(paper) {
     var stdir_rect = paper.rect(stx + 315, sty + 5, 337, 20)
         .attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
         .click(function(e) {
-            //var me = this;
             e.stopPropagation();
             var temp = paper.stdir_text.attr("text");
         
@@ -1870,7 +1821,6 @@ function draw_import(paper) {
                             
                             $("#import").hide();
                             
-                            // refresh the export dialog
                             draw_export(papers["export_main"]);
                             
                             
@@ -2044,7 +1994,6 @@ function draw_export(paper) {
                 
                 me.toFront();
                 
-                // reset the default
                 tasta = "enter";
             }, true);
         });
@@ -2090,7 +2039,6 @@ function draw_export(paper) {
                 
                 me.toFront();
                 
-                // reset the default
                 tasta = "enter";
             }, true);
         });
@@ -2135,7 +2083,6 @@ function draw_export(paper) {
                 
                 me.toFront();
                 
-                // reset the default
                 tasta = "enter";
             }, true);
         });
@@ -2197,7 +2144,6 @@ function draw_export(paper) {
         dirfilevisit = true;
         print_dirs();
         
-        // test again if the list of files/dirs changed
         dirfilist.value = 1 - dirfilist.value;
         Shiny.onInputChange("dirfilist", dirfilist);
         printIfDirsFilesChange();
@@ -2365,34 +2311,31 @@ if ($("#calibrate").length) {
     
     paper.clear();
     
+    paper.crfuz = 0;
     
     var thlabelsfuz = ["exclusion", "crossover", "inclusion"];
     var thlabelscrp = ["th1", "th2", "th3"]
     var thlabels = new Array(6);
     var thcovers = new Array(6);
     var increasing = false;
-    
     paper.thsetter_frame = paper.rect(152, 168.5, 320, 90).attr({stroke: "#d0d0d0"});
-                                         // was 295
     
     sat(paper.text(18, 24, "Choose condition:"));
+    
+    
     
     var stx = 153, sty = 27;
     
     
-    // radio crisp vs. fuzzy
-    
     var crfuz = paper.radio(stx + 15, sty, 1*(calibrate.type == "fuzzy"), ["crisp", "fuzzy"]);
     
-    // crisp radio button
     crfuz.cover[0].click(function() {
-        
+        paper.crfuz = 0;
         changeLabels();
         
         calibrate.thresholds = new Array(thinfo[0]);
         calibrate.thnames = new Array(thinfo[0]);
         
-        //save what was there from the fuzzy option
         calibrate.thscopyfuz = new Array(6);
         for (var i = 0; i < 6; i++) {
             calibrate.thscopyfuz[i] = ths[i].attr("text");
@@ -2402,7 +2345,6 @@ if ($("#calibrate").length) {
             
         }
         
-        //write what was (previously) saved as crisp
         for (var i = 0; i < 3; i++) {
             ths[i].attr({"text": calibrate.thscopycrp[i]});
             if (i < thinfo[0]) {
@@ -2415,24 +2357,22 @@ if ($("#calibrate").length) {
         
         calibrate.type = "crisp";
         console_command("calibrate");
+        drawPointsAndThresholds();
         
     });
     
     
-    // fuzzy radio button
     crfuz.cover[1].click(function() {
-        
+        paper.crfuz = 1;
         changeLabels();
         
         calibrate.thresholds = new Array();
         calibrate.thnames = new Array();
         
-        //save what was there from the crisp option
         for (var i = 0; i < 3; i++) {
             calibrate.thscopycrp[i] = ths[i].attr("text");
         }
         
-        //write what was previously saved as fuzzy
         for (var i = 0; i < 6; i++) {
             ths[i].attr({"text": calibrate.thscopyfuz[i]});
         }
@@ -2454,16 +2394,12 @@ if ($("#calibrate").length) {
     
     
     
-    // when crisp
-    
-    
     var thinfoset = paper.set();
     
     
     var thinfotext = sat(paper.text(stx + 145, sty, "Number of thresholds: 1"));
     thinfoset.push(thinfotext);
     
-    // the plus and minus signes
     thinfoset.push(paper.rect(stx + 308.5, sty - 8, 1, 6));
     thinfoset.push(paper.rect(stx + 306, sty - 5.5, 6, 1));
     thinfoset.push(paper.rect(stx + 306, sty + 8.5, 6, 1));
@@ -2588,9 +2524,6 @@ if ($("#calibrate").length) {
     });
     
     
-    
-    // when fuzzy
-    
     var logistic = paper.checkBox(stx + 9, sty + 55, calibrate.logistic, "logistic");
     logistic.cover.click(function() {
         calibrate.logistic = logistic.isChecked;
@@ -2655,6 +2588,8 @@ if ($("#calibrate").length) {
     });
     
     
+    
+    
     var idm = paper.set();
     
     idm.push(sat(paper.text(stx + 92, sty + 38, "idm")));
@@ -2679,7 +2614,6 @@ if ($("#calibrate").length) {
     paper.inlineTextEditing(idmtext);
     
     
-    // radio increasing vs. decreasing
     
     var incdec = paper.radio(stx + 15, sty + 130, 1 - calibrate.increasing, ["increasing", "decreasing"]);
     
@@ -2714,7 +2648,6 @@ if ($("#calibrate").length) {
     });
     
     
-    // radio end-point vs. mid-point
     
     var endmid = paper.radio(stx + 15, sty + 195, 1 - calibrate.end, ["end-point", "mid-point"]);
     
@@ -2818,13 +2751,13 @@ if ($("#calibrate").length) {
     
     function changeLabels() {
         
-        if (crfuz.whichChecked == 0) { // crisp
+        if (crfuz.whichChecked == 0) { 
             for (var i = 0; i < 3; i++) {
                 thlabels[i].attr({"text": thlabelscrp[i]});
             }
             
         }
-        else { //fuzzy
+        else {
             incdec.label[0].attr({"text": (endmid.whichChecked == 0)?"increasing":"incr \u00a0 \u00a0 \u00a0 \u00a0 \u00a0 decr"});
             incdec.label[1].attr({"text": (endmid.whichChecked == 0)?"decreasing":"decr \u00a0 \u00a0 \u00a0 \u00a0 \u00a0 incr"});
             
@@ -2879,11 +2812,10 @@ if ($("#calibrate").length) {
                     calibrate.findth = false;
                     
                     var finaltext = tobe.attr("text");
-                    if ($.isNumeric(finaltext)) { // isNumeric() ...?
+                    if ($.isNumeric(finaltext)) {
                         finaltext = 1*finaltext;
                         
                         
-                        // the thresholds setter cannot be less than the minima of the data values
                         if (thsetter_vals.length > 0) {
                             if (finaltext < thsetter_vals[0][0]) {
                                 finaltext = "" + thsetter_vals[0][0];
@@ -2906,7 +2838,7 @@ if ($("#calibrate").length) {
                         calibrate.thscopycrp[this.i] = finaltext;
                         drawPointsAndThresholds();
                     }
-                    else { // fuzzy
+                    else {
                         calibrate.thscopyfuz[this.i] = finaltext;
                     }
                     
@@ -2931,7 +2863,6 @@ if ($("#calibrate").length) {
         thsets[i].push(ths[i], thlabels[i], thcovers[i]);
     }
     
-    // reset for the first label, crisp
     thlabels[0].attr({"text": thlabelscrp[0]});
     
     thlabels.sub = function(x) {
@@ -3034,7 +2965,7 @@ if ($("#calibrate").length) {
         copyThs.show();
         copytext1.hide();
         copytext2.show();
-        
+        jitter.showIt();
         
         showths();
         
@@ -3043,7 +2974,10 @@ if ($("#calibrate").length) {
         
     }
     
+    
+    
     function showFuzzy() {
+        paper.thsetter_frame.hide();
         thsetter_content.hide();
         inclth.hideIt();
         logistic.showIt();
@@ -3051,7 +2985,6 @@ if ($("#calibrate").length) {
         endmid.showIt();
         findth.hideIt();
         thinfoset.hide();
-        paper.thsetter_frame.hide();
         ecdf.showIt();
         
         if (logistic.isChecked) {
@@ -3061,9 +2994,9 @@ if ($("#calibrate").length) {
             idm.hide();
         }
         
+        jitter.hideIt();
         
         thtitle.show();
-        //th0set is shown by default for both crisp and fuzzy
         thsets[1].show();
         thsets[2].show();
         
@@ -3112,7 +3045,6 @@ if ($("#calibrate").length) {
     
     var newcond = paper.checkBox(stx + 3, sty + 20, !calibrate.same, "into new condition");
     
-    // not necessary, but I need to split the label on two rows
     newcond.label[0].remove();
     newcond.label = new Array(2);
     newcond.label[0] = sat(paper.text(stx + 27, sty + 18, "calibrate into"));
@@ -3169,27 +3101,28 @@ if ($("#calibrate").length) {
     paper.Run.push(paper.rect(421 - 20, sty + 12, 70, 25)
     .attr({fill: "white", "fill-opacity": 0, 'stroke-width': 1.25})
     .click(function() {
+        
         if (datainfo.rownames != "") {
             var fuzcheck = true;
             
             if (calibrate.type == "fuzzy") {
                 if (calibrate.logistic) {
-                    // idm needs to exist
+                    
                     if (calibrate.idm == "") {
                         fuzcheck = false;
                     }
                     else {
-                        //and it should be a number
+                        
                         fuzcheck = fuzcheck && !isNaN(calibrate.idm);
                     }
                 }
                 
-                // both p and q need to exist
+                
                 if (calibrate.p == "" || calibrate.q == "") {
                     fuzcheck = false;
                 }
                 else {
-                    // and they should be numbers
+                    
                     fuzcheck = fuzcheck && !isNaN(calibrate.p) && !isNaN(calibrate.q)
                 }
             }
@@ -3213,8 +3146,8 @@ if ($("#calibrate").length) {
     
     
     
-} // end of if dialog open
-} // end of draw_calib
+}
+}
 
 
 
@@ -3241,7 +3174,6 @@ if ($("#recode").length) {
     
     paper.newcond = paper.checkBox(stx + 3, sty + 250, !recode.same, "into new condition");
     
-    // not necessary, but I need to split the label on two rows
     paper.newcond.label[0].remove();
     paper.newcond.label = new Array(2);
     paper.newcond.label[0] = sat(paper.text(stx + 27, sty + 248, "recode into"), {"text": 0});
@@ -3435,12 +3367,12 @@ if ($("#recode").length) {
     
     
     
-    // pseudo CSS for these objects, setting various attributes
+    
     sat(paper.oldv.texts, {"clip": paper.oldv.covers});
     sat(paper.oldv.covers);
     
     
-    paper.path([ // dividing line between old and new values
+    paper.path([ 
         ["M", stx + 140, sty + 15],
         ["L", stx + 140, sty + 215]
     ]).attr({stroke: "#a0a0a0"});
@@ -3487,13 +3419,13 @@ if ($("#recode").length) {
     
     
     
-    // plus sign
+    
     paper.rect(stx + 159.5, sty + 151, 1, 6);
     paper.rect(stx + 157, sty + 153.5, 6, 1);
-    // minus sign
+    
     paper.rect(stx + 157, sty + 173.5, 6, 1);
     
-    sat(paper.rect(stx + 153, sty + 147, 14, 14), {"sw": 1.2}) // plus sign "+" cover
+    sat(paper.rect(stx + 153, sty + 147, 14, 14), {"sw": 1.2})
     .click(function() {
         
         var rule;
@@ -3557,7 +3489,7 @@ if ($("#recode").length) {
             var idx = recode.oldv.indexOf(selected[i].split("=")[0]);
             recode.oldv.splice(idx, 1);
             recode.newv.splice(idx, 1);
-            //delete colclicks.recode.rules[selected[i]];
+            
             deleteRule(colclicks, selected[i]);
         }
         
@@ -3605,8 +3537,8 @@ if ($("#recode").length) {
              }
          });
       
-} // end of if recode opened
-} // end of draw_recode
+} 
+} 
 
 
 
@@ -3835,8 +3767,8 @@ if ($("#xyplot").length) {
     scaleplot(paper);
     createLabels(paper);
     
-} // end of xyplot isOpen
-} // end of draw_xyplot
+} 
+}
 
 
 
@@ -3850,16 +3782,11 @@ if ($("#xyplot").length) {
 
 function draw_venn(paper) {
     
-    // raphael.boolean.js
-    // union [A + B | A OR B]
-    // difference [A - B | A NOT B]
-    // intersection [A * B | A AND B]
-    // exclusion [A ^ B = (A + B) - (A * B) | A XOR B]
     
     var glow, txt, txtfundal;
     
             
-    function hoverInVenn() {
+    function hoverVenn_IN() {
         if (this.txt != "" && paper.hover) {
             
             glow = this.glow({
@@ -3903,13 +3830,14 @@ function draw_venn(paper) {
         
     }
     
-    function hoverOutVenn() {
+    function hoverVenn_OUT() {
         if (this.txt != "") {
             glow.remove();
             txt.remove();
             txtfundal.remove();
         }
     }
+    
     
     function getCentroid(path) {
         var x = new Array(11);
@@ -3928,16 +3856,17 @@ function draw_venn(paper) {
             }
         }
         
+        
         return({x: (1/(3*asum))*cxsum, y: (1/(3*asum))*cysum});
         
     }
-    
     
     if ($("#venn").length) {
         
         paper.hover = true;
         
         if (getKeys(ttfromR).length > 0) {
+            
             var vcolors = {
                 "0": "#ffd885", // orange
                 "1": "#96bc72", // green
@@ -3946,7 +3875,7 @@ function draw_venn(paper) {
             };
             
             if (paper.scale === undefined) {
-                paper.scale = (Math.min($(paper.canvas).width() - 20, $(paper.canvas).height() - 70))/400;;
+                paper.scale = (Math.min($(paper.canvas).width() - 20, $(paper.canvas).height() - 70))/1000;;
             }
             
             if (paper.customtext === undefined) {
@@ -3961,71 +3890,89 @@ function draw_venn(paper) {
             
             var vennumber = ttfromR.options.conditions.length;
             
+            var tosplit, BBox, BBox2, inIndexes, glow;
             
-            var tosplit, BBox, BBox2, inIndexes;
             var allshapes = paper.set();
             var boxset = paper.set();
-            
-            var vennset = paper.set();
-            
-            var temp = paper.rect(0, 0, 400*paper.scale, 400*paper.scale);
-            
-            vennset.push(temp);
-            allshapes.push(temp);
-            
-            // draw the actual whole sets, no fill
-            for (var i = 0; i < vennumber; i++) {
-                var temp = paper.path(scaleShape(venn["s" + vennumber][i], paper.scale));
-                vennset.push(temp);
-                allshapes.push(temp);
-                
-            }
-            
-            var setLabelsGroup = paper.set();
-            
-            for (var i = 0; i < vennumber; i++) {
-                var templabel = sat(paper.text(venn[("l" + vennumber)].x[i]*paper.scale, venn[("l" + vennumber)].y[i]*paper.scale, ttfromR.options.conditions[i]), {anchor: "middle"});
-                setLabelsGroup.push(templabel);
-                allshapes.push(templabel);
-            }
-            
+            var borderset = paper.set();
             var labelsGroup = paper.set();
             var hoverGroup = paper.set();
             var colored = paper.set();
-            var customeSet = paper.set();
             
-            // draw all intersections which have colors
+            var rule = paper.set();
+            var customSet = paper.set();
+            var customHover = paper.set();
+            var customNonHover = paper.set();
+            
+            var temp = paper.rect(0, 0, 1000*paper.scale, 1000*paper.scale);
+            borderset.push(temp);
+            
+            for (var i = 0; i < venn["s" + vennumber][0].length; i++) {
+                
+                var path = "M";
+                var y = venn["s" + vennumber][0][i];
+                for (var j = 0; j < y.length/2; j++) {
+                    path += ((j == 1)?" C ":" ") + (y[2*j]*paper.scale) + "," + (y[2*j + 1]*paper.scale);
+                }
+                
+                var temp = paper.path(path);
+                borderset.push(temp);
+                
+            }
+            
+            for (var i = 0; i < vennumber; i++) {
+                var templabel = sat(paper.text(venn[("l" + vennumber)].x[i]*paper.scale, venn[("l" + vennumber)].y[i]*paper.scale, ttfromR.options.conditions[i]), {anchor: "middle"});
+                labelsGroup.push(templabel);
+            }
+            
             for (var i = 0; i < ttfromR.id.length; i++) {
-                var temp = paper.path(scaleShape(venn["c" + vennumber][i], paper.scale))
-                                .attr({fill: vcolors[ttfromR.tt.OUT[i]], stroke: "none"});
+                var tempath = getShape([venn["s" + vennumber][1][i]], venn["s" + vennumber][0], paper.scale);
+                
+                if (i == 0) {
+                    tempath = "M 0,0 0," + 1000*paper.scale + " " + 1000*paper.scale + "," + 1000*paper.scale + " " + 1000*paper.scale + ",0 0,0 z " + tempath;
+                }
+                
+                
+                var temp = paper.path(tempath).attr({fill: vcolors[ttfromR.tt.OUT[i]], stroke: "none"});
                 BBox = temp.getBBox();
                 
                 var centroid = getCentroid(temp);
                 
+                if (ttfromR.id.length == 16) {
+                    if (i == 1) {
+                        centroid.x += 20*paper.scale;
+                        centroid.y -= 75*paper.scale;
+                    }
+                    else if (i == 8) {
+                        centroid.x -= 20*paper.scale;
+                        centroid.y -= 75*paper.scale;
+                    }
+                }
+                
                 var templabel;
                 if (i == 0) {
-                    templabel = sat(paper.text(20, 16, ttfromR.id[i]), {size: 8, anchor: "middle"});
+                    templabel = sat(paper.text(20, 20, ttfromR.id[i]), {size: 8, anchor: "middle"});
                 }
                 else {
                     templabel = sat(paper.text(centroid.x, centroid.y, ttfromR.id[i]), {size: 8, anchor: "middle"});
                 }
                 
                 labelsGroup.push(templabel);
-                allshapes.push(templabel);
+                allshapes.push(temp);
+                
                 
                 if (ttfromR.cases[i] != "") {
                     var hoverPath = temp.clone().attr({fill: "#fff", "fill-opacity": 0, stroke: "none"});
                     hoverGroup.push(hoverPath);
                     hoverPath.txt = ttfromR.cases[i];
-                    hoverPath.hover(hoverInVenn, hoverOutVenn, hoverPath, hoverPath);
-                    colored.push(temp, hoverPath)
-                    allshapes.push(temp, hoverPath);
+                    hoverPath.hover(hoverVenn_IN, hoverVenn_OUT, hoverPath, hoverPath);
+                    colored.push(temp);
                 }
-                else {
-                    temp.remove();
-                }
+                
             }
             
+            
+            allshapes.push(labelsGroup, hoverGroup, borderset);
             
             BBox = allshapes.getBBox();
             allshapes.transform("t10, 35");
@@ -4033,7 +3980,6 @@ function draw_venn(paper) {
             BBox = allshapes.getBBox();
             
             
-            // draw the legend
             var colorsCols = getKeys(vcolors);
             for (var i = 0; i < colorsCols.length; i++) {
                 paper.rect(BBox.x + 50*i, BBox.y + BBox.height + 12, 11, 11)
@@ -4042,10 +3988,6 @@ function draw_venn(paper) {
             }
             
             
-            var rule = paper.set();
-            var customSet = paper.set();
-            var customHover = paper.set();
-            var glow;
             
             var custom = paper.checkBox(10, 10, paper.custom, "custom");
             
@@ -4053,27 +3995,34 @@ function draw_venn(paper) {
                 if (custom.isChecked) {
                     paper.custom = true;
                     colored.hide();
+                    hoverGroup.hide();
                     rule.show();
                     customSet.show();
                     if (glow !== undefined) {
                         glow.show();
                     }
+                    customHover.toFront();
+                    customNonHover.toFront();
                 }
                 else {
                     paper.custom = false;
                     colored.show();
+                    hoverGroup.show();
                     rule.hide();
                     customSet.hide();
                     if (glow !== undefined) {
                         glow.hide();
                     }
+                    hoverGroup.toFront();
                 }
             });
+            
             
             
             var ruletext = sat(paper.text(90, 16, paper.customtext), {"clip": "85, 7, 334, 20"});
             var rulerect = paper.rect(85, 6, 335, 20).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
             rule.push(ruletext, rulerect);
+            
             
             if (paper.customtext != "") {
                 var parsedText = parseText(paper.customtext, ttfromR.options.conditions);
@@ -4082,25 +4031,35 @@ function draw_venn(paper) {
                     if (glow !== undefined) {
                         glow.remove();
                     }
+                    
                     var cols = getKeys(parsedText);
                     for (var i = 0; i < cols.length; i++) {
-                        var temp = paper.path(scaleShape(customShape(parsedText[cols[i]], venn["s" + vennumber], paper), paper.scale))
-                                        .attr({fill: vcolors["1"], stroke: "none"});
+                        var tempinv;
+                        var temp = customShape(parsedText[cols[i]],
+                                               venn["s" + vennumber],
+                                               paper.scale,
+                                               ttfromR.id);
+                        if (temp[1]) { // inverted
+                            temp[0] = paper.path("M 0,0 0," + 1000*paper.scale + " " + 1000*paper.scale + "," + 1000*paper.scale + " " + 1000*paper.scale + ",0 0,0 z " + temp[0])
+                            .attr({fill: vcolors["1"], stroke: "none", "fill-opacity": 0.75});
+                        }
+                        else {
+                            temp[0] = paper.path(temp[0]).attr({fill: vcolors["1"], stroke: "none", "fill-opacity": 0.75});
+                        }
                         
-                        var hover = temp.clone().attr({fill: "#fff", "fill-opacity": 0, stroke: "none"});
+                        
+                        var hover = temp[0].clone().attr({fill: "#fff", "fill-opacity": 0, stroke: "none"});
                         hover.txt = cols[i];
-                        hover.hover(hoverInVenn, hoverOutVenn, hover, hover);
+                        hover.hover(hoverVenn_IN, hoverVenn_OUT, hover, hover);
                         customHover.push(hover);
-                        customSet.push(temp, hover);
+                        customSet.push(temp[0], hover);
                     }
                     
                     customSet.transform("t10, 35");
                     
-                    setLabelsGroup.toFront();
                     labelsGroup.toFront();
-                    vennset.toFront();
+                    borderset.toFront();
                     customHover.toFront();
-                    hoverGroup.toFront();
                 }
                 else {
                     if (glow === undefined) {
@@ -4124,34 +4083,53 @@ function draw_venn(paper) {
                     if (ruletext.attr("text") != paper.customtext) {
                         paper.customtext = ruletext.attr("text");
                         customSet.remove();
+                        customHover.remove();
                         customSet = paper.set();
+                        customHover = paper.set();
                         
                         if (glow !== undefined) {
                             glow.remove();
                         }
                         
                         if (ruletext.attr("text") != "") {
+                            var tempinv;
                             var parsedText = parseText(paper.customtext, ttfromR.options.conditions);
+                            
                             if (parsedText != "error") {
                                 
                                 var cols = getKeys(parsedText);
+                                
                                 for (var i = 0; i < cols.length; i++) {
-                                    var temp = paper.path(scaleShape(customShape(parsedText[cols[i]], venn["s" + vennumber], paper), paper.scale))
-                                                    .attr({fill: vcolors["1"], stroke: "none"});
-                                    var hover = temp.clone().attr({fill: "#fff", "fill-opacity": 0, stroke: "none"});
+                                    
+                                    var temp = customShape(parsedText[cols[i]],
+                                               venn["s" + vennumber],
+                                               paper.scale,
+                                               ttfromR.id);
+                                    
+                                    
+                                    if (temp[1]) {
+                                        temp[0] = paper.path("M 0,0 0," + 1000*paper.scale + " " + 1000*paper.scale + "," + 1000*paper.scale + " " + 1000*paper.scale + ",0 0,0 z " + temp[0])
+                                        .attr({fill: vcolors["1"], stroke: "none", "fill-opacity": 0.75});
+                                    }
+                                    else {
+                                        temp[0] = paper.path(temp[0]).attr({fill: vcolors["1"], stroke: "none", "fill-opacity": 0.75});
+                                    }
+                                    
+                                    var hover = temp[0].clone().attr({fill: "#fff", "fill-opacity": 0}); //, stroke: "none"
+                                    
+                                    
                                     hover.txt = cols[i];
-                                    hover.hover(hoverInVenn, hoverOutVenn, hover, hover);
+                                    hover.hover(hoverVenn_IN, hoverVenn_OUT, hover, hover);
                                     customHover.push(hover);
-                                    customSet.push(temp, hover);
+                                    customSet.push(temp[0], hover);
+                                    
                                 }
                                 
                                 customSet.transform("t10,35");
                                 
-                                setLabelsGroup.toFront();
                                 labelsGroup.toFront();
-                                vennset.toFront();
+                                borderset.toFront();
                                 customHover.toFront();
-                                hoverGroup.toFront();
                             }
                             else {
                                 glow = rulerect.glow({
@@ -4161,7 +4139,6 @@ function draw_venn(paper) {
                             }
                         }
                     }
-                    me.toFront();
                     tasta = "enter";
                 })
             });
@@ -4170,30 +4147,32 @@ function draw_venn(paper) {
             paper.inlineTextEditing(ruletext);
             
             
+            
             if (paper.custom) {
                 colored.hide();
+                hoverGroup.hide();
                 customSet.show();
                 if (glow !== undefined) {
                     glow.show();
                 }
             }
             else {
-                rule.hide();
+                colored.show();
+                hoverGroup.show();
                 customSet.hide();
+                rule.hide();
                 if (glow !== undefined) {
                     glow.hide();
                 }
             }
             
-            setLabelsGroup.toFront();
             labelsGroup.toFront();
-            vennset.toFront();
-            customHover.toFront(); // if one of them is hidden, it doesn't matter
+            borderset.toFront();
             hoverGroup.toFront();
             
-        } // end of checking if a truth table exists
-    } // end of $("#venn").length
-} // end of draw_venn
+        }
+    }
+}
 
 
 
@@ -4239,11 +4218,12 @@ function draw_tt(paper) {
             console_command("tt");
         });
         
+        
         sat(paper.text(stx + 160, sty + 6, "Sort by:"));
         paper.decr = sat(paper.text(stx + 240, sty + 6, "Decr."));
         paper.decr.hide();
         
-        // border for the sorting options
+        
         paper.rect(stx + 152, sty + 18.5, 78, 77)
            .attr({stroke: '#d0d0d0', 'stroke-width': 1, fill: "#ffffff", "fill-opacity": 0});
         
@@ -4283,7 +4263,7 @@ function draw_tt(paper) {
         for (var i = 0; i < 3; i++) {
             paper.rects[3 + i] = paper.rect(stx + 154, paper.coordsy[i], 74, 24)
                 .attr({stroke: 'none', fill: "#ffffff", "fill-opacity": 0});
-            // the click event is trigerred by dragSortStop();
+            
             
             paper.rects[3 + i].id = i;
             paper.rects[3 + i].name = keys[i];
@@ -4315,8 +4295,8 @@ function draw_tt(paper) {
         }
         
         
-        var ctx = 396; // x coordinate for the cutoff
-        var cty = 180; // y coordinate for the cutoff
+        var ctx = 396;
+        var cty = 180;
         
         paper.text(ctx, cty, "cut-off:").attr({"text-anchor": "start", "font-size": "14px"});
         paper.text(ctx - 15, cty + 25, "Frequency").attr({"text-anchor": "end", "font-size": "14px"});
@@ -4387,8 +4367,6 @@ function draw_tt(paper) {
                 tt.conditions = getTrueKeys(colclicks.tt.conditions);
                 tt2R = tt;
                 
-                // this is important, for example if the user modifies a data cell
-                // and re-runs the eqmcc function without changing any other option
                 tt2R.counter += 1;
                 
                 outres[0] = "listen2R";
@@ -4637,8 +4615,6 @@ function draw_eqmcc(paper) {
                 eqmcc.conditions = getTrueKeys(colclicks.eqmcc.conditions);
                 eqmcc2R = eqmcc;
                 
-                // this is important, for example if the user modifies a data cell
-                // and re-runs the eqmcc function without changing any other option
                 eqmcc2R.counter += 1;
                 
                 outres[0] = "listen2R";
@@ -4728,7 +4704,6 @@ function filldirexp() {
                 if (colnms[i].getBBox().width > 52) {
                     colnms[i].attr("text", getTrimmedText(colnms[i].attr("text"), 52));
                 }
-                // de verificat lungimea numelor de coloane
                 
                 celltext[i]  = papers["direxp"].text(73, i*20 + 11, eqmcc.dir_exp[i]).attr({"text-anchor": "start", "font-size": "14px"});
                 cellcover[i] = papers["direxp"].rect(68, i*20 + 1, 38, 20, 3)
@@ -4749,11 +4724,7 @@ function filldirexp() {
                             celltext[this.idx].attr({"text": "-"})
                         }
                         
-                        // var tocompare = celltext[this.pos].attr("text");
                         if (temp != celltext[this.idx].attr("text")) {
-                            //if (tocompare == "") {
-                            //    tocompare = "-";
-                            //}
                             eqmcc.dir_exp[this.idx] = celltext[this.idx].attr("text");
                             console_command("eqmcc");
                         }
@@ -4800,7 +4771,7 @@ function checkIfDataLoadedInR() {
                 scrollTop: $("#result_main")[0].scrollHeight
             }, 1000);
             
-            //updatecounter = 0; // don't erase!
+            
             rloadcycles += 1;
             setTimeout(checkIfDataLoadedInR, 50);
         }
@@ -4810,7 +4781,7 @@ function checkIfDataLoadedInR() {
                 scrollTop: $("#result_main")[0].scrollHeight
             }, 1000);
             
-            //updatecounter = 0; // don't erase!
+            
             rloadcycles += 1;
             setTimeout(checkIfDataLoadedInR, 50);
         }
@@ -4820,7 +4791,7 @@ function checkIfDataLoadedInR() {
                 scrollTop: $("#result_main")[0].scrollHeight
             }, 1000);
             
-            //updatecounter = 0; // don't erase!
+            
             rloadcycles += 1;
             setTimeout(checkIfDataLoadedInR, 50);
         }
@@ -4830,7 +4801,7 @@ function checkIfDataLoadedInR() {
                 scrollTop: $("#result_main")[0].scrollHeight
             }, 1000);
             
-            //updatecounter = 0; // don't erase!
+            
             rloadcycles += 1;
             setTimeout(checkIfDataLoadedInR, 50);
         }
@@ -4840,12 +4811,12 @@ function checkIfDataLoadedInR() {
                 scrollTop: $("#result_main")[0].scrollHeight
             }, 1000);
             
-            //updatecounter = 0; // don't erase!
+            
             rloadcycles = 0;
         }
         
         
-        updatecounter = 0; // don't erase!
+        updatecounter = 0;
         
     }
 }
@@ -4862,10 +4833,7 @@ function checkIfDataLoadedInR() {
 
 function consoleIfPathChanges() {
     
-    // safety device
     updatecounter2 += 1;
-    
-    //console.log("consoleIfPathChanges");
     
     if (updatecounter2 < 21) { 
         if (dirfile.filepath[0][0] != pathcopy[0][0]) {
@@ -4878,6 +4846,7 @@ function consoleIfPathChanges() {
         }
     }
     else {
+        
         updatecounter2 = 0; // don't erase!
     }
 }
@@ -4894,7 +4863,6 @@ function consoleIfPathChanges() {
 
 function doWhenDataPointsAreReturned() {
     
-    // safety device
     updatecounter += 1;
     
     if (updatecounter < 21) {
@@ -4906,7 +4874,8 @@ function doWhenDataPointsAreReturned() {
         }
     }
     else {
-        updatecounter = 0; // don't erase!
+        
+        updatecounter = 0;
     }
 }
 
@@ -4922,7 +4891,6 @@ function doWhenDataPointsAreReturned() {
 
 function doWhenXYplotPointsAreReturned() {
     
-    // safety device
     updatecounter += 1;
     
     if (updatecounter < 21) {
@@ -4941,7 +4909,7 @@ function doWhenXYplotPointsAreReturned() {
             scrollTop: $("#result")[0].scrollHeight
         }, 1000);
         
-        updatecounter = 0; // don't erase!
+        updatecounter = 0;
     }
 }
 
@@ -4956,106 +4924,113 @@ function doWhenXYplotPointsAreReturned() {
 
 
 function drawPointsAndThresholds() {
-    calibrate.thsettervar = getTrueKeys(colclicks.calibrate.x);
-    
-    thsetter_content.remove();
-    thsetter_content = papers["calibrate_main"].set().attr({stroke: "#a0a0a0"});
-    
-    var min = thsetter_vals[0][0];
-    var max = thsetter_vals[thsetter_vals.length - 1][0];
-    
-    var lm = 160;
-    var rm = $("#calibrate").width() - 27; //463;
-    
-    var thy = 234;
-    
-    if (thsetter_jitter.length != thsetter_vals.length) {
-        thsetter_jitter = new Array(thsetter_vals);
-        for (var i = 0; i < thsetter_vals.length; i++) {
-            thsetter_jitter[i] = randomBetween(185, 215);
-        }
-    }
-    
-    for (var i = 0; i < thsetter_vals.length; i++) {
-        var point = papers["calibrate_main"].circle(
-            (rm - lm)*(thsetter_vals[i][0] - min)/(max - min) + lm,
-            calibrate.jitter?thsetter_jitter[i]:200,
-            4);
-        point.attr({fill: "#ffffff", "fill-opacity": 0.0});
-        point.txt = datainfo.rownames[i];
-        point.hover(hoverIn, hoverOut, point, point);
-        thsetter_content.push(point);
-    }
-    
-    thsetter_content.push(sat(papers["calibrate_main"].text(lm - 3, thy + 15, min)));
-    thsetter_content.push(sat(papers["calibrate_main"].text(rm + 3, thy + 15, max), {"anchor": "end"}));
-    
-    
-    thsetter_content.push(papers["calibrate_main"].path([ // the horizontal axis
-        ["M", lm, thy + 5],
-        ["L", lm, thy],
-        ["L", rm, thy],
-        ["L", rm, thy + 5]
-    ]));
-    
-    var position, th;
-    var handles = new Array(3);
-    
-    if (calibrate.thresholds.length > 0) {
-        for (i = 0; i < calibrate.thresholds.length; i++) {
-            if (calibrate.thresholds[i] != "") {
-                if (calibrate.thresholds[i] < min) {
-                    calibrate.thresholds[i] = min;
-                    ths[i].attr({"text": min});
-                }
-                else if (calibrate.thresholds[i] > max) {
-                    calibrate.thresholds[i] = max;
-                    ths[i].attr({"text": max});
-                }
-                position = (rm - lm)*(calibrate.thresholds[i] - min)/(max - min) + lm;
-                handles[i] = papers["calibrate_main"].path([
-                    ["M", position, thy],
-                    ["L", position - 5, thy + 7],
-                    ["L", position + 5, thy + 7],
-                    ["L", position, thy],
-                    ["L", position, thy - 66]
-                ]).attr({"stroke-width": 1.5, fill: "#cb2626", stroke: "#cb2626"});
-                handles[i].min = min;
-                handles[i].max = max;
-                handles[i].name = i;
-                handles[i].left = lm;
-                handles[i].right = rm;
-                handles[i].id = "thsetter";
-                handles[i].drag(dragMove(handles[i]), dragStart, dragStop(handles[i]));
-                thsetter_content.push(handles[i]);
+    if (papers["calibrate_main"].crfuz == 0) {
+        calibrate.thsettervar = getTrueKeys(colclicks.calibrate.x);
+        
+        thsetter_content.remove();
+        thsetter_content = papers["calibrate_main"].set().attr({stroke: "#a0a0a0"});
+        
+        var min = thsetter_vals[0][0];
+        var max = thsetter_vals[thsetter_vals.length - 1][0];
+        
+        var lm = 160;
+        var rm = $("#calibrate").width() - 27; //463;
+        
+        var thy = 234;
+        
+        if (thsetter_jitter.length != thsetter_vals.length) {
+            thsetter_jitter = new Array(thsetter_vals);
+            for (var i = 0; i < thsetter_vals.length; i++) {
+                thsetter_jitter[i] = randomBetween(185, 215);
             }
         }
+        
+        for (var i = 0; i < thsetter_vals.length; i++) {
+            var point = papers["calibrate_main"].circle(
+                (rm - lm)*(thsetter_vals[i][0] - min)/(max - min) + lm,
+                calibrate.jitter?thsetter_jitter[i]:200,
+                4);
+            point.attr({fill: "#ffffff", "fill-opacity": 0.0});
+            point.txt = datainfo.rownames[i];
+            point.hover(hoverIn, hoverOut, point, point);
+            thsetter_content.push(point);
+        }
+        
+        thsetter_content.push(sat(papers["calibrate_main"].text(lm - 3, thy + 15, min)));
+        thsetter_content.push(sat(papers["calibrate_main"].text(rm + 3, thy + 15, max), {"anchor": "end"}));
+        
+        
+        thsetter_content.push(papers["calibrate_main"].path([ // the horizontal axis
+            ["M", lm, thy + 5],
+            ["L", lm, thy],
+            ["L", rm, thy],
+            ["L", rm, thy + 5]
+        ]));
+        
+        var position, th;
+        var handles = new Array(3);
+        
+        if (calibrate.thresholds.length > 0) {
+            for (i = 0; i < calibrate.thresholds.length; i++) {
+                if (calibrate.thresholds[i] != "") {
+                    if (calibrate.thresholds[i] < min) {
+                        calibrate.thresholds[i] = min;
+                        ths[i].attr({"text": min});
+                    }
+                    else if (calibrate.thresholds[i] > max) {
+                        calibrate.thresholds[i] = max;
+                        ths[i].attr({"text": max});
+                    }
+                    position = (rm - lm)*(calibrate.thresholds[i] - min)/(max - min) + lm;
+                    handles[i] = papers["calibrate_main"].path([
+                        ["M", position, thy],
+                        ["L", position - 5, thy + 7],
+                        ["L", position + 5, thy + 7],
+                        ["L", position, thy],
+                        ["L", position, thy - 66]
+                    ]).attr({"stroke-width": 1.5, fill: "#cb2626", stroke: "#cb2626"});
+                    handles[i].min = min;
+                    handles[i].max = max;
+                    handles[i].name = i;
+                    handles[i].left = lm;
+                    handles[i].right = rm;
+                    handles[i].id = "thsetter";
+                    handles[i].drag(dragMove(handles[i]), dragStart, dragStop(handles[i]));
+                    thsetter_content.push(handles[i]);
+                }
+            }
+        }
+        else {
+            
+        }
+        
+        var txt, txtfundal;
+        function hoverIn() {
+                        
+            var BBox = this.getBBox();
+            var xcoord = BBox.x;
+            var ycoord = BBox.y - 20;
+            
+            txt = sat(papers["calibrate_main"].text(xcoord, ycoord, this.txt), {"anchor": "middle"});
+            txt.attr({"font-weight": "bold", "fill-opacity": 0.7});
+            var BBox2 = txt.getBBox();
+            
+            txtfundal = papers["calibrate_main"].rect(xcoord - BBox2.width/2, ycoord - 1, BBox2.width + 10, 16);
+            txtfundal.attr({fill: "#c9c9c9", "fill-opacity": 0.6, stroke: "none"});
+            txt.toFront();
+            txt.translate(5, 7);
+            txt.attr({"font-weight": "bold"});
+            txt.show();
+        }
+        
+        
+        function hoverOut() {
+            txt.remove();
+            txtfundal.remove();
+        }
+    
     }
     
-    var txt, txtfundal;
-    function hoverIn() {
-                    
-        var BBox = this.getBBox();
-        var xcoord = BBox.x;
-        var ycoord = BBox.y - 20;
-        
-        txt = sat(papers["calibrate_main"].text(xcoord, ycoord, this.txt), {"anchor": "middle"});
-        txt.attr({"font-weight": "bold", "fill-opacity": 0.7});
-        var BBox2 = txt.getBBox();
-        
-        txtfundal = papers["calibrate_main"].rect(xcoord - BBox2.width/2, ycoord - 1, BBox2.width + 10, 16);
-        txtfundal.attr({fill: "#c9c9c9", "fill-opacity": 0.6, stroke: "none"});
-        txt.toFront();
-        txt.translate(5, 7);
-        txt.attr({"font-weight": "bold"});
-        txt.show();
-    };
-    
-    
-    function hoverOut() {
-        txt.remove();
-        txtfundal.remove();
-    }
 }
 
 
@@ -5070,14 +5045,11 @@ function drawPointsAndThresholds() {
 
 function updateWhenThsChanged() {
     
-    // safety device to break this loop
-    // if neither visible data nor data coordinates change
     updatecounter += 1;
     
-    if (updatecounter < 101) { // 100*50 = 5000 ms = 5 seconds
+    if (updatecounter < 101) {
         
         if (thvalsfromR[0] == "noresponse") {
-            // loop again, maybe R has responded
             setTimeout(updateWhenThsChanged, 50);
         }
         else {
@@ -5118,7 +5090,7 @@ function updateWhenThsChanged() {
         }
     }
     else {
-        updatecounter = 0; // don't erase!
+        updatecounter = 0;
     }
 }
 
@@ -5150,6 +5122,7 @@ function printWhenOutputChanges() {
             for (var i = 1; i < outres.length; i++) {
                 toprint += "<br>" + outres[i];
             }
+            
             
             var cr = {"£": "csv(", "§": "table(", "∞":" ", "≠": " "};
             var header = strwrap(string_command, 74, "+ ").replace(/£|§|∞|≠/g, function(x) {return cr[x]});
@@ -5217,6 +5190,7 @@ function doWhenRresponds() {
                     toprint += "<br>" + outres[0][i];
                 }
             } 
+            
             
             var cr = {"£": "csv(", "§": "table(", "∞":" ", "≠": " "};
             var header = strwrap(string_command, 74, "+ ").replace(/£|§|∞|≠/g, function(x) {return cr[x]});
@@ -5462,7 +5436,6 @@ function print_dirs() {
     
     
     
-    // now only directories for the export dialog
     if ($("#export").length && current_command == "export") {
         
         papers["expath"].goToDir = function(dir) {
@@ -5475,7 +5448,7 @@ function print_dirs() {
         
         setPath(papers["expath"], dirfile.wd);
         
-        var rw = 400; // export.inside.exportdirs.width
+        var rw = 400; 
         papers["exportdirs"].clear();
         
         var i, aaa, bbb, ccc, extoprint, printplus;
@@ -5597,7 +5570,9 @@ function print_dirs() {
         
         $(papers["exportdirs"].canvas).height(canvas_height);
         $("#exportdirs").css({height: canvas_height});
+        
         $("#exportdirs").scrollTop(0);
+        
     }
 }
 
@@ -5613,17 +5588,15 @@ function print_dirs() {
 
 function updateWhenDataChanged() {
     
-    // safety device to break this loop
-    // if neither visible data nor data coordinates change
     updatecounter += 1;
     
-    if (updatecounter < 21) { // 20*50 = 1000 ms = 1 second
+    if (updatecounter < 21) {
         if (theData.toString() != visibledata | dataCoords != coordscopy) {
             update_data();
-            updatecounter = 0; // don't erase!
+            updatecounter = 0;
         }
         else {
-            // loop again, maybe R has responded
+            
             setTimeout(updateWhenDataChanged, 50);
         }
     }
@@ -5679,6 +5652,7 @@ function printIfDirsFilesChange() {
 
 
 function printDirsWhenPathChanges() {
+    
     
     if (dirfile.filepath != pathcopy) {
         print_dirs();
@@ -5815,7 +5789,6 @@ function dragSortStop(sortoption) {
     
     return function() {
         
-        // determine position
         var newBB = sortoption[2].getBBox();
         var middle = newBB.y + newBB.height/2;
         var oldposition, newposition, decid;
@@ -5838,10 +5811,12 @@ function dragSortStop(sortoption) {
             if (tt.sort_sel[sortoption[2].name]) {
                 sortoption[0].attr({fill: "#eeeeee", stroke: "none"});
                 sortoption[1].attr({fill: "black", "text-anchor": "start", "font-size": "14px"});
+                
             }
             else {
                 sortoption[0].attr({fill: "#79a74c", stroke: "none"});
                 sortoption[1].attr({fill: "white", "text-anchor": "start", "font-size": "14px"});
+                
             }
             
             tt.sort_sel[sortoption[2].name] = !tt.sort_sel[sortoption[2].name];
@@ -5878,7 +5853,6 @@ function dragSortStop(sortoption) {
         
         
         
-        // handle the decreasing checkboxes
         var keys = getKeys(tt.sort_by);
         for (var i = 0; i < 3; i++) {
             papers["tt_main"].decrease[i].cover.name = keys[i];
@@ -5958,14 +5932,14 @@ $("#menu_import").click(function() {
         width:      680,
         height:     433,
         inside: {
-            // import directories path
+            
             impath:     {border: true, left: 270, top:  62, width: 400, height:  40},
             importcols: {border: true, left:  14, top: 260, width: 235, height: 120},
             importdirs: {border: true, left: 264, top:  80, width: 400, height: 300}
         }
     };
     
-    // check if the dialog was already created
+    
     if ($("#import").length) {
         showDialogToFront(settings);
     }
@@ -6000,7 +5974,7 @@ $("#menu_export").click(function() {
         width:      655,
         height:     375,
         inside: {
-            // export directories path
+            
             expath:     {border: true, left: 240, top:  60, width: 400, height:  40},
             exportdirs: {border: true, left: 240, top:  78, width: 400, height: 240}
         }
@@ -6039,8 +6013,8 @@ $("#menu_edit").click(function() {
         title:      "Data editor",
         position:   {my: "left top", at: "left+" + testX + "px top+" + testY + "px", of: window, collision: "flip"},
         resizable:  true,
-        width:      200, // arbitrary value, see below
-        height:     150, // arbitrary value, see below
+        width:      200, 
+        height:     150, 
         inside: {
             data_topleft:  {
                 border: false,
@@ -6082,11 +6056,7 @@ $("#menu_edit").click(function() {
         createDialog(settings);
         makePapers(settings);
         
-                                           // +1 because they are zero-based
-                                           // and +1 for the rownames column
         $("#data_editor").width((visiblecols + 1 + 1)*70 + 1*(vscrollbar?scrollbarsWH:0));
-                                            // +1 because they are zero-based
-                                            // and +2 for the header and the colnames
         $("#data_editor").height((visiblerows + 1 + 2)*20 + 1*(hscrollbar?scrollbarsWH:0));
         
         
@@ -6097,22 +6067,15 @@ $("#menu_edit").click(function() {
             }
         });
         
-        print_data(); // this also established the new width and height of the entire dialog
+        print_data();
         
-        // redimension the "_main" component of the dialog
         $("#data_editor_main").width($("#data_editor").width());
         $("#data_editor_main").height($("#data_editor").height() - 20);
         
-        
         $("#data_editor").resizable({
             start: function(event, ui) {
-                //scrollTop = $("#data_body").scrollTop();
-                //$("#data_body").scrollTop(0);
             },
             resize: function(event, ui) {
-                // 40px from 20 the header and 20 the colnames
-                // 70px the rownames
-                // 20px the height of a single row
                 
                 $("#data_editor_main").width($("#data_editor").width());
                 $("#data_editor_main").height($("#data_editor").height() - 20);
@@ -6143,7 +6106,6 @@ $("#menu_edit").click(function() {
                 $("#data_rownames").height(visiblerows*20);
                 
                 
-                //                                       -1 to make them zero-based
                 scrollvh[2] = scrollvh[0] + (visiblerows - 1);
                 scrollvh[3] = scrollvh[1] + (visiblecols - 1);
                 
@@ -6172,10 +6134,6 @@ $("#menu_edit").click(function() {
                 
                 var cellstoright = Math.round(horizontal/70);
                 var cellsdown = Math.round(vertical/20);
-                
-                
-                // scrollvh, visiblecols and visiblerows ARE zero-based
-                // datainfo.ncols and nrows are NOT zero-based
                 
                 var change = false;
                 
@@ -6401,7 +6359,6 @@ $("#menu_xyplot").click(function() {
         inside: {
             xyplotcols1: {border: true, left: 13, top:   54, width: 140, height: 120},
             xyplotcols2: {border: true, left: 13, top:  210, width: 140, height: 120}
-            //plot: {border: true, left: 160, top: 30: width}
         }
     };
     
@@ -6455,7 +6412,7 @@ $("#menu_venn").click(function() {
         title:     "Venn diagram",
         position:  {my: "left top", at: "left+240px top+33px", of: window, collision: "flip"},
         resizable: true,
-        width:     430, // asta este si minWidth pentru ca e resizable
+        width:     430,
         height:    500
     };
     
@@ -6476,7 +6433,7 @@ $("#menu_venn").click(function() {
             $(paper.canvas).height($("#venn").height() - 70);
             $(paper.canvas).width($("#venn").width());
             $(paper.canvas).height($("#venn").height() - 20);
-            paper.scale = (Math.min($(paper.canvas).width() - 20, $(paper.canvas).height() - 70))/400;
+            paper.scale = (Math.min($(paper.canvas).width() - 20, $(paper.canvas).height() - 70))/1000;
             
             draw_venn(paper);
             paper.hover = true;
@@ -6522,7 +6479,7 @@ $("#menu_about").click(function() {
     else {
         createDialog(settings);
         var messages = [
-            "R package: QCAGUI, version 2.0-0",
+            "R package: QCAGUI, version 2.1",
             "",
             "Author: Adrian Dușa (dusa.adrian@unibuc.ro)",
             "",
@@ -6536,8 +6493,8 @@ $("#menu_about").click(function() {
             "            Jimmy Breck-McKye (raphael-paragraph.js library)",
             "            Alrik Thiem (package QCA versions 1.0-0 to 1.1-3)",
             "",
-            "The package QCAGUI is a fork of the former package QCA version 1.1-4,",
-            "with many improvements and a reactive graphical user interface.",
+            "The package QCAGUI continues the development of the QCA package,",
+            "and complements it with a reactive graphical user interface.",
             "It has an extensive set of functions to perform Qualitative Comparative",
             "Analysis: crisp sets (csQCA), temporal (tQCA), multi-value (mvQCA) and",
             "fuzzy sets (fsQCA).",
@@ -6564,8 +6521,8 @@ createDialog({
     title:     "Command constructor",
     position:  {my: "right top", at: "right-10px top+33px", of: window, collision: "fitflip"},
     resizable: true,
-    width:     650, //?? nu are un Raphael la interior
-    height:    commandHeight, //??? de verificat
+    width:     650,
+    height:    commandHeight,
     closable: false
     
 });
@@ -6575,8 +6532,8 @@ createDialog({
     title:     "Output window",
     position:  {my: "left top", at: "left bottom+4px", of: "#command", collision: "fitflip"},
     resizable: true,
-    width:     650, //?? nu are un Raphael la interior
-    height:    resultHeight, //??? de verificat
+    width:     650,
+    height:    resultHeight,
     closable: false
 });
 
@@ -6631,7 +6588,7 @@ function showDialogToFront(settings) {
     $("#" + settings.name + "_main").scrollTop(scrollTop[settings.name + "_main"]);
     $("#" + settings.name + "_main").scrollLeft(scrollLeft[settings.name + "_main"]);
     
-    // redo vertical scroll to their location
+    
     if (settings.inside !== undefined) {
         for (var i = 0; i < keys.length; i++) {
             $("#" + keys[i]).scrollTop(scrollTop[keys[i]]);
@@ -6654,7 +6611,6 @@ function createDialog(settings) {
     dialog.id = settings.name;
     document.body.appendChild(dialog);
     
-    // necessary to distinguish between import and export lists of files and directories
     current_command = settings.name;
     
     
@@ -6723,13 +6679,7 @@ function createDialog(settings) {
         if (settings.name != "command" && settings.name != "result") {
             $("#" + settings.name).hide("fade", { percent: 0 }, 500);
         }
-        /*
-        if (settings.closable !== undefined) {
-            if (!settings.closable) {
-                $("#" + settings.name).show();
-            }
-        }
-        */
+        
     });
     
     $("#" + settings.name + "_img").mouseup(function(event) {
@@ -6802,130 +6752,44 @@ function createDialog(settings) {
 
 
 var venn = {
-    // the whole "s"hapes for 2, 3, 4 and 5 sets variations
-    "s1": [
-        "M 200,100.6 C 145.1,100.6 100.5,145.1 100.5,200.1 100.5,255 145.1,299.5 200,299.5 254.9,299.5 299.5,255 299.5,200.1 299.5,145.1 254.9,100.6 200,100.6 z"
-    ],
-    "s2": [
-        "M 150,100.6 C 95.1,100.6 50.5,145.1 50.5,200.1 50.5,255 95.1,299.5 150,299.5 204.9,299.5 249.5,255 249.5,200.1 249.5,145.1 204.9,100.6 150,100.6 z",
-        "M 250,100.6 C 195.1,100.6 150.5,145.1 150.5,200.1 150.5,255 195.1,299.5 250,299.5 304.9,299.5 349.5,255 349.5,200.1 349.5,145.1 304.9,100.6 250,100.6 z"
-    ],
-    "s3": [
-        "M 66.15,141.5 C 52.15,141.5 40.45,146 32.75,155.6 7.95,186.2 32.55,256.7 87.65,313.2 142.8,369.6 207.5,390.5 232.3,359.9 257.1,329.3 232.5,258.8 177.4,202.4 139.5,163.6 97.05,141.6 66.15,141.5 z",
-        "M 199.5,42.26 C 162.9,42.35 132.1,99.6 129.5,174.8 126.8,253.6 156.2,322.3 195.2,328.2 234.1,334.1 267.8,275 270.5,196.1 273.2,117.3 243.9,48.57 204.9,42.67 203.1,42.39 201.3,42.26 199.5,42.26 z",
-        "M 333.9,141.5 C 303,141.6 260.6,163.6 222.7,202.4 167.6,258.8 143,329.3 167.8,359.9 192.5,390.5 257.3,369.6 312.4,313.2 367.5,256.7 392.1,186.2 367.3,155.6 359.5,146 347.9,141.5 333.9,141.5 z"
-    ],
-    "s4": [
-        "M 56.73,145.2 C 38.93,145.2 24.83,151.4 17.13,164.2 -3.372,198.2 29.23,266.6 90.03,316.8 150.8,367 216.8,380.1 237.3,346 257.9,312 225.3,243.6 164.5,193.4 126.5,162 86.43,145.1 56.73,145.2 z",
-        "M 139.5,68.8 C 130.6,68.75 122.5,71.25 115.7,76.58 84.76,100.9 93.06,175.1 134.4,242.4 175.6,309.6 234.2,344.4 265.1,320.1 296.1,295.7 287.7,221.5 246.5,154.2 214.2,101.7 171.5,68.99 139.5,68.8 z",
-        "M 260.6,68.75 C 269.5,68.75 277.6,71.25 284.4,76.55 315.3,100.9 307,175.1 265.7,242.4 224.5,309.6 165.9,344.4 135,320.1 104,295.7 112.4,221.5 153.6,154.2 185.9,101.7 228.6,68.95 260.6,68.75 z",
-        "M 202.4,365 C 184.6,365 170.5,358.8 162.8,346 142.3,311.9 174.9,243.5 235.7,193.3 296.4,143.1 362.4,130 382.9,164.1 403.5,198.1 370.9,266.5 310.1,316.7 272.1,348.2 232.1,365.1 202.4,365 z"
-    ],
-    "s5": [
-        "M 107.9,100.1 C 65.96,100.5 34.06,114 26.16,138.5 13.36,177.6 66.76,230 145.3,255.5 223.8,281.1 297.8,270 310.5,230.9 323.2,191.7 269.9,139.3 191.4,113.8 161.9,104.3 133.1,99.85 107.9,100.1 z",
-        "M 212.6,25.53 C 171.5,25.53 138.1,92.46 138.1,175 138.1,257.6 171.5,324.5 212.6,324.5 253.8,324.5 287.2,257.6 287.2,175 287.2,92.46 253.8,25.53 212.6,25.53 z",
-        "M 295.8,129.6 C 270.6,129.3 241.8,133.8 212.4,143.4 133.8,168.9 80.45,221.3 93.25,260.4 105.9,299.6 179.9,310.6 258.4,285.1 337,259.5 390.4,207.2 377.6,168 369.7,143.5 337.8,130 295.8,129.6 z",
-        "M 143.4,119.2 C 133.5,119.2 124.6,121.6 117.4,126.9 84.1,151.1 96.4,224.9 145,291.7 193.5,358.5 259.9,393.1 293.2,368.9 326.5,344.7 314.1,270.9 265.6,204.1 227.6,151.9 178.8,119.4 143.4,119.2 z",
-        "M 225.6,101.1 C 190.2,101.3 141.4,133.8 103.5,186 54.86,252.8 42.56,326.6 75.86,350.8 109.2,375 175.5,340.4 224,273.6 272.6,206.8 285,133 251.7,108.8 244.4,103.5 235.5,101 225.6,101.1 z"
-    ],
-    // pre-register the result of the "c"ustom intersections
-    // output by raphael.boolean.js
-    // the order is exactly of the rows in the truth table
-    "c1": [
-        "M0,0C0,0,400,0,400,0C400,0,400,400,400,400C400,400,0,400,0,400C0,400,0,0,0,0M200,100.6C145.1,100.6,100.5,145.1,100.5,200.1C100.5,255,145.1,299.5,200,299.5C254.9,299.5,299.5,255,299.5,200.1C299.5,145.1,254.9,100.6,200,100.6C200,100.6,200,100.6,200,100.6",
-        "M200,100.6C145.1,100.6,100.5,145.1,100.5,200.1C100.5,255,145.1,299.5,200,299.5C254.9,299.5,299.5,255,299.5,200.1C299.5,145.1,254.9,100.6,200,100.6C200,100.6,200,100.6,200,100.6"
-    ],
-    "c2": [
-        "M0,0C0,0,400,0,400,0C400,0,400,400,400,400C400,400,0,400,0,400C0,400,0,0,0,0M150,100.6C95.1,100.6,50.5,145.1,50.5,200.1C50.5,255,95.1,299.5,150,299.5C168.225,299.5,185.314,294.596,200,286.015C214.686,294.596,231.775,299.5,250,299.5C304.9,299.5,349.5,255,349.5,200.1C349.5,145.1,304.9,100.6,250,100.6C250,100.6,250,100.6,250,100.6C231.775,100.6,214.686,105.504,200,114.089C185.314,105.504,168.225,100.6,150,100.6C150,100.6,150,100.6,150,100.6",
-        "M200,286.015C229.596,268.809,249.5,236.775,249.5,200.1C249.5,163.358,229.596,131.302,200,114.089C214.686,105.504,231.775,100.6,250,100.6C250,100.6,250,100.6,250,100.6C304.9,100.6,349.5,145.1,349.5,200.1C349.5,255,304.9,299.5,250,299.5C231.775,299.5,214.686,294.596,200,286.015",
-        "M150,100.6C95.1,100.6,50.5,145.1,50.5,200.1C50.5,255,95.1,299.5,150,299.5C168.225,299.5,185.314,294.596,200,286.015C170.404,268.809,150.5,236.775,150.5,200.1C150.5,163.358,170.404,131.302,200,114.089C185.314,105.504,168.225,100.6,150,100.6C150,100.6,150,100.6,150,100.6",
-        "M200,286.015C229.596,268.809,249.5,236.775,249.5,200.1C249.5,163.358,229.596,131.302,200,114.089C170.404,131.302,150.5,163.358,150.5,200.1C150.5,236.775,170.404,268.809,200,286.015"
-    ],
-    "c3": [
-        "M0,0C0,0,400,0,400,0C400,0,400,400,400,400C400,400,0,400,0,400C0,400,0,0,0,0M66.15,141.5C52.15,141.5,40.45,146,32.75,155.6C7.95,186.2,32.55,256.7,87.65,313.2C125.969,352.388,168.899,374.437,199.847,373.973C199.907,373.974,199.967,373.975,200.027,373.975C200.086,373.976,200.145,373.977,200.207,373.973C231.148,374.437,274.116,352.388,312.4,313.2C367.5,256.7,392.1,186.2,367.3,155.6C359.5,146,347.9,141.5,333.9,141.5C333.9,141.5,333.9,141.5,333.9,141.5C315.493,141.56,293.006,149.39,269.819,163.922C264.854,99.381,238.471,47.749,204.9,42.67C203.1,42.39,201.3,42.26,199.5,42.26C199.5,42.26,199.5,42.26,199.5,42.26C164.705,42.346,135.151,94.094,130.107,163.827C106.961,149.355,84.515,141.559,66.15,141.5C66.15,141.5,66.15,141.5,66.15,141.5",
-        "M199.847,373.973C199.906,373.972,199.966,373.971,200.027,373.975C199.967,373.975,199.907,373.974,199.847,373.973M200.027,373.975C200.087,373.974,200.147,373.973,200.207,373.973C200.145,373.977,200.086,373.976,200.027,373.975M200.207,373.973C213.644,373.701,224.798,369.157,232.3,359.9C242.56,347.241,244.365,327.752,239.028,305.247C256.703,281.73,268.919,242.311,270.5,196.1C270.876,185.13,270.632,174.355,269.819,163.922C293.006,149.39,315.493,141.56,333.9,141.5C333.9,141.5,333.9,141.5,333.9,141.5C347.9,141.5,359.5,146,367.3,155.6C392.1,186.2,367.5,256.7,312.4,313.2C274.116,352.388,231.148,374.437,200.207,373.973",
-        "M200.054,228.537C193.236,219.628,185.661,210.856,177.4,202.4C162.026,186.661,145.903,173.686,130.107,163.827C135.151,94.094,164.705,42.346,199.5,42.26C199.5,42.26,199.5,42.26,199.5,42.26C201.3,42.26,203.1,42.39,204.9,42.67C238.471,47.749,264.854,99.381,269.819,163.922C254.083,173.771,238.024,186.712,222.7,202.4C214.44,210.855,206.865,219.627,200.054,228.537",
-        "M239.028,305.247C233.444,281.529,219.928,254.462,200.054,228.537C206.865,219.627,214.44,210.855,222.7,202.4C238.024,186.712,254.083,173.771,269.819,163.922C270.632,174.355,270.876,185.13,270.5,196.1C268.919,242.311,256.703,281.73,239.028,305.247",
-        "M66.15,141.5C52.15,141.5,40.45,146,32.75,155.6C7.95,186.2,32.55,256.7,87.65,313.2C125.969,352.388,168.899,374.437,199.847,373.973C186.414,373.701,175.272,369.157,167.8,359.9C157.446,347.125,155.703,327.396,161.218,304.631C140.572,276.926,127.671,228.18,129.5,174.8C129.628,171.092,129.825,167.428,130.107,163.827C106.961,149.355,84.515,141.559,66.15,141.5C66.15,141.5,66.15,141.5,66.15,141.5",
-        "M199.847,373.973C199.906,373.972,199.966,373.971,200.027,373.975C200.087,373.974,200.147,373.973,200.207,373.973C213.644,373.701,224.798,369.157,232.3,359.9C242.56,347.241,244.365,327.752,239.028,305.247C226.541,321.931,211.317,330.644,195.2,328.2C182.619,326.297,171.037,317.858,161.218,304.631C155.703,327.396,157.446,347.125,167.8,359.9C175.272,369.157,186.414,373.701,199.847,373.973",
-        "M200.054,228.537C193.236,219.628,185.661,210.856,177.4,202.4C162.026,186.661,145.903,173.686,130.107,163.827C129.825,167.428,129.628,171.092,129.5,174.8C127.671,228.18,140.572,276.926,161.218,304.631C166.888,281.064,180.35,254.238,200.054,228.537",
-        "M239.028,305.247C233.444,281.529,219.928,254.462,200.054,228.537C180.35,254.238,166.888,281.064,161.218,304.631C171.037,317.858,182.619,326.297,195.2,328.2C211.317,330.644,226.541,321.931,239.028,305.247"
-    ],
-    "c4": [
-        "M0,0C0,0,400,0,400,0C400,0,400,400,400,400C400,400,0,400,0,400C0,400,0,0,0,0M56.73,145.2C38.93,145.2,24.83,151.4,17.13,164.2C-3.372,198.2,29.23,266.6,90.03,316.8C129.1,349.075,170.333,366.014,200.232,364.914C200.926,364.989,201.66,365,202.4,365C202.4,365,202.4,365,202.4,365C232.1,365.1,272.1,348.2,310.1,316.7C370.9,266.5,403.5,198.1,382.9,164.1C369.734,142.199,337.798,139.768,300.547,154.149C306.691,119.316,301.663,90.154,284.4,76.55C277.6,71.25,269.5,68.75,260.6,68.75C260.6,68.75,260.6,68.75,260.6,68.75C242.555,68.863,221.106,79.327,200.04,97.862C178.98,79.349,157.54,68.907,139.5,68.8C139.5,68.8,139.5,68.8,139.5,68.8C130.6,68.75,122.5,71.25,115.7,76.58C98.405,90.174,93.371,119.353,99.537,154.212C84.017,148.221,69.426,145.157,56.73,145.2C56.73,145.2,56.73,145.2,56.73,145.2",
-        "M200.232,364.914C216.858,364.334,229.98,358.176,237.3,346C240.509,340.703,242.427,334.572,243.121,327.79C251.351,327.551,258.801,325.054,265.1,320.1C285.617,303.951,288.876,265.987,276.777,222.642C288.772,199.202,296.784,175.597,300.547,154.149C337.798,139.768,369.734,142.199,382.9,164.1C403.5,198.1,370.9,266.5,310.1,316.7C272.1,348.2,232.1,365.1,202.4,365C202.4,365,202.4,365,202.4,365C201.66,365,200.926,364.989,200.232,364.914",
-        "M258.693,176.192C255.023,168.829,250.953,161.474,246.5,154.2C232.409,131.297,216.339,112.16,200.04,97.862C221.106,79.327,242.555,68.863,260.6,68.75C260.6,68.75,260.6,68.75,260.6,68.75C269.5,68.75,277.6,71.25,284.4,76.55C301.663,90.154,306.691,119.316,300.547,154.149C287.081,159.333,272.916,166.727,258.693,176.192",
-        "M276.777,222.642C272.583,207.58,266.53,191.866,258.693,176.192C272.916,166.727,287.081,159.333,300.547,154.149C296.784,175.597,288.772,199.202,276.777,222.642",
-        "M141.394,176.229C127.168,166.768,113.003,159.389,99.537,154.212C93.371,119.353,98.405,90.174,115.7,76.58C122.5,71.25,130.6,68.75,139.5,68.8C139.5,68.8,139.5,68.8,139.5,68.8C157.54,68.907,178.98,79.349,200.04,97.862C183.748,112.167,167.685,131.306,153.6,154.2C149.14,161.486,145.064,168.853,141.394,176.229",
-        "M243.121,327.79C244.507,314.885,241.535,299.664,234.846,283.504C245.693,271.776,256.163,257.956,265.7,242.4C269.712,235.862,273.413,229.259,276.777,222.642C288.876,265.987,285.617,303.951,265.1,320.1C258.801,325.054,251.351,327.551,243.121,327.79",
-        "M200.056,228.379C189.733,216.215,177.79,204.373,164.5,193.4C156.848,187.077,149.112,181.342,141.394,176.229C145.064,168.853,149.14,161.486,153.6,154.2C167.685,131.306,183.748,112.167,200.04,97.862C216.339,112.16,232.409,131.297,246.5,154.2C250.953,161.474,255.023,168.829,258.693,176.192C251.012,181.289,243.314,187.003,235.7,193.3C222.374,204.303,210.403,216.179,200.056,228.379",
-        "M234.846,283.504C227.482,265.65,215.591,246.653,200.056,228.379C210.403,216.179,222.374,204.303,235.7,193.3C243.314,187.003,251.012,181.289,258.693,176.192C266.53,191.866,272.583,207.58,276.777,222.642C273.413,229.259,269.712,235.862,265.7,242.4C256.163,257.956,245.693,271.776,234.846,283.504",
-        "M56.73,145.2C38.93,145.2,24.83,151.4,17.13,164.2C-3.372,198.2,29.23,266.6,90.03,316.8C129.1,349.075,170.333,366.014,200.232,364.914C183.438,364.473,170.18,358.268,162.8,346C159.615,340.702,157.712,334.576,157.024,327.805C148.78,327.562,141.312,325.064,135,320.1C114.487,303.954,111.226,266.003,123.315,222.67C111.312,199.242,103.301,175.65,99.537,154.212C84.017,148.221,69.426,145.157,56.73,145.2C56.73,145.2,56.73,145.2,56.73,145.2",
-        "M200.232,364.914C216.858,364.334,229.98,358.176,237.3,346C240.509,340.703,242.427,334.572,243.121,327.79C230.177,328.224,215.323,323.119,200.05,313.339C184.796,323.105,169.957,328.224,157.024,327.805C157.712,334.576,159.615,340.702,162.8,346C170.18,358.268,183.438,364.473,200.232,364.914",
-        "M165.283,283.544C154.427,271.802,143.946,257.971,134.4,242.4C130.39,235.871,126.69,229.277,123.315,222.67C111.226,266.003,114.487,303.954,135,320.1C141.312,325.064,148.78,327.562,157.024,327.805C155.633,314.908,158.61,299.693,165.283,283.544",
-        "M200.05,313.339C188.483,305.959,176.676,295.903,165.283,283.544C158.61,299.693,155.633,314.908,157.024,327.805C169.957,328.224,184.796,323.105,200.05,313.339",
-        "M141.394,176.229C127.168,166.768,113.003,159.389,99.537,154.212C103.301,175.65,111.312,199.242,123.315,222.67C127.51,207.612,133.565,191.901,141.394,176.229",
-        "M243.121,327.79C244.507,314.885,241.535,299.664,234.846,283.504C223.442,295.873,211.625,305.953,200.05,313.339C215.323,323.119,230.177,328.224,243.121,327.79",
-        "M200.056,228.379C189.733,216.215,177.79,204.373,164.5,193.4C156.848,187.077,149.112,181.342,141.394,176.229C133.565,191.901,127.51,207.612,123.315,222.67C126.69,229.277,130.39,235.871,134.4,242.4C143.946,257.971,154.427,271.802,165.283,283.544C172.638,265.678,184.529,246.667,200.056,228.379",
-        "M234.846,283.504C227.482,265.65,215.591,246.653,200.056,228.379C184.529,246.667,172.638,265.678,165.283,283.544C176.676,295.903,188.483,305.959,200.05,313.339C211.625,305.953,223.442,295.873,234.846,283.504"
-    ],
-    "c5": [
-        "M0,0C0,0,400,0,400,0C400,0,400,400,400,400C400,400,0,400,0,400C0,400,0,0,0,0M107.9,100.1C65.96,100.5,34.06,114,26.16,138.5C17.403,165.25,39.631,198.225,79.739,224.535C51.829,279.111,48.902,331.209,75.86,350.8C98.696,367.376,136.996,356.365,174.446,326.295C217.692,369.586,266.27,388.471,293.2,368.9C315.974,352.35,317.373,312.601,300.447,267.753C355.007,239.971,387.952,199.702,377.6,168C369.7,143.5,337.8,130,295.8,129.6C295.8,129.6,295.8,129.6,295.8,129.6C291.862,129.553,287.837,129.623,283.725,129.826C274.173,69.36,245.94,25.53,212.6,25.53C212.6,25.53,212.6,25.53,212.6,25.53C184.465,25.53,159.937,56.895,147.277,103.178C133.51,100.987,120.271,99.977,107.9,100.1C107.9,100.1,107.9,100.1,107.9,100.1",
-        "M79.739,224.535C84.236,227.518,88.989,230.405,93.951,233.189C90.817,242.617,90.444,251.828,93.25,260.4C99.394,279.44,120.012,291.827,148.624,296.576C156.847,307.44,165.532,317.392,174.446,326.295C136.996,356.365,98.696,367.376,75.86,350.8C48.902,331.209,51.829,279.111,79.739,224.535",
-        "M187.056,315.417C195.017,321.31,203.625,324.5,212.6,324.5C232.555,324.5,250.68,308.806,264.044,283.192C276.974,278.703,289.173,273.495,300.447,267.753C317.373,312.601,315.974,352.35,293.2,368.9C266.27,388.471,217.692,369.586,174.446,326.295C178.667,322.911,182.878,319.279,187.056,315.417",
-        "M148.624,296.576C155.563,297.767,163.003,298.479,170.822,298.724C175.826,305.568,181.269,311.211,187.056,315.417C182.878,319.279,178.667,322.911,174.446,326.295C165.532,317.392,156.847,307.44,148.624,296.576",
-        "M294.009,252.36C302.052,246.613,307.732,239.422,310.5,230.9C316.649,211.92,307.326,189.846,287.135,169.233C286.878,155.546,285.701,142.33,283.725,129.826C287.837,129.623,291.862,129.553,295.8,129.6C295.8,129.6,295.8,129.6,295.8,129.6C337.8,130,369.7,143.5,377.6,168C387.952,199.702,355.007,239.971,300.447,267.753C298.538,262.681,296.389,257.54,294.009,252.36",
-        "M93.951,233.189C101.25,237.297,109.006,241.178,117.164,244.769C124.396,260.315,133.72,276.196,145,291.7C146.196,293.347,147.403,294.975,148.624,296.576C120.012,291.827,99.394,279.44,93.25,260.4C90.444,251.828,90.817,242.617,93.951,233.189",
-        "M264.044,283.192C267.343,276.952,270.341,270.082,273.009,262.703C281.111,260.045,288.198,256.593,294.009,252.36C296.389,257.54,298.538,262.681,300.447,267.753C289.173,273.495,276.974,278.703,264.044,283.192",
-        "M117.164,244.769C126.091,248.717,135.5,252.318,145.3,255.5C146.984,256.049,148.667,256.582,150.344,257.082C155.736,273.527,162.702,287.706,170.822,298.724C163.003,298.479,155.563,297.767,148.624,296.576C147.403,294.975,146.196,293.347,145,291.7C133.72,276.196,124.396,260.315,117.164,244.769",
-        "M185.756,112.046C172.667,108.098,159.755,105.153,147.277,103.178C159.937,56.895,184.465,25.53,212.6,25.53C212.6,25.53,212.6,25.53,212.6,25.53C245.94,25.53,274.173,69.36,283.725,129.826C278.303,130.07,272.746,130.524,267.075,131.201C264.075,121.751,258.98,114.09,251.7,108.8C244.4,103.5,235.5,101,225.6,101.1C225.6,101.1,225.6,101.1,225.6,101.1C213.552,101.168,199.953,104.977,185.756,112.046",
-        "M241.602,135.477C226.581,127.129,209.673,119.736,191.4,113.8C189.515,113.193,187.633,112.607,185.756,112.046C199.953,104.977,213.552,101.168,225.6,101.1C225.6,101.1,225.6,101.1,225.6,101.1C235.5,101,244.4,103.5,251.7,108.8C258.98,114.09,264.075,121.751,267.075,131.201C258.792,132.163,250.271,133.59,241.602,135.477",
-        "M264.044,283.192C250.68,308.806,232.555,324.5,212.6,324.5C203.625,324.5,195.017,321.31,187.056,315.417C193.16,309.789,199.19,303.666,205.068,297.071C222.123,294.988,240.14,291.032,258.4,285.1C260.298,284.482,262.182,283.848,264.044,283.192",
-        "M187.056,315.417C181.269,311.211,175.826,305.568,170.822,298.724C181.598,299.073,193.096,298.534,205.068,297.071C199.19,303.666,193.16,309.789,187.056,315.417",
-        "M287.135,169.233C282.184,164.163,276.577,159.182,270.362,154.363C270.346,145.85,269.265,138.052,267.075,131.201C272.746,130.524,278.303,130.07,283.725,129.826C285.701,142.33,286.878,155.546,287.135,169.233",
-        "M270.362,154.363C261.844,147.709,252.191,141.356,241.602,135.477C250.271,133.59,258.792,132.163,267.075,131.201C269.265,138.052,270.346,145.85,270.362,154.363",
-        "M227.078,269.269C244.375,269.237,260.001,266.997,273.009,262.703C270.341,270.082,267.343,276.952,264.044,283.192C262.182,283.848,260.298,284.482,258.4,285.1C240.14,291.032,222.123,294.988,205.068,297.071C211.595,289.799,217.937,281.951,224,273.6C225.048,272.16,226.078,270.717,227.078,269.269",
-        "M150.344,257.082C177.39,265.389,203.752,269.336,227.078,269.269C226.078,270.717,225.048,272.16,224,273.6C217.937,281.951,211.595,289.799,205.068,297.071C193.096,298.534,181.598,299.073,170.822,298.724C162.702,287.706,155.736,273.527,150.344,257.082",
-        "M107.9,100.1C65.96,100.5,34.06,114,26.16,138.5C17.403,165.25,39.631,198.225,79.739,224.535C85.478,213.292,92.285,201.942,100.121,190.751C95.816,162.081,101.236,138.647,117.4,126.9C124.6,121.6,133.5,119.2,143.4,119.2C143.4,119.2,143.4,119.2,143.4,119.2C143.43,119.2,143.459,119.2,143.49,119.203C144.59,113.684,145.859,108.338,147.277,103.178C133.51,100.987,120.271,99.977,107.9,100.1C107.9,100.1,107.9,100.1,107.9,100.1",
-        "M79.739,224.535C84.236,227.518,88.989,230.405,93.951,233.189C96.213,226.351,99.922,219.399,104.915,212.496C102.741,204.994,101.127,197.709,100.121,190.751C92.285,201.942,85.478,213.292,79.739,224.535",
-        "M139.62,144.942C140.521,136.043,141.826,127.439,143.49,119.203C143.459,119.2,143.43,119.2,143.4,119.2C143.4,119.2,143.4,119.2,143.4,119.2C133.5,119.2,124.6,121.6,117.4,126.9C101.236,138.647,95.816,162.081,100.121,190.751C101.22,189.163,102.35,187.58,103.5,186C114.787,170.454,127.041,156.656,139.62,144.942",
-        "M104.915,212.496C112.918,201.425,124.222,190.48,138.149,180.327C138.116,178.56,138.1,176.784,138.1,175C138.1,164.702,138.62,154.646,139.62,144.942C127.041,156.656,114.787,170.454,103.5,186C102.35,187.58,101.22,189.163,100.121,190.751C101.127,197.709,102.741,204.994,104.915,212.496",
-        "M294.009,252.36C302.052,246.613,307.732,239.422,310.5,230.9C316.649,211.92,307.326,189.846,287.135,169.233C287.182,171.143,287.2,173.067,287.2,175C287.2,194.213,285.393,212.576,282.097,229.44C286.567,237.109,290.537,244.777,294.009,252.36",
-        "M93.951,233.189C101.25,237.297,109.006,241.178,117.164,244.769C112.025,233.76,107.926,222.916,104.915,212.496C99.922,219.399,96.213,226.351,93.951,233.189",
-        "M273.009,262.703C281.111,260.045,288.198,256.593,294.009,252.36C290.537,244.777,286.567,237.109,282.097,229.44C279.773,241.351,276.705,252.514,273.009,262.703",
-        "M117.164,244.769C126.091,248.717,135.5,252.318,145.3,255.5C146.984,256.049,148.667,256.582,150.344,257.082C143.058,234.921,138.641,208.628,138.149,180.327C124.222,190.48,112.918,201.425,104.915,212.496C107.926,222.916,112.025,233.76,117.164,244.769",
-        "M185.756,112.046C172.667,108.098,159.755,105.153,147.277,103.178C145.859,108.338,144.59,113.684,143.49,119.203C150.707,119.254,158.478,120.646,166.609,123.301C173.053,118.933,179.463,115.171,185.756,112.046",
-        "M241.602,135.477C226.581,127.129,209.673,119.736,191.4,113.8C189.515,113.193,187.633,112.607,185.756,112.046C179.463,115.171,173.053,118.933,166.609,123.301C179.639,127.486,193.581,134.88,207.58,145.013C209.173,144.462,210.781,143.925,212.4,143.4C222.24,140.187,232.013,137.545,241.602,135.477",
-        "M143.49,119.203C141.826,127.439,140.521,136.043,139.62,144.942C148.53,136.64,157.603,129.382,166.609,123.301C158.478,120.646,150.707,119.254,143.49,119.203",
-        "M139.62,144.942C138.62,154.646,138.1,164.702,138.1,175C138.1,176.784,138.116,178.56,138.149,180.327C157.026,166.54,180.738,154.213,207.58,145.013C193.581,134.88,179.639,127.486,166.609,123.301C157.603,129.382,148.53,136.64,139.62,144.942",
-        "M282.097,229.44C285.393,212.576,287.2,194.213,287.2,175C287.2,173.067,287.182,171.143,287.135,169.233C282.184,164.163,276.577,159.182,270.362,154.363C270.413,168.003,267.727,183.479,262.45,199.856C263.509,201.254,264.559,202.669,265.6,204.1C271.68,212.474,277.193,220.958,282.097,229.44",
-        "M270.362,154.363C261.844,147.709,252.191,141.356,241.602,135.477C232.013,137.545,222.24,140.187,212.4,143.4C210.781,143.925,209.173,144.462,207.58,145.013C226.458,158.672,245.441,177.313,262.45,199.856C267.727,183.479,270.413,168.003,270.362,154.363",
-        "M227.078,269.269C244.375,269.237,260.001,266.997,273.009,262.703C276.705,252.514,279.773,241.351,282.097,229.44C277.193,220.958,271.68,212.474,265.6,204.1C264.559,202.669,263.509,201.254,262.45,199.856C255.299,222.115,243.373,246.039,227.078,269.269",
-        "M150.344,257.082C177.39,265.389,203.752,269.336,227.078,269.269C243.373,246.039,255.299,222.115,262.45,199.856C245.441,177.313,226.458,158.672,207.58,145.013C180.738,154.213,157.026,166.54,138.149,180.327C138.641,208.628,143.058,234.921,150.344,257.082"
-    ],
-    // coordinates for the labels
+    "s1": [[[500,250,362.5,250,250,362.5,250,500,250,637.5,362.5,750,500,750,637.5,750,750,637.5,750,500,750,362.5,637.5,250,500,250]],[[0],[0]]],
+    "s2": [[[500,716,333.5,618.5,333.5,381.5,500,284],[500,716,463.5,738,419,749.5,375,750,237.5,750,125,637.5,125,500,125,362.5,237.5,250,375,250,419,250,463.5,262,500,284],[500,284,536.5,262,581,250,625,250,762.5,250,875,362.5,875,500,875,637.5,762.5,750,625,750,581,749.5,536.5,738,500,716],[500,716,666.5,619,666.5,381.5,500,284]],[[1,2],[2,3],[0,1],[0,3]]],
+    "s3": [[[250,391.5,250,256,361,142,500,142,639,142,750,256,750,391.5],[500,824.5,460,847.5,417.5,858,375,858,236.9,858,124.9,746.2,124.9,608.3,124.9,567.2,135.2,527.4,153.1,493,177.4,446.7,212.2,413.8,250,391.5],[250,391.5,250,488.5,304,568,375,608.5],[500,391.5,421.2,346.4,326.8,347.2,250,391.5],[375,608.5,374.5,521,422.5,436.5,500,391.5],[625,608.5,549.5,653,450.4,653,375,608.5],[625,608.5,625.4,695.8,577.3,780.4,500,824.5],[375,608.5,374.6,695.8,422.7,780.4,500,824.5],[625,608.5,625.5,521,577.5,436.5,500,391.5],[500,391.5,578.8,346.4,673.2,347.2,750,391.5],[750,391.5,750,488.5,696,568,625,608.5],[750,391.5,787.8,413.8,822.6,446.7,846.9,493,864.8,527.4,875.1,567.2,875.1,608.3,875.1,746.2,763.1,858,625,858,582.5,858,540,847.5,500,824.5]],[[0,11,1],[6,11,10],[0,9,3],[8,9,10],[1,2,7],[5,7,6],[2,4,3],[4,8,5]]],
+    "s4": [[[359.9,344.3,406.8,297.3,453.7,250.4,500.8,203.3],[641.7,344.2,594.7,297.3,547.9,250.3,500.8,203.3],[765.2,467.7,724.1,426.6,682.9,385.5,641.7,344.2],[236.5,467.7,283,514.3,329.7,560.9,376.4,607.6],[625.3,607.7,583.8,566.2,542.3,524.7,500.8,483.2],[376.4,607.6,417.9,566.1,459.4,524.7,500.8,483.2],[359.9,344.3,365.8,348.9,371.5,353.9,376.9,359.3,418.7,400.8,459.5,441.9,500.8,483.2],[500.8,483.2,542,441.9,583.3,400.7,624.5,359.4,630,353.9,635.7,348.8,641.7,344.2],[691.2,769.8,711.7,761.2,730.9,748.5,747.7,731.7,753.4,726,759.1,720.4,764.8,714.7,833.3,646.1,833.7,536.2,765.2,467.7],[691.2,769.8,697.9,717.9,681.3,663.6,641.2,623.6,635.9,618.3,630.6,613,625.3,607.7],[310.3,770.2,303.5,718.2,320.2,663.8,360.3,623.7,365.7,618.3,371,613,376.4,607.6],[500.8,939.5,456.1,939.5,411.5,922.1,377.1,887.7,371.5,882.2,366.2,876.7,360.5,871.1,331.9,842.9,315.1,807.1,310.3,770.2],[500.8,939.5,545.5,939.6,590.7,922.8,624.6,888,630.1,882.3,635.9,876.9,641.4,871.2,670,842.7,686.4,806.7,691.2,769.8],[310.3,770.2,273.5,753.6,263.6,742.1,236.5,715,168,646.5,168,536.2,236.5,467.7],[186.3,321.2,194.2,270.3,213.4,240.3,253.1,203,321.6,134.5,432.3,134.8,500.8,203.3],[500.8,203.3,569.3,134.8,679.6,134.8,748.2,203.3,791.3,244.1,806.9,272.5,815.1,321.4],[815.1,321.4,845,335.1,854.7,341.7,888.9,376.5,957.4,445,957.4,555.3,888.9,623.8,800.8,711.9,712.7,799.9,624.6,888,590.3,922.4,545.5,939.6,500.8,939.5],[500.8,939.5,456.1,939.5,411.5,922.1,377.1,887.7,289,799.6,201.9,712.5,112.8,623.4,43.17,554.9,43.17,444.6,112.2,376.7,134.3,354.5,149.9,336.9,186.3,321.2],[765.2,467.7,718.6,514.3,672,561,625.3,607.7],[376.4,607.6,418,649.2,459.4,690.7,500.8,732.1],[625.3,607.7,583.8,649.2,542.3,690.6,500.8,732.1],[236.5,467.7,277.6,426.6,318.6,385.5,359.9,344.3],[641.7,344.2,692.1,305.4,758.4,297.8,815.1,321.4],[359.9,344.3,309.6,305.4,242.9,297.8,186.3,321.2],[815.1,321.4,821.9,373.3,805.2,427.6,765.2,467.7],[500.8,732.1,449.1,783.9,373.7,796.5,310.3,770.2],[186.3,321.2,179.7,373.2,196.5,427.7,236.5,467.7],[500.8,732.1,552.5,783.8,627.9,796.3,691.2,769.8]],[[14,15,16,17],[8,24,16,12],[1,15,22],[2,22,24],[0,14,23],[8,18,9],[0,1,7,6],[2,7,4,18],[11,13,26,17],[11,25,27,12],[3,10,13],[10,19,25],[21,23,26],[9,20,27],[3,5,6,21],[4,5,19,20]]],
+    "s5": [[[757,276.8,705.7,268.3,668.3,268.6,620.7,286.6],[620.7,286.6,590.6,297.2,567.3,309.2,548.2,322.1],[548.2,322.1,516.4,343.7,496.2,367.8,475.3,392.1],[475.3,392.1,443.3,431.9,407.9,457.6,367.2,481.1],[367.2,481.1,342.6,495.2,316.9,509.4,295.2,525.2],[295.2,525.2,265,547.3,242.7,572.6,242.3,606.1],[242.3,606.1,241.9,654.1,274.2,686.8,325,693.5],[325,693.5,360.3,698.1,402.8,693,443.9,690.5],[443.9,690.5,477,688.5,507.7,689.4,538,695.7],[538,695.7,566.2,701.4,590.1,709.8,615.7,716],[615.7,716,693.3,730,732.5,723.8,787.8,701.9],[757,276.8,831.6,294.8,894.8,350.7,918.6,429.2,952.5,540.9,894.6,659.2,787.8,701.9],[348.9,169.4,321,211.9,309.2,247.4,310.4,307.6],[310.4,307.6,311.2,340.9,315.5,367.7,322.2,390.5],[322.2,390.5,333.1,427.7,350,454.3,367.2,481.1],[367.2,481.1,395.6,522.6,411.6,560,422.5,605.3],[422.5,605.3,429.3,633.7,435.2,663.7,443.9,690.5],[443.9,690.5,455.1,725.4,470.9,754.7,499.5,767.5],[499.5,767.5,553.4,788,592.4,760.5,615.7,716],[615.7,716,630,683.9,637.4,642.9,646.6,603.8],[646.6,603.8,654.4,569.3,665.5,538.2,681.4,509.1],[681.4,509.1,693.5,487.5,706.3,469.3,718,449.8],[718,449.8,748.1,395.6,761.6,364.3,757,276.8],[348.9,169.4,389.2,110.3,457.1,71.49,533.9,71.49,651.2,71.49,747.8,161.9,757,276.8],[393.5,855.2,440.8,832.4,472.6,805.3,499.5,767.5],[499.5,767.5,518.2,741.1,530.1,717.7,538,695.7],[538,695.7,551,659.9,553.2,628.3,556.4,596],[556.4,596,559.5,546,574.1,504.5,594,462.8],[594,462.8,606,437.6,618.9,412,627.5,387.2],[627.5,387.2,640.6,349.9,644,314.9,620.7,286.6],[620.7,286.6,580.5,238.8,540.9,249.5,505.2,268.6],[505.2,268.6,474.2,284.9,443.1,312.2,411.4,337],[411.4,337,383.1,359.6,353.7,377.7,322.2,390.5],[322.2,390.5,298.9,399.9,277.2,406.3,255.3,415],[255.3,415,191.6,450.3,156.6,466.8,120.5,527.6],[393.5,855.2,321.3,884.4,235.7,875,170.1,823.4,79.32,750.8,59.69,622.6,120.5,527.6],[120.5,527.6,158.3,568,195.7,592.2,242.3,606.1],[242.3,606.1,272.2,615.1,297.5,618.9,320.3,619.7],[320.3,619.7,359.4,621,390.4,612.9,422.5,605.3],[422.5,605.3,469.7,592.3,511.4,591.1,556.4,596],[556.4,596,586.6,599.3,617.9,603.9,646.6,603.8],[646.6,603.8,684.3,603.7,717.3,595.8,736.8,566.7],[736.8,566.7,766.2,522.8,756.5,482.3,718,449.8],[718,449.8,693.6,427.3,659.7,407.7,627.5,387.2],[627.5,387.2,596.6,367.5,571,347.8,548.2,322.1],[548.2,322.1,531.9,303.9,519.2,285.9,505.2,268.6],[505.2,268.6,461.3,214.8,422.8,187.6,348.9,169.4],[120.5,527.6,74.02,469,57.84,388.6,84.78,313.3,123.4,203.4,238.9,143.2,348.9,169.4],[787.8,701.9,781.1,647.5,765.9,604.4,736.8,566.7],[736.8,566.7,717.8,541.5,699.3,523.1,681.4,509.1],[681.4,509.1,651.7,485.9,623,474.3,594,462.8],[594,462.8,545.9,445.3,510.7,423.4,475.3,392.1],[475.3,392.1,454.2,373.5,433,353.3,411.4,337],[411.4,337,378.5,312,345,295.9,310.4,307.6],[310.4,307.6,263,327.7,243.7,363.3,255.3,415],[255.3,415,262.4,449.5,280.2,487.6,295.2,525.2],[295.2,525.2,308.1,557,316.8,587.8,320.3,619.7],[320.3,619.7,323.1,645.8,323,669.4,325,693.5],[325,693.5,340.2,765.1,348.1,799.5,393.5,855.2],[787.8,701.9,790.5,775.2,757.2,848.2,693,893.1,597.7,960.7,467.4,942.6,393.5,855.2]],[[11,59,35,47,23],[6,58,35,36],[10,59,24,18],[7,17,24,58],[11,48,42,22],[6,57,37],[10,48,41,19],[7,16,38,57],[0,30,46,23],[1,45,30],[9,18,25],[8,25,17],[0,29,43,22],[1,44,29],[9,19,40,26],[8,26,39,16],[12,54,34,47],[5,36,34,55],[13,33,54],[4,55,33,14],[21,42,49],[5,37,56],[20,49,41],[4,56,38,15],[12,53,31,46],[2,52,31,45],[13,32,53],[3,14,32,52],[21,43,28,50],[2,51,28,44],[20,50,27,40],[3,15,39,27,51]]],
+    "s6": [[[556,151,610,127,670,135,685,192],[685,192,689,206,692,222,693,237],[693,237,695,263,695,276,695,302],[695,302,695,333,695,364,695,406],[695,406,694,462,685,592,664,680],[664,680,656,713,646,734,631,757],[631,757,614,782,600,799,580,817],[580,817,558,837,528,855,497,869],[497,869,457,889,399,897,361,898],[361,898,196,898,51,766,81,561],[81,561,87,522,98,493,116,466],[116,466,129,447,145,433,162,420],[162,420,176,409,195,397,210,387],[210,387,254,359,270,337,275,297],[275,297,278,277,271,252,285,222],[285,222,305,182,342,169,385,182],[385,182,432,196,459,191,495,177],[495,177,516,168,535,160,556,151],[767,211,918,266,1022,444,922,611],[922,611,864,700,826,735,748,759],[748,759,719,765,703,766,673,764],[673,764,654,762,644,760,631,757],[631,757,568,742,555,759,523,795],[523,795,506,815,481,839,464,845],[464,845,428,860,391,853,366,818],[366,818,348,791,337,773,291,768],[291,768,262,765,231,762,202,754],[202,754,146,738,119,701,136,642],[136,642,143,619,149,609,158,592],[158,592,173,567,176,560,190,540],[190,540,204,520,224,493,232,482],[232,482,306,389,391,305,455,255],[455,255,478,237,488,230,522,214],[522,214,542,205,563,198,585,194],[585,194,623,189,653,188,685,192],[685,192,718,196,745,203,767,211],[747,312,765,316,785,321,803,327],[803,327,857,347,867,398,849,436],[849,436,840,454,830,472,813,492],[813,492,796,511,788,520,767,543],[767,543,739,577,726,595,733,646],[733,646,736,667,740,676,743,698],[743,698,746,719,748,741,748,759],[748,759,748,796,740,822,723,849],[723,849,657,966,453,977,361,898],[361,898,337,879,323,857,313,838],[313,838,302,818,295,801,291,768],[291,768,289,748,288,742,288,722],[288,722,288,672,270,667,226,639],[226,639,207,627,177,609,158,592],[158,592,136,573,127,543,151,506],[151,506,173,472,171,448,162,420],[162,420,152,387,146,361,145,327],[145,327,143,265,168,209,240,215],[240,215,249,216,269,219,285,222],[285,222,306,226,336,232,352,235],[352,235,382,241,421,248,455,255],[455,255,511,266,552,274,625,288],[625,288,645,292,670,297,695,302],[695,302,713,306,728,308,747,312],[695,406,705,414,746,444,763,455],[763,455,774,463,791,475,813,492],[813,492,828,504,847,519,864,536],[864,536,885,557,908,583,922,611],[922,611,981,733,865,862,723,849],[723,849,692,847,675,844,645,837],[645,837,620,831,595,823,580,817],[580,817,557,808,541,802,523,795],[523,795,480,780,458,776,412,796],[412,796,401,801,386,808,366,818],[366,818,357,823,334,833,313,838],[313,838,241,853,202,803,202,754],[202,754,202,736,206,715,211,695],[211,695,216,676,221,658,226,639],[226,639,236,599,228,570,190,540],[190,540,180,531,163,517,151,506],[151,506,136,493,125,480,116,466],[116,466,86,416,99,354,145,327],[145,327,162,318,183,313,209,311],[209,311,237,309,257,304,275,297],[275,297,318,281,336,260,352,235],[352,235,363,218,374,198,385,182],[385,182,399,160,412,143,435,130],[435,130,474,110,526,117,556,151],[556,151,568,164,575,176,585,194],[585,194,593,208,601,230,608,245],[608,245,614,258,619,275,625,288],[625,288,649,343,654,373,695,406],[608,245,632,243,669,238,693,237],[693,237,737,236,746,259,747,312],[747,312,748,342,754,373,792,398],[792,398,809,410,831,424,849,436],[849,436,897,467,894,497,864,536],[864,536,846,559,824,580,800,600],[800,600,787,612,757,633,733,646],[733,646,711,658,689,669,664,680],[664,680,571,723,456,742,361,734],[361,734,328,731,315,728,288,722],[288,722,269,717,232,705,211,695],[211,695,179,681,158,663,136,642],[136,642,105,608,97,593,81,561],[81,561,-5,388,68,126,320,117],[320,117,380,117,411,122,435,130],[435,130,456,138,479,155,495,177],[495,177,503,188,513,203,522,214],[522,214,540,236,562,250,608,245],[803,327,805,354,803,372,792,398],[792,398,783,419,775,433,763,455],[763,455,746,487,745,503,767,543],[767,543,778,564,790,577,800,600],[800,600,820,642,800,687,743,698],[743,698,715,704,685,710,673,764],[673,764,668,788,658,815,645,837],[645,837,626,874,565,908,497,869],[497,869,483,860,473,852,464,845],[464,845,448,833,428,812,412,796],[412,796,394,777,377,757,361,734],[361,734,306,655,265,577,232,482],[232,482,223,456,214,415,210,387],[210,387,207,365,207,335,209,311],[209,311,212,277,223,244,240,215],[240,215,260,176,288,142,320,117],[320,117,448,16,683,41,767,211],[767,211,781,239,800,282,803,327]],[[9,101,122,18,64,44],[9,100,27,71,45],[8,44,65,113],[8,45,70,24,114],[19,43,64],[26,71,46],[20,112,65,43],[25,46,70],[18,63,92,37,123],[27,99,72],[37,91,106],[24,69,115],[19,42,110,93,63],[26,72,98,47],[20,111,42],[25,47,97,116,69],[0,35,122,102,83],[0,34,84],[7,113,66],[7,114,23,67],[17,83,103],[17,84,33,104],[6,66,112,21],[6,67,22],[1,89,36,123,35],[1,88,85,34],[36,106,90],[23,115,68],[41,110,94],[33,85,105],[5,21,111,41,95],[5,22,68,116,96],[10,77,53,121,101],[10,76,50,28,100],[53,120,78],[29,75,50],[11,52,77],[11,51,76],[12,119,78,52],[12,118,30,75,51],[38,62,92],[28,49,73,99],[38,61,107,91],[29,74,49],[39,109,93,62],[48,73,98],[39,108,61],[30,117,97,48,74],[15,82,102,121,54],[15,81,55],[14,54,120,79],[14,55,80],[16,103,82],[16,104,32,56,81],[13,79,119],[13,80,56,31,118],[2,59,89],[2,58,86,88],[3,60,107,90,59],[3,87,58],[40,94,109],[32,105,86,57],[4,95,40,108,60],[4,96,117,31,57,87]]],
+    "s7": [[[179,584,197,592,213,595,230,600],[230,600,245,604,258,606,272,607],[272,607,288,608,297,608,316,609],[316,609,351,610,370,630,368,668],[368,668,367,685,366,698,366,713],[366,713,366,730,366,745,367,760],[367,760,368,776,371,793,375,808],[375,808,379,826,383,837,389,853],[718,812,684,1014,450,1016,389,853],[718,812,721,795,721,776,721,760],[721,760,721,742,720,726,717,709],[717,709,714,693,713,682,709,666],[709,666,706,644,712,633,736,628],[736,628,752,625,765,625,781,623],[781,623,815,618,819,595,797,571],[797,571,788,560,776,551,768,540],[768,540,756,521,757,508,772,493],[772,493,783,483,796,476,807,467],[807,467,837,443,826,424,804,413],[804,413,790,406,778,402,760,399],[760,399,740,397,726,397,711,397],[711,397,694,398,681,398,668,399],[668,399,603,402,556,377,534,312],[534,312,528,295,524,284,517,269],[517,269,510,255,504,243,496,230],[496,230,488,217,481,205,472,194],[472,194,460,180,449,167,432,155],[432,155,387,123,331,140,322,205],[322,205,320,226,320,240,321,262],[321,262,322,278,324,291,327,306],[327,306,331,321,334,332,338,346],[338,346,349,384,346,405,304,415],[304,415,288,418,272,421,257,425],[257,425,241,429,222,435,207,441],[207,441,193,447,183,451,168,461],[168,461,116,494,118,561,179,584],[496,153,486,167,483,171,472,194],[472,194,467,205,461,216,453,238],[453,238,448,253,446,262,441,278],[441,278,429,320,417,328,372,317],[372,317,355,313,342,310,327,306],[327,306,311,302,296,299,280,297],[280,297,265,295,250,294,236,294],[236,294,219,295,203,296,185,299],[150,627,-16,568,-9,333,185,299],[150,627,168,634,185,638,204,642],[204,642,220,646,235,648,251,649],[251,649,266,650,280,650,294,651],[294,651,317,652,327,660,327,683],[327,683,327,700,324,713,323,729],[323,729,321,761,341,774,367,760],[367,760,382,751,396,743,408,736],[408,736,427,725,441,728,450,748],[450,748,455,759,461,776,468,789],[468,789,482,816,503,821,525,794],[525,794,533,784,540,775,547,756],[547,756,554,739,557,728,560,714],[560,714,563,699,565,681,568,667],[568,667,581,604,624,571,685,560],[685,560,701,557,715,554,730,551],[730,551,745,548,754,545,768,540],[768,540,785,533,798,527,812,520],[812,520,828,512,838,505,851,495],[851,495,905,453,893,395,832,376],[832,376,814,370,803,367,780,364],[780,364,754,361,747,361,730,361],[730,361,716,361,703,362,689,362],[689,362,645,364,629,345,633,307],[633,307,635,289,635,275,635,259],[635,259,635,241,634,226,631,212],[631,212,626,188,621,177,616,165],[616,165,594,108,535,100,496,153],[763,271,748,273,738,273,718,278],[718,278,703,281,689,286,675,291],[675,291,661,296,646,301,633,307],[633,307,600,321,583,316,563,274],[563,274,552,249,551,245,545,232],[545,232,537,216,528,200,522,190],[522,190,508,169,504,163,496,153],[496,153,475,129,468,121,456,110],[185,299,121,101,331,-10,456,110],[185,299,190,314,196,331,203,344],[203,344,212,361,219,372,231,390],[231,390,239,402,248,413,257,425],[257,425,272,446,268,458,243,472],[243,472,231,479,220,485,209,493],[209,493,185,510,185,530,213,546],[213,546,230,555,241,558,258,565],[258,565,282,575,282,586,272,607],[272,607,264,622,257,635,251,649],[251,649,241,675,251,690,281,690],[281,690,296,690,315,686,327,683],[327,683,341,679,355,674,368,668],[368,668,378,662,396,655,408,648],[408,648,465,620,525,625,568,667],[568,667,580,679,589,687,600,697],[600,697,611,706,620,714,632,723],[632,723,647,733,664,742,678,748],[678,748,692,753,706,757,721,760],[721,760,782,771,823,731,802,667],[802,667,796,648,788,635,781,623],[781,623,770,605,760,592,753,582],[753,582,746,571,739,562,730,551],[730,551,705,521,705,494,734,473],[734,473,747,464,757,458,770,447],[770,447,785,434,793,426,804,413],[804,413,816,400,822,391,832,376],[832,376,870,320,842,265,763,271],[845,550,828,532,824,529,812,520],[812,520,796,507,785,500,772,493],[772,493,757,486,748,481,734,473],[734,473,699,454,691,434,711,397],[711,397,722,378,724,373,730,361],[730,361,737,347,744,332,749,318],[749,318,755,302,759,289,763,271],[763,271,767,250,769,237,771,214],[456,110,545,-35,791,29,771,214],[456,110,448,123,441,133,432,155],[432,155,426,170,420,187,415,206],[415,206,411,222,409,233,406,249],[406,249,400,278,394,285,364,276],[364,276,346,271,335,266,321,262],[321,262,287,251,272,264,280,297],[280,297,285,313,287,317,296,339],[296,339,307,365,300,373,277,380],[277,380,258,385,247,387,231,390],[231,390,196,396,188,414,207,441],[207,441,214,451,228,462,243,472],[243,472,256,481,268,486,280,492],[280,492,295,499,310,507,322,513],[322,513,375,541,412,572,408,648],[408,648,407,662,406,673,405,692],[405,692,405,705,404,712,408,736],[408,736,410,751,413,766,417,780],[417,780,422,796,426,807,433,822],[433,822,459,876,529,888,561,831],[561,831,570,816,575,802,580,788],[580,788,587,768,588,764,592,744],[592,744,596,723,599,709,600,697],[600,697,605,656,633,646,667,655],[667,655,682,658,693,662,709,666],[709,666,719,669,740,671,756,671],[756,671,774,671,785,670,802,667],[802,667,877,653,889,600,845,550],[673,796,676,778,677,766,678,748],[678,748,679,731,678,714,675,697],[675,697,673,682,671,669,667,655],[667,655,658,619,669,598,708,589],[708,589,724,586,739,584,753,582],[753,582,768,580,782,576,797,571],[797,571,813,566,831,557,845,550],[845,550,859,542,872,535,885,526],[771,214,965,190,1050,415,885,526],[771,214,754,216,739,221,723,225],[723,225,706,229,691,234,676,240],[676,240,661,247,649,253,635,259],[635,259,610,270,602,265,592,242],[592,242,586,225,581,211,576,199],[576,199,566,173,541,166,522,190],[522,190,511,205,508,211,496,230],[496,230,483,249,472,251,453,238],[453,238,437,225,424,215,415,206],[415,206,391,182,363,192,362,221],[362,221,361,238,361,241,364,276],[364,276,367,295,369,303,372,317],[372,317,375,329,376,334,381,358],[381,358,401,440,384,470,322,513],[322,513,311,521,301,527,291,535],[291,535,283,541,271,552,258,565],[258,565,243,580,238,589,230,600],[230,600,222,610,212,626,204,642],[204,642,177,694,209,747,272,740],[272,740,289,738,304,735,323,729],[323,729,339,724,352,719,366,713],[366,713,380,706,392,699,405,692],[405,692,434,673,469,677,483,709],[483,709,491,727,494,736,500,752],[500,752,503,760,513,781,525,794],[525,794,540,813,545,818,561,831],[561,831,609,870,662,861,673,796],[375,808,399,796,405,790,417,780],[417,780,430,770,445,754,450,748],[450,748,461,734,472,721,483,709],[483,709,506,686,537,689,560,714],[560,714,571,726,581,735,592,744],[592,744,602,753,616,763,626,770],[626,770,641,781,655,788,673,796],[673,796,687,802,704,808,718,812],[885,526,1025,670,895,870,718,812],[885,526,873,515,864,505,851,495],[851,495,836,484,822,476,807,467],[807,467,794,460,782,454,770,447],[770,447,752,434,749,421,760,399],[760,399,767,386,774,375,780,364],[780,364,797,335,780,316,749,318],[749,318,735,319,721,321,707,321],[707,321,685,322,675,314,675,291],[675,291,676,269,677,258,676,240],[676,240,674,208,661,197,631,212],[631,212,617,220,603,231,592,242],[592,242,576,259,573,263,563,274],[563,274,553,287,543,300,534,312],[534,312,495,365,450,379,381,358],[381,358,367,353,351,349,338,346],[338,346,325,343,314,341,296,339],[296,339,284,338,266,337,253,338],[253,338,235,339,218,341,203,344],[203,344,135,359,121,420,168,461],[168,461,181,473,189,480,209,493],[209,493,217,498,233,508,247,515],[247,515,257,520,273,527,291,535],[291,535,324,550,336,577,316,609],[316,609,307,624,301,634,294,651],[294,651,288,666,284,680,281,690],[281,690,276,707,273,723,272,740],[272,740,268,806,316,839,375,808],[236,294,241,309,246,321,253,338],[253,338,257,348,264,362,277,380],[277,380,287,393,296,403,304,415],[304,415,328,451,320,466,280,492],[280,492,269,499,258,506,247,515],[247,515,235,525,224,536,213,546],[213,546,198,561,188,572,179,584],[179,584,169,598,159,611,150,627],[389,853,214,959,50,785,150,627],[389,853,405,843,418,834,433,822],[433,822,445,811,457,801,468,789],[468,789,479,776,488,765,500,752],[500,752,515,736,530,736,547,756],[547,756,559,769,568,780,580,788],[580,788,600,802,620,797,626,770],[626,770,630,755,629,743,632,723],[632,723,635,700,653,690,675,697],[675,697,688,700,703,706,717,709],[717,709,754,717,763,697,756,671],[756,671,751,652,743,637,736,628],[736,628,723,609,718,602,708,589],[708,589,699,578,694,572,685,560],[685,560,649,509,639,456,668,399],[668,399,675,387,682,374,689,362],[689,362,697,348,702,335,707,321],[707,321,714,302,716,289,718,278],[718,278,722,258,722,244,723,225],[723,225,726,161,668,129,616,165],[616,165,605,173,592,183,576,199],[576,199,565,210,554,221,545,232],[545,232,534,245,527,256,517,269],[517,269,494,301,470,302,441,278],[441,278,419,258,420,260,406,249],[406,249,394,240,375,227,362,221],[362,221,345,213,337,210,322,205],[322,205,253,184,212,221,236,294]],[[8,188,152,116,80,44,224],[35,223,44,81,207],[7,224,45,171,215],[0,170,45,223],[8,187,179,135,225],[35,222,86,208],[7,225,134,180],[0,169,87,222],[9,99,143,151,188],[34,207,82,126],[6,215,172,50],[5,50,173],[9,98,144,187],[34,208,85,127],[6,180,133,51],[5,51,132,174],[63,107,115,152,189],[18,106,63,190],[46,90,214,171],[1,89,46,170],[136,230,186,179],[18,105,191],[137,185,230],[1,88,169],[62,189,151,108],[17,190,62,109],[49,172,214,91],[4,173,49,92],[97,144,186,231],[17,191,104,110],[96,231,185,138],[4,174,131,93],[71,79,116,153,243],[71,78,158,244],[70,243,154,198],[70,244,157,199],[54,178,135,226],[54,177,227],[53,226,134,181],[53,227,176,182],[14,150,143,100],[33,126,83],[69,198,155],[69,199,156],[14,149,101],[33,127,84],[52,181,133],[52,182,175,132],[72,242,153,115],[77,158,245],[73,197,154,242],[76,245,157,200],[55,229,136,178],[55,228,177],[56,184,137,229],[56,183,176,228],[15,61,108,150],[16,109,61],[68,155,197,74],[68,156,200,75],[15,60,102,149],[16,110,103,60],[57,95,138,184],[57,94,131,175,183],[27,251,43,80,117],[43,81,206,216],[28,122,42,251],[42,216,205,123],[27,250,162,118],[86,221,209],[28,121,163,250],[87,168,210,221],[10,234,142,99],[82,125,217,206],[11,141,234],[124,217,205],[10,233,145,98],[85,209,220,128],[11,140,146,233],[129,167,210,220],[64,194,114,107],[19,193,64,106],[47,213,90],[2,212,47,89],[119,249,162],[19,192,105],[120,163,249],[2,211,168,88],[65,113,194],[20,112,65,193],[48,91,213],[3,92,48,212],[97,145,232],[20,111,104,192],[96,232,146,139],[3,93,130,167,211],[26,117,79,36],[25,36,78,159],[29,41,122],[30,204,123,41],[26,118,161,37],[25,37,160],[29,40,164,121],[30,203,165,40],[13,100,142,235],[32,83,125,218],[12,235,141],[31,218,124,204],[13,101,148,236],[32,84,128,219],[12,236,147,140],[31,219,129,166,203],[72,241,195,114],[24,159,77,246],[73,196,241],[23,246,76,201],[38,248,119,161],[24,160,38,247],[39,164,120,248],[23,247,39,165,202],[66,240,195,113],[21,239,66,112],[67,74,196,240],[22,201,75,67,239],[59,102,148,237],[21,238,59,103,111],[58,237,147,139,95],[22,202,166,130,94,58,238]]],
     "l1": {
-        "x": [194],
-        "y": [ 85]
+        "x": [485],
+        "y": [213]
     },
     "l2": {
-        "x": [ 40, 355],
-        "y": [120, 120]
+        "x": [100, 888],
+        "y": [300, 300]
     },
     "l3": {
-        "x": [ 35, 200, 350],
-        "y": [130,  30, 130]
+        "x": [100, 500, 900],
+        "y": [440,  90, 440]
     },
     "l4": {
-        "x": [ 35, 105, 285, 355],
-        "y": [135,  60,  60, 135]
+        "x": [ 75, 220, 780, 925],
+        "y": [330, 140, 140, 330]
     },
     "l5": {
-        "x": [ 35, 213, 340, 300,  65],
-        "y": [100,  15, 125, 384, 365]
+        "x": [ 90, 533, 885, 700, 163],
+        "y": [200,  38, 280, 960, 890]
+    },
+    "l6": {
+        "x": [100, 500, 910, 925, 550, 100],
+        "y": [140,  25, 225, 835, 970, 860]
+    },
+    "l7": {
+        "x": [220, 685, 935, 935, 600, 155,  50],
+        "y": [ 45,  23, 220, 800, 985, 880, 310]
     }
 }
 
 
 
-}); // end of $( function() {
+
+});

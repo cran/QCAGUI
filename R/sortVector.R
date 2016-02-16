@@ -2,6 +2,7 @@
 
 `sortVector` <- 
 function(x, collapse = "") {
+    
     strx <- strsplit(x, split=ifelse(collapse == "", "", "\\*"))
     strings <- NULL
     lengths <- unlist(lapply(strx, length))

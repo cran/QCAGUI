@@ -1,5 +1,6 @@
 `createString` <-
 function(mydata, collapse="*", uplow=FALSE, use.tilde=FALSE) {
+    
     mydata <- changemydata <- as.matrix(mydata)
     conditions <- colnames(mydata)
     if (uplow) {

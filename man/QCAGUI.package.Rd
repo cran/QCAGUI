@@ -11,8 +11,8 @@ QCAGUI: A Package for Qualitative Comparative Analysis, with a Graphical User In
 }
 
 \description{
-The \pkg{QCAGUI} is a fork of the former package QCA version 1.1-4, and continues and
-complements the former package package with a user interface.
+The \pkg{QCAGUI} continues the development of the QCA package and complements it with
+a graphical user interface.
 It implements the method of \dfn{Qualitative Comparative Analysis}
 (QCA) as developed by Ragin (1987), and extended by Ragin (2000, 2008), Cronqvist
 and Berg-Schlosser (2009). QCA is a family of configurational comparative
@@ -32,9 +32,9 @@ faster and with substantially lower memory consumption than classical Quine-McCl
 optimization (Dusa 2010, Dusa and Thiem 2015). Since version 1.0-4, the compilation of major parts 
 of the code in the C language has increased the speed of some core functions such 
 as \code{\link{superSubset}} considerably. Since version 1.1-0, \code{\link{eqmcc}} 
-has also been made more flexible: \dfn{row dominance} and \dfn{minimal disjunctivity} 
-can be imposed as optional solution constraints (Thiem and Dusa 2013a), QCA 
-\dfn{path models} can be identified (equivalent of \dfn{causal chains} in Coincidence 
+has also been made more flexible: \dfn{row dominance} and \dfn{all solutions} (formerly known as
+\dfn{minimal disjunctivity}) can be imposed as optional solution constraints (Thiem and Dusa 2013a),
+QCA \dfn{path models} can be identified (equivalent of \dfn{causal chains} in Coincidence 
 Analysis (Baumgartner 2009a, b)), multiple outcomes even from multivalent variables 
 are allowed, and truth tables for csQCA and mvQCA can now be coded on the basis 
 of inference-statistical tests (currently only exact binomial). For more details,
@@ -67,18 +67,17 @@ generally ensured. A general comparison of \pkg{QCAGUI}'s features with those of
 
 If you make use of the \pkg{QCAGUI} package in your work, please acknowledge this, 
 not least for reasons of scientific transparency. The software citation for \pkg{QCAGUI} 
-loads on attaching the package or by using the command \code{citation("QCA")} after
+loads on attaching the package or by using the command \code{citation("QCAGUI")} after
 having loaded the package. The aforesaid command also provides a suitable BibTeX 
-entry. You may also consider citing Thiem and Dusa (2013b) or/and Thiem and 
-Dusa (2013c).
+entry.
 }
 
 \details{
     \tabular{ll}{
     Package: \tab QCAGUI\cr
     Type:    \tab Package\cr
-    Version: \tab 2.0\cr
-    Date:    \tab 2015-11-30\cr
+    Version: \tab 2.1\cr
+    Date:    \tab 2016-02-15\cr
     License: \tab GPL (>= 2)\cr
     }
 }

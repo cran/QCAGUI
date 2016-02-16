@@ -1,72 +1,46 @@
 `intersection` <-
-function(e1 = "", e2 = "", prod.split = "", conditions = "") {
+function(e1 = "", e2 = "", snames = "") {
     
     if (grepl("\\{", e1) | grepl("\\{", e2)) {
         cat("\n")
         stop("This function accepts only bivalent crisp expressions.\n\n", call. = FALSE)
     }
     
-    if (prod.split == "" & (grepl("\\*", e1) | grepl("\\*", e2))) {
-        prod.split <- "*"
+    if (identical(e1, "") | identical(e2, "")) {
+        cat("\n")
+        stop("Two expressions are needed to intersect.\n\n", call. = FALSE)
     }
     
-    if (prod.split != "" & prod.split != "*") {
-        if (!grepl(prod.split, e1) & !grepl(prod.split, e2)) {
-            cat("\n")
-            stop("The product operator \"", prod.split, "\" was not found.\n\n", call. = FALSE)
-        }
+    collapse <- ifelse(any(grepl("\\*", c(e1, e2))), "*", "")
+    
+    if (is.deMorgan(e1)) {
+        e1 <- paste(e1[[1]][[2]], collapse = " + ")
     }
     
+    if (is.deMorgan(e2)) {
+        e2 <- paste(e2[[1]][[2]], collapse = " + ")
+    }
     
-    e1 <- getBigList(e1, prod.split)
-    e2 <- getBigList(e2, prod.split)
+    e1 <- translate(e1, snames)
+    e2 <- translate(e2, snames)
     
     result <- list()
     
-    if (!identical(conditions, "")) {
-        conditions <- splitstr(conditions)
+    if (!identical(snames, "")) {
+        snames <- splitstr(snames)
     }
     
-    for (i in seq(length(e1))) {
-        for (j in seq(length(e2))) {
+    for (i in seq(nrow(e1))) {
+        for (j in seq(nrow(e2))) {
             
-            aa <- unlist(lapply(e1[[i]], function(x) {
-                if (any(x == "~")) {
-                    return(tolower(x[x != "~"]))
-                }
-                else {
-                    return(x)
-                }
-            }))
+            ee <- rbind(e1[i, ], e2[j, ])
+            ee <- ee[ , apply(ee, 2, function(x) any(x >= 0)), drop = FALSE]
             
-            bb <- unlist(lapply(e2[[j]], function(x) {
-                if (any(x == "~")) {
-                    return(tolower(x[x != "~"]))
-                }
-                else {
-                    return(x)
-                }
-            }))
-            
-            if (all(table(toupper(unique(c(aa, bb)))) == 1)) {
+            if (all(apply(ee, 2, function(x) length(unique(x[x >= 0])) == 1))) {
                 
-                templist <- c(e1[[i]], e2[[j]])
-                
-                names(templist) <- c(aa, bb)
-                
-                templist <- templist[unique(c(aa, bb))]
-                aa <- names(templist)
-                
-                if (!identical(conditions, "")) {
-                    templist <- templist[order(match(toupper(aa), toupper(conditions)))]
-                    templist <- unlist(lapply(templist, paste0))
-                }
-                else {
-                    templist <- templist[order(aa)]
-                    templist <- unlist(lapply(templist, paste0))
-                }
-                
-                result[[length(result) + 1]] <- paste(templist, collapse=prod.split)
+                ee <- apply(ee, 2, function(x) unique(x[x >= 0]))
+                names(ee)[ee == 0] <- tolower(names(ee)[ee == 0])
+                result[[length(result) + 1]] <- paste(names(ee), collapse = collapse)
                 
             }
         }

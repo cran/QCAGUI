@@ -9,19 +9,16 @@ This function finds all possibilities for factorizing a set-theoretic expression
 }
 
 \usage{
-factorize(expression, prod.split = "", sort.factorizing = FALSE, 
-          sort.factorized = FALSE, pos = FALSE)
+factorize(expression, snames = "", pos = FALSE, tilde, ...)
 }
 
 \arguments{
   \item{expression}{A string representing a set-theoretic expression or a solution 
         object of class \dQuote{qca}.}
-  \item{prod.split}{The intersection (product) operator (if any).}
-  \item{sort.factorizing}{Logical, sort results beginning with largest number of 
-        factorizing sets.}
-  \item{sort.factorized}{Logical, sort results beginning with largest number of 
-        factorized sets.}
+  \item{snames}{The set names}
   \item{pos}{Logical, if possible factorize using product(s) of sums.}
+  \item{tilde}{Logical, use a tilde for a negation.}
+  \item{...}{Other arguments (mainly for backward compatibility).}
 }
 
 \details{
@@ -31,7 +28,17 @@ following law holds: \eqn{(a*b) + (a*c) = a*(b + c)}{(a*b) + (a*c) = a*(b + c)}
 (Hohn 1966, pp.78-80; South 1974, p.12). The \code{factorize()} function finds 
 all possible sets \eqn{a}{a} for any set-theoretic expression. Factorized 
 versions of the initial expression(s) can be sorted in decreasing order by the 
-number of factorizing sets or in decreasing order by the number of factorized sets. 
+number of factorizing sets or in decreasing order by the number of factorized sets.
+
+Starting with version 2.1 of the package, a number of arguments have been deprecated.
+For example, \code{prod.split}, because intersections are usually indicated by a star
+\dQuote{*} sign, and sometimes products are not indicated by anything (for example
+when the set names are single letters.
+
+The argument \code{snames} is only needed when products are not indicated by any
+sign at all, and the set names have more than one letter each (see function
+\code{translate()} for more details).
+
 }
 
 \value{A list with the following components:\cr
@@ -46,33 +53,34 @@ Hohn, Franz E. 1966. \emph{Applied Boolean Algebra: An Elementary Introduction}.
 South, G. F. 1974. \emph{Boolean Algebra and Its Uses}. New York: Van Nostrand Reinhold.
 }
 
-\seealso{\code{\link{eqmcc}}}
+\seealso{\code{\link{translate}}}
 
 \examples{
-# factorize a union of intersections;
-# if single letters are used, argument "prod.split" is not needed
-factorize("AB + AC")
 
-# but "prod.split" is needed in these cases
-factorize("one*TWO*four + one*THREE + THREE*four", prod.split = "*")
-factorize("~ONE*TWO*~FOUR + ~ONE*THREE + THREE*~FOUR", prod.split = "*")
-factorize("one&TWO&four + one&THREE + THREE&four", prod.split = "&")
+# results presented in alphabetical order
+factorize("one*TWO*four + one*THREE + THREE*four")
+
+# to preserve a certain order of the set names
+factorize("one*TWO*four + one*THREE + THREE*four",
+          snames = "ONE, TWO, THREE, FOUR")
+
+factorize("~ONE*TWO*~FOUR + ~ONE*THREE + THREE*~FOUR",
+          snames = "ONE, TWO, THREE, FOUR")
+
 
 # factorize solution objects directly
 data(d.partybans)
-HK.sol <- eqmcc(d.partybans, outcome = "PB", conditions = c("C", "F", "T", "V"), 
-  include = c("?"))
+HK.sol <- eqmcc(d.partybans, outcome = "PB", conditions = "C, F, T, V", 
+  include = "?")
 factorize(HK.sol)
 
 data(d.jobsecurity)
 Emm.sol <- eqmcc(d.jobsecurity, outcome = "JSR", incl.cut1 = 0.9)
 factorize(Emm.sol)
 
-# sort by the largest number of factoring sets
-factorize(Emm.sol, sort.factorizing = TRUE)
+# using pos - products of sums
+factorize("a*c + a*D + b*c + b*D", pos = TRUE)
 
-# sort by the largest number of factorized sets
-factorize(Emm.sol, sort.factorized = TRUE)
 }
 
 \keyword{functions}

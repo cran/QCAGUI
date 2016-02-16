@@ -1,8 +1,10 @@
 useDynLib(QCAGUI)
 export(.onAttach,
     allExpressions,
+    asNumeric,
     base3rows,
     calibrate,
+    compute,
     createChart,
     createMatrix,
     createString,
@@ -11,27 +13,29 @@ export(.onAttach,
     deMorganLoop,
     eqmcc,
     eqmccLoop,
-        export,
-            factor.function,
+    export,
+    factor.function,
     factorize,
     findSubsets,
     findSupersets,
     findTh,
     fuzzyand,
     fuzzyor,
-            getBigList,
-            getNonChars,
+    getBigList,
+    getNonChars,
     getRow,
     getSolution,
-            intersection,
+    intersection,
+    insideBrackets,
     is.deMorgan,
     is.pof,
     is.qca,
     is.tt,
     is.sS,
-            negateValues,
+    negateValues,
+    outsideBrackets,
     pof,
-        possibleNumeric,
+    possibleNumeric,
     prettyString,
     prettyTable,
     print.aE,
@@ -43,28 +47,31 @@ export(.onAttach,
     print.pic,
     print.sS,
     print.tt,
-        recode,
-            removeDuplicates,
-            removeSingleStars,
+    recode,
+    removeDuplicates,
+    removeSingleStars,
+    retention,
     rowDominance,
-        runGUI,
-            simplifyList,
-            solveBrackets,
+    runGUI,
+    simplifyList,
+    solveBrackets,
     solveChart,
     sortMatrix,
     sortVector,
     splitstr,
-            splitBrackets,
-            splitMainComponents,
-            splitPluses,
-            splitStars,
-            splitTildas,
+    splitBrackets,
+    splitMainComponents,
+    splitPluses,
+    splitStars,
+    splitTildas,
     superSubset,
-        trimst,
+    translate,
+    trimst,
     truthTable,
+    uninstall,
     verify.data,
     verify.dir.exp,
-    verify.expl,
+    verify.eqmcc,
     verify.inf.test,
     verify.qca,
     verify.mqca,
@@ -73,15 +80,18 @@ export(.onAttach,
     writeSolution)
 import(lpSolve)
 import(shiny)
-importFrom("utils", "packageDescription", "combn")
-importFrom("stats", "binom.test", "cutree", "dist", "hclust", "na.omit")
+import(venn)
+importFrom("utils", "combn", "packageDescription", "remove.packages")
+importFrom("stats", "binom.test", "cutree", "dist", "hclust", "na.omit", "dbinom")
 S3method(print, "aE")
 S3method(print, "deMorgan")
 S3method(print, "fctr")
+S3method(print, "fuzzyop")
 S3method(print, "mqca")
 S3method(print, "pic")
 S3method(print, "pof")
 S3method(print, "qca")
 S3method(print, "sS")
+S3method(print, "translate")
 S3method(print, "tt")
 

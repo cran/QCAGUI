@@ -1,18 +1,22 @@
 \name{QCAGUI-internal}
 
 \alias{.onAttach}
+\alias{asNumeric}
 \alias{base3rows}
 \alias{createChart}
 \alias{createString}
 \alias{deMorganLoop}
+\alias{drawVenn}
 \alias{eqmccLoop}
-    \alias{factor.function}
+\alias{factor.function}
 \alias{fuzzyand}
 \alias{fuzzyor}
-    \alias{getBigList}
-    \alias{getNonChars}
+\alias{getBigList}
+\alias{getNonChars}
 \alias{getSolution}
-    \alias{negateValues}
+\alias{insideBrackets}
+\alias{negateValues}
+\alias{outsideBrackets}
 \alias{possibleNumeric}
 \alias{prettyString}
 \alias{prettyTable}
@@ -25,23 +29,24 @@
 \alias{print.mqca}
 \alias{print.sS}
 \alias{print.tt}
-    \alias{removeDuplicates}
-    \alias{removeSingleStars}
+\alias{removeDuplicates}
+\alias{removeSingleStars}
 \alias{rowDominance}
-    \alias{simplifyList}
-    \alias{solveBrackets}
+\alias{simplifyList}
+\alias{solveBrackets}
 \alias{sortVector}
 \alias{sortMatrix}
 \alias{splitstr}
-    \alias{splitBrackets}
-    \alias{splitMainComponents}
-    \alias{splitPluses}
-    \alias{splitStars}
-    \alias{splitTildas}
+\alias{splitBrackets}
+\alias{splitMainComponents}
+\alias{splitPluses}
+\alias{splitStars}
+\alias{splitTildas}
 \alias{trimst}
+\alias{uninstall}
 \alias{verify.data}
 \alias{verify.dir.exp}
-\alias{verify.expl}
+\alias{verify.eqmcc}
 \alias{verify.inf.test}
 \alias{verify.qca}
 \alias{verify.mqca}
@@ -49,6 +54,8 @@
 \alias{writePrimeimp}
 \alias{writeSolution}
 
+
+\alias{ib}
 
 \title{Internal Functions}
 

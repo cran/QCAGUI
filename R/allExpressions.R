@@ -1,5 +1,6 @@
 `allExpressions` <-
 function(noflevels, raw=FALSE, arrange=FALSE) {
+    
     aEmat <- createMatrix(noflevels + 1)
     if (arrange) {
         aEmat <- sortMatrix(aEmat)

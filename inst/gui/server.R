@@ -1,19 +1,7 @@
 library(shiny)
 library(QCAGUI)
-# options(shiny.maxRequestSize=30*1024^2) # 30MB per file
-# options(warn=-1)
 
 setwd(Sys.getenv("userwd"))
-
-## Future feature: local settings
-
-# if (file.exists(noedit)) {
-#     settings <- strsplit(readLines(noedit), split=" = ")
-#     opts <- unlist(lapply(settings, "[[", 1))
-#     vals <- unlist(lapply(settings, "[[", 2))
-# }
-
-
 
 
 listFiles <- function(dirpath, filetype="*") {
@@ -47,8 +35,6 @@ listFiles <- function(dirpath, filetype="*") {
             }
         }
         
-        # this is necessary because Javascript interprets an array of length 1
-        # as a singleton (not an array anymore)
         
         if (length(result$dirs) == 1) {
             result$dirs <- as.matrix(result$dirs)
@@ -60,7 +46,7 @@ listFiles <- function(dirpath, filetype="*") {
         
     }
     
-    # result$filename <- as.matrix(unlist(strsplit(basename(filepath), split="\\."))[1])
+    
     if (!identical(filepath, "")) {
         if (file_test("-f", filepath)) {
             
@@ -70,7 +56,7 @@ listFiles <- function(dirpath, filetype="*") {
             resfilename <- resfilename[-length(resfilename)]
             resfilename <- paste(gsub("[[:space:]]", "", gsub("[^[:alnum:] ]", "", resfilename)), collapse="")
             
-            if (!is.na(suppressWarnings(as.numeric(substr(resfilename, 1, 1))))) {
+            if (possibleNumeric(substr(resfilename, 1, 1))) {
                 resfilename <- paste("x", resfilename, sep="")
             }
             
@@ -103,12 +89,10 @@ filename <- ""
 extension <- ""
 tcisdata <- TRUE
 
-# vertical random noise for the thresholds setter in the calibrate dialog
 vert <- NULL
 
 
 
-# Define server logic for random distribution application
 shinyServer(function(input, output, session) {
     
     observe({
@@ -122,10 +106,8 @@ shinyServer(function(input, output, session) {
     })
     
     
-    # import csv files
     observe({
         
-        # this changes every time the Javascript object "read_table" changes
         read_table <- input$read_table
         
         filepath <<- ""
@@ -138,10 +120,10 @@ shinyServer(function(input, output, session) {
             dfchosen <- input$dirfile_chosen
             oktoset <<- TRUE
             
-            # run this each time the "dirfile_chosen" vector changes, see Javascript code
-            
             if (dfchosen[1] == "file") {
-                filepath <<- file.path(current_path, dfchosen[2])
+                
+                filepath <<- file.path(gsub("[/]$", "", current_path), dfchosen[2])
+                
             }
             else {
                 splitpath <- unlist(strsplit(current_path, split=.Platform$file.sep))
@@ -173,7 +155,6 @@ shinyServer(function(input, output, session) {
                         pathtobe <- file.path(current_path, dfchosen[2])
                         pathtobe <- paste(pathtobe, "/", sep="")
                         
-                        # if (file_test("-x", pathtobe)) {
                         if (length(list.files(pathtobe)) > 0) {
                             current_path <<- pathtobe
                         }
@@ -192,7 +173,6 @@ shinyServer(function(input, output, session) {
                                            ifelse(identical(splitpath, ""), "/", splitpath),
                                            paste(splitpath, collapse=.Platform$file.sep))
                         
-                        # if (file_test("-x", pathtobe)) {
                         if (length(list.files(pathtobe)) > 0) {
                             current_path <<- pathtobe
                         }
@@ -266,7 +246,7 @@ shinyServer(function(input, output, session) {
             
             
             if (!identical(row_names, "")) { # this isn't a vector, just a name or a number, but just as a best practise
-                if (!is.na(suppressWarnings(as.numeric(row_names)))) {
+                if (possibleNumeric(row_names)) {
                     row_names <- as.numeric(row_names)
                 }
                 tc <- capture.output(tryCatch(read.table(filepath, header=header, ifelse(colsep == "tab", "\t", colsep),
@@ -410,7 +390,6 @@ shinyServer(function(input, output, session) {
             tosend <- as.list(mydata[seq(rowstart, rowend), seq(colstart, colend)])
             names(tosend) <- NULL
             
-            # session$sendCustomMessage(type = "theData", tosend)
             session$sendCustomMessage(type = "theData", list(tosend, paste(rowstart, colstart, rowend, colend, ncol(mydata), sep="_")))
         }   
     })
@@ -418,7 +397,6 @@ shinyServer(function(input, output, session) {
     
     
     
-    # eqmcc
     observe({
         
         foo <- input$eqmcc2R
@@ -485,30 +463,41 @@ shinyServer(function(input, output, session) {
             
             textoutput <- gsub("undefined columns selected>", "Column names in the command don't match those in the interface.", textoutput)
             
+            sendnormal <- FALSE
             
-            if (length(cnds) <= 5 & length(splitstr(outc)) == 1) { # to draw the Venn diagram, up to 5 variables for now
-                if (!is.null(myeqmcc)) {
-                    myeqmcc$tt$initial.data <- NULL
-                    myeqmcc$tt$recoded.data <- NULL
-                    myeqmcc$tt$indexes <- myeqmcc$tt$indexes - 1 # to take the indexes in Javascript notation
-                    if (identical(cnds, "")) {
-                        cnds <- toupper(setdiff(names(mydata), outc))
+            if (length(cnds) <= 7) { # to draw the Venn diagram, up to 5 variables for now
+                
+                if (!identical(outc, "")) { # this happens when the interface is disconnected
+                    if (length(splitstr(outc)) == 1 & !is.null(myeqmcc)) {
+                        
+                        myeqmcc$tt$initial.data <- NULL
+                        myeqmcc$tt$recoded.data <- NULL
+                        myeqmcc$tt$indexes <- myeqmcc$tt$indexes - 1 # to take the indexes in Javascript notation
+                        if (identical(cnds, "")) {
+                            cnds <- toupper(setdiff(names(mydata), outc))
+                        }
+                        
+                        if (use_letters) {
+                            cnds <- LETTERS[seq(length(cnds))]
+                        }
+                        
+                        myeqmcc$tt$options$conditions <- toupper(cnds)
+                        myeqmcc$tt$id <- apply(myeqmcc$tt$tt[, toupper(cnds)], 1, function(x) {
+                            ifelse(any(x == 1), paste(which(x == 1), collapse=""), "0")
+                        })
+                        
+                        session$sendCustomMessage(type = "eqmcc", list(textoutput, list(as.list(myeqmcc$tt      ))))
                     }
-                    
-                    if (use_letters) {
-                        cnds <- LETTERS[seq(length(cnds))]
+                    else {
+                        sendnormal <- TRUE
                     }
-                    
-                    myeqmcc$tt$options$conditions <- cnds
-                    myeqmcc$tt$id <- apply(myeqmcc$tt$tt[, cnds], 1, paste, collapse="")
-                    
-                    session$sendCustomMessage(type = "eqmcc", list(textoutput, list(as.list(myeqmcc$tt      ))))
                 }
                 else {
-                    session$sendCustomMessage(type = "eqmcc", list(textoutput, NULL))
+                    sendnormal <- TRUE
                 }
             }
-            else {
+            
+            if (sendnormal) {
                 session$sendCustomMessage(type = "eqmcc", list(textoutput, NULL))
             }
             
@@ -517,7 +506,6 @@ shinyServer(function(input, output, session) {
     })
     
     
-    # truth table
     observe({
         
         foo <- input$tt2R
@@ -568,7 +556,7 @@ shinyServer(function(input, output, session) {
             
             textoutput <- gsub("undefined columns selected>", "Column names in the command don't match those in the interface.", textoutput)
             
-            if (length(cnds) <= 5) { # to draw the Venn diagram, up to 5 variables for now
+            if (length(cnds) <= 7) { # to draw the Venn diagram, up to 5 variables for now
                 if (!is.null(mytt)) {
                     mytt$initial.data <- NULL
                     mytt$recoded.data <- NULL
@@ -581,8 +569,10 @@ shinyServer(function(input, output, session) {
                         cnds <- LETTERS[seq(length(cnds))]
                     }
                     
-                    mytt$options$conditions <- cnds
-                    mytt$id <- apply(mytt$tt[, cnds], 1, paste, collapse="")
+                    mytt$options$conditions <- toupper(cnds)
+                    mytt$id <- apply(mytt$tt[, toupper(cnds)], 1, function(x) {
+                        ifelse(any(x == 1), paste(which(x == 1), collapse=""), "0")
+                    })
                     
                 }
                 
@@ -602,12 +592,11 @@ shinyServer(function(input, output, session) {
         if (!is.null(thinfo)) {
             if (thinfo[2] != "") {
                 
-                # make sure the variable is numeric
-                if (any(is.na(suppressWarnings(as.numeric(mydata[, thinfo[2]]))))) {
-                    response <- "notnumeric"
+                if (possibleNumeric((mydata[, thinfo[2]]))) {
+                    response <- findTh(mydata[, thinfo[2]], groups = as.numeric(thinfo[1]) + 1)
                 }
                 else {
-                    response <- findTh(mydata[, thinfo[2]], groups = as.numeric(thinfo[1]) + 1)
+                    response <- "notnumeric"
                 }
                 
                 session$sendCustomMessage(type = "thvalsfromR", 
@@ -618,7 +607,6 @@ shinyServer(function(input, output, session) {
     })
     
     
-    # export to file
     observe({
         exportobj <- input$exportobj
         
@@ -644,7 +632,6 @@ shinyServer(function(input, output, session) {
     
     
     
-    # calibrate
     observe({
         foo <- input$calibrate
         
@@ -653,7 +640,6 @@ shinyServer(function(input, output, session) {
             checks <- rep(TRUE, 9)
             
             checks[1] <- !is.null(mydata)
-            # checks[2] <- length(foo$thresholds) > 0
             
             foo$thresholds <- unlist(foo$thresholds)
             
@@ -666,14 +652,6 @@ shinyServer(function(input, output, session) {
             if (any(!is.na(thrs))) {
                 foo$thresholds <- as.numeric(thrs[!is.na(thrs)])
             }
-            
-            # if (checks[2]) {
-            #     checks[3] <- all(!is.na(suppressWarnings(as.numeric(foo$thresholds))))
-            # }
-            
-            # if (checks[3]) {
-            #     foo$thresholds <- as.numeric(foo$thresholds)
-            # }
             
             if (all(foo$thresholds == "")) {
                 foo$thresholds <- NA
@@ -704,17 +682,17 @@ shinyServer(function(input, output, session) {
                 }
             }
             
-            checks[7] <- !is.na(suppressWarnings(as.numeric(foo$idm)))
+            checks[7] <- possibleNumeric(foo$idm)
             if (checks[7]) {
                 foo$idm <- as.numeric(foo$idm)
             }
             
-            checks[8] <- !is.na(suppressWarnings(as.numeric(foo$p)))
+            checks[8] <- possibleNumeric(foo$p)
             if (checks[8]) {
                 foo$p <- as.numeric(foo$p)
             }
             
-            checks[9] <- !is.na(suppressWarnings(as.numeric(foo$q)))
+            checks[9] <- possibleNumeric(foo$q)
             if (checks[9]) {
                 foo$q <- as.numeric(foo$q)
             }
@@ -789,8 +767,6 @@ shinyServer(function(input, output, session) {
     
     
     
-    
-    # recode
     observe({
         foo <- input$recode
         
@@ -874,7 +850,6 @@ shinyServer(function(input, output, session) {
     
     
     
-    # dataModif
     observe({
         val <- input$dataModif
         if (!is.null(val)) {
@@ -893,7 +868,6 @@ shinyServer(function(input, output, session) {
     
     
     
-    # dataPoints
     observe({
         foo <- input$thsetter2R
         if (!is.null(foo)) {
@@ -910,11 +884,11 @@ shinyServer(function(input, output, session) {
     
     
     
-    # XYplotPoints
     observe({
         foo <- input$xyplot
         
         if (!is.null(foo)) {
+            
             if (all(c(foo$x, foo$y) %in% names(mydata))) {
                 
                 x <- mydata[, foo$x]

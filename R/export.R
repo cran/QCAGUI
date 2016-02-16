@@ -3,7 +3,6 @@ function(x, file = "", ...) {
     
     export.args <- list(...)
     Call <- match.call(expand.dots = TRUE)
-    Callist <- as.list(Call)
     
     caseid <- "cases"
     if (any(names(export.args) == "caseid")) {

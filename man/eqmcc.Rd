@@ -8,17 +8,14 @@
 \description{
 Being the core of the QCA package, this function performs the minimization of 
 boolean or multivalent output functions. It is called "eqmcc" because it is an 
-enhancement of the classical Quine-McCluskey minimization algorithm, but modifies
-the latter in significant ways.
+enhancement of the classical Quine-McCluskey minimization algorithm.
 }
 
 \usage{
-eqmcc(data, outcome = "", neg.out = FALSE, conditions = "", 
-      relation = "suf", n.cut = 1, incl.cut1 = 1, incl.cut0 = 1, 
-      explain = "1", include = "", row.dom = FALSE, 
-      all.sol = FALSE, omit = NULL, dir.exp = "", details = FALSE,
-      show.cases = FALSE, inf.test = "", use.tilde = FALSE, 
-      use.letters = FALSE, ...)
+eqmcc(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
+      incl.cut1 = 1, incl.cut0 = 1,  explain = "1", include = "", row.dom = FALSE, 
+      all.sol = FALSE, omit = NULL, dir.exp = "", details = FALSE, show.cases = FALSE,
+      inf.test = "", use.tilde = FALSE, use.letters = FALSE, ...)
 
 is.qca(x)
 }
@@ -27,8 +24,6 @@ is.qca(x)
   \item{data}{A truth table object or a data set.}
   \item{outcome}{A string containing the outcome(s) name(s), separated
         by commas.}
-  \item{neg.out}{Logical, use negation of \code{outcome} (ignored if \code{data}
-        is a truth table object).}
   \item{conditions}{A string containing the condition variables' names,
         separated by commas.}
   \item{relation}{The set relation to \code{outcome}, either \code{"suf"} or
@@ -80,21 +75,27 @@ variables not simultaneously passed to \code{conditions}, or values from any sub
 of the variables specified in \code{conditions} if \code{data} is not a truth table
 object. At least one outcome always has to be specified.
 
+Outcomes can be negated using a tilde operator \code{~O}. The logical argument
+\code{neg.out} is now deprecated, but still backwards compatible. Replaced by the tilde
+in front of the outcome name, it controls whether \code{outcome} is to be explained or
+its negation. If \code{outcome} is from a multivalent variable, it has the effect that
+the disjunction of all remaining values becomes the new outcome to be explained.
+\code{neg.out = TRUE} and a tilde \code{~} in the outcome name don't cancel each
+other out, either one (or even both) signaling if the \code{outcome} should be negated.
+
 If multiple outcomes are specified, their variables must also be specified in the
 conditions. In this case, truth tables and solution details will not be printed
 by default (see the example on mimicking Coincidence Analysis below). Outcomes from
 multivalent variables always require curly-bracket notation.
-
-The logical argument \code{neg.out} controls whether \code{outcome} is to be 
-explained or its negation. If \code{outcome} is from a multivalent variable, 
-\code{neg.out = TRUE} has the effect that the disjunction of all remaining values
-becomes the new outcome to be explained. 
 
 The argument \code{conditions} specifies the condition variables. If omitted, 
 all variables in \code{data} are used except that for \code{outcome} if there are
 not multiple outcomes. With multiple outcomes, all variables in \code{data} are
 used. For backwards compatibility, this argument also accepts a character vector
 of condition variables' names.
+
+Arguments \code{outcome} and \code{conditions} should be specificed as upper case
+letters, for the moment their negation is not supported with lower case letters.
 
 The argument \code{relation} specifies the relation between the conditions
 and the outcome to be analyzed. It accepts either \code{suf} or \code{sufnec}.
@@ -156,12 +157,11 @@ crisp and fuzzy-set variables, expectations should be specified as a vector of
 the same length and the same order of condition variables as provided in
 \code{conditions}. For bivalent variables, a value of either 0 or 1 indicates
 that the corresponding condition is expected to contribute to a positive output
-function value, while a dash, "-" (quotes are mandatory) indicates that one or the
-other condition does so. For multivalent variables, multiple values have to be
-enclosed by double quotes and separated by a semicolon (see mvQCA example using
-Hartmann and Kemmerzell (2010) below). These so-called non-simplifying easy
-counterfactuals will not be part of the solution (see mvQCA example using Sager
-and Andereggen (2012) below).
+function value, while a dash, "-" indicates that one or the other condition does
+so. For multivalent variables, multiple values have to be separated by a semicolon
+(see mvQCA example using Hartmann and Kemmerzell (2010) below). These so-called
+non-simplifying easy counterfactuals will not be part of the solution (see mvQCA
+example using Sager and Andereggen (2012) below).
 
 If \code{details = TRUE}, paramters of fit (inclusion, raw coverage, and unique 
 coverage) will be printed for each solution and its respective prime implicants. 
@@ -189,10 +189,10 @@ significantly higher than \code{incl.cut0}, it will be coded as a contradiction
 (\code{OUT = "C"}). If it is not significantly higher than \code{incl.cut0}, 
 it will be coded negative (\code{OUT = "0"}). 
 
-The argument \code{use.tilde} should only be used for bivalent variables. If the
-conditions variables have already been named with single letters, the argument
+If the conditions variables have already been named with single letters, the argument
 \code{use.letters} will have no effect. Otherwise, it will replace the labels of
 the condition variables with single letters in alphabetical order.
+
 }
 
 \value{An object of class "qca" for single outcomes, and "mqca" for multiple
@@ -257,7 +257,7 @@ head(d.represent)
 eqmcc(d.represent, outcome = "WNP")
 
 # negated outcome, conservative solution
-eqmcc(d.represent, outcome = "WNP", neg.out = TRUE)
+eqmcc(d.represent, outcome = "~WNP")
 
 # parsimonious solution with details and case names
 (Kro.sp <- eqmcc(d.represent, outcome = "WNP", include = "?", 
@@ -292,8 +292,7 @@ eqmcc(d.jobsecurity, outcome = "JSR", incl.cut1 = 0.9, include = "?",
                  include = "?", dir.exp = "1,1,1,1,1,0", details = TRUE))
 
 # are the prime implicants also sufficient for the negation of the outcome?
-pof(Emm.si$i.sol$C1P1$pims, outcome = "JSR", d.jobsecurity, neg.out = TRUE,
-    relation = "suf")
+pof(Emm.si$i.sol$C1P1$pims, 1 - d.jobsecurity$JSR, relation = "suf")
 
 # check PI chart for intermediate solution;
 # C1P1: first conservative and first parsimonious solution
@@ -326,6 +325,11 @@ for (i in 1:4) {
     abline(0, 1)
 }
 
+# an example which demonstrates the utility of the new printing system
+eqmcc(d.jobsecurity, outcome = "~JSR", incl.cut1 = 0.9, incl.cut0 = 0.4,
+      explain="C", include = "?", details = TRUE)
+      
+
 # mvQCA using Hartmann and Kemmerzell (2010)
 #-------------------------------------------
 data(d.partybans)
@@ -339,19 +343,15 @@ head(d.partybans)
 # first extract PI membership scores
 PIms <- HK.sp$pims
 
-require(VennDiagram)
-vennHK.suf <- venn.diagram(
-    x = list(
-        "PB{1}" = which(d.partybans$PB == 1),
-        "C{0,1}" = which(PIms[, 1] == 1 | PIms[, 2] == 1),
-        "T{2}" = which(PIms[, 4] == 1),
-        "T{1}*V{0}" = which(PIms[, 5] == 1)),
-    filename = NULL,
-    cex = 2.5, cat.cex = 2, cat.pos = c(180, 180, 0, 0),
-    cat.dist = c(0.4, 0.4, 0.12, 0.12),
-    fill = gray(c(0.3, 0.5, 0.7, 0.9))
-)
-grid.draw(vennHK.suf)
+require(venn)
+venn(list(
+    "PB{1}" = which(d.partybans$PB == 1),
+    "T{2}" = which(PIms[, 4] == 1),
+    "T{1}*V{0}" = which(PIms[, 5] == 1),
+    "C{0,1}" = which(PIms[, 1] == 1 | PIms[, 2] == 1)
+))
+
+
 
 # which are the two countries in T{2} but not PB{1}?
 rownames(d.partybans[d.partybans$T == 2 & d.partybans$PB != 1, ])
@@ -422,7 +422,7 @@ print(mmv.s$"E{3}", details = TRUE, show.cases = TRUE)
 
 # negation of outcome from multivalent variable is disjunction of all other
 # values; high level of ambiguity (10 models)
-(mmv.s <- eqmcc(d.mmv, outcome = "E{3}", neg.out = TRUE, include = "?"))
+(mmv.s <- eqmcc(d.mmv, outcome = "~E{3}", include = "?"))
 
 }
 

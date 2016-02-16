@@ -57,5 +57,5 @@ citEntry(entry = "Article",
                      "Enhancing the Minimization of Boolean and Multivalue Output Functions With eQMC, ",
                      "Journal of Mathematical Sociology vol.39, pp.92-108,",
                      "DOI: 10.1080/0022250X.2014.897949"),
-    header      = "The current algorithm has been described in:"
+    header      = "The current minimization algorithm has been described in:"
 )

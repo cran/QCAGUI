@@ -10,8 +10,15 @@
 
 
 `splitstr` <- function(x) {
+    
     metacall <- match.call()
+    
     x <- gsub("\\n", "", unlist(strsplit(gsub("[[:space:]]", "", x), split = ",")))
+    
+    if (length(x) == 1) {
+        # try again, using a semicolon
+        x <- gsub("\\n", "", unlist(strsplit(gsub("[[:space:]]", "", x), split = ";")))
+    }
     
     checkmore <- strsplit(x, split="=")
         
@@ -23,6 +30,7 @@
     }
     else {
         vnames <- unlist(lapply(checkmore, "[[", 1))
+        values <- unlist(lapply(checkmore, "[[", 2))
         
         if (metacall$x == "sort.by"| metacall$x == "decreasing") { # truthTable()
             
@@ -43,10 +51,6 @@
             values <- unlist(lapply(checkmore, function(val) {
                 return(ifelse(length(val) == 2, as.numeric(val[2]), NA))
             }))
-        }
-        
-        if (metacall$x == "decreasing") {
-            print(list(names, values))
         }
         
         names(values) <- vnames
@@ -467,9 +471,10 @@ simplifyList <- function(big.list) {
 
 
 
-factor.function <- function(trimmed.string, prod.split, collapse, sort.factorizing, sort.factorized) {
-    
+factor.function <- function(trimmed.string, prod.split, collapse, sort.factorizing, sort.factorized, pos=FALSE) {
     my.string <- trimmed.string
+    
+    # aa <- translate(trimmed.string)
     
     # create a list with all prime implicants split by literals
     if (prod.split == "" & grepl("~", paste(trimmed.string, collapse = ""))) {
@@ -489,6 +494,10 @@ factor.function <- function(trimmed.string, prod.split, collapse, sort.factorizi
         list.my.string <- sapply(trimmed.string, strsplit, prod.split)
     }
     
+    
+    
+    
+    # print(list.my.string)
     
      # create a matrix with all combinations of prime implicants to be compared for similar literals
     all.combs <- createMatrix(rep(2, length(list.my.string)))
@@ -632,10 +641,49 @@ factor.function <- function(trimmed.string, prod.split, collapse, sort.factorizi
                     final.solution <- final.solution[-equivalent.solutions]
                 }
                 
-                final.solution <- gsub("\\.", " + ", final.solution)
+                final.solution <- unlist(lapply(strsplit(final.solution, split = "\\."), function(x) {
+                    if (pos) {
+                        x <- strsplit(x, split = prod.split) # NOT good n-o sa mearga cu A*(C*d + E)
+                        tbl <- table(unlist(x))
+                        if (any(tbl > 1)) {
+                            tbl <- names(tbl)[tbl > 1]
+                            checked <- logical(length(x))
+                            common <- vector(mode = "list", length(tbl))
+                            names(common) <- tbl
+                            for (i in seq(length(tbl))) {
+                                for (j in seq(length(x))) {
+                                    if (!checked[j]) {
+                                        if (any(x[[j]] == tbl[i])) {
+                                            common[[i]] <- c(common[[i]], setdiff(x[[j]], tbl[i]))
+                                            checked[j] <- TRUE
+                                        }
+                                    }
+                                }
+                                common[[i]] <- sort(common[[i]])
+                            }
+                            
+                            common <- unname(sapply(seq(length(common)), function(x) {
+                                paste(sort(c(paste("(", paste(common[[x]], collapse = " + "), ")", sep = ""), tbl[x])), collapse = "")
+                            }))
+                            
+                            x <- x[!checked]
+                            if (length(x) > 0) {
+                                common <- paste(c(common, sapply(x, paste, collapse = collapse)), collapse = " + ")
+                            }
+                            
+                            return(common)
+                        }
+                        else {
+                            paste(sapply(x, paste, collapse = collapse), collapse = " + ")
+                        }
+                    }
+                    else {
+                        paste(x, collapse = " + ")
+                    }
+                }))
                 
             }
-            return(final.solution)
+            return(unique(final.solution))
         }
     }
     else {
@@ -859,8 +907,84 @@ splitPluses2 <- function(big.list) {
 }
 
 
-
+#####
 splitProducts <- function(x, prod.split) {
     x <- as.vector(unlist(x))
     strsplit(x, split=prod.split)
 }
+
+
+
+
+
+
+
+#####
+
+insideBrackets <- function(x, invert = FALSE) {
+    gsub("\\{|\\}", "", regmatches(x, gregexpr("\\{[[:alnum:]|,]+\\}", x), invert=invert)[[1]])
+}
+
+
+outsideBrackets <- function(x) {
+    unlist(strsplit(gsub("\\s+", " ", trimst(gsub("\\{[[:alnum:]|,]*\\}", " ", x))), split=" "))
+}
+
+
+
+curlyBrackets <- function(x, outside = FALSE) {
+    # just in case it was previously split
+    x <- paste(x, collapse="+")
+    
+    regexp <- "\\{[[:alnum:]|,]+\\}"
+    x <- gsub("[[:space:]]", "", x)
+    res <- regmatches(x, gregexpr(regexp, x), invert = outside)[[1]]
+    if (outside) {
+        res <- unlist(strsplit(res, split="\\+"))
+        return(res[res != ""])
+    }
+    else {
+        return(gsub("\\{|\\}", "", res))
+    }
+}
+
+
+
+roundBrackets <- function(x, outside = FALSE) {
+    regexp <- "\\(([^)]+)\\)"
+    x <- gsub("[[:space:]]", "", x)
+    res <- regmatches(x, gregexpr(regexp, x), invert = outside)[[1]]
+    if (outside) {
+        res <- unlist(strsplit(res, split="\\+"))
+        return(res[res != ""])
+    }
+    else {
+        return(gsub("\\(|\\)", "", res))
+    }
+}
+
+
+
+
+
+# remove any letters
+# > gsub("[a-zA-Z]", "", "A{1} + B{1}*c{0}")
+# [1] "{1} + {1}*{0}"
+
+# remove all digits
+# > gsub("\\d", "", "A{1} + B{1}*c{0}")
+# [1] "A{} + B{}*c{}"
+
+# remove any non-alphanumeric
+# > gsub("\\W", "", "A{1} + B{1}*c{0}")
+# [1] "A1B1c0"
+
+# remove anything but preserve letters
+# > gsub("[^a-zA-Z]", "", "A{1} + B{1}*c{0}")
+# [1] "ABc"
+
+# preserve only the brackets (to check if they match):
+# > gsub("[^\\{}]", "", "A{1} + B{1}*c{0}")
+# [1] "{}{}{}"
+
+

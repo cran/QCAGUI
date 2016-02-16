@@ -1,5 +1,6 @@
 `rowDominance` <-
 function(mtrx) {
+    
     rownames(mtrx) <- seq(nrow(mtrx))
     mtrx.copy <- mtrx
     sums <- rowSums(mtrx)

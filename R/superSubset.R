@@ -1,11 +1,17 @@
 `superSubset` <-
-function(data, outcome = "", neg.out = FALSE, conditions = c(""), relation = "nec",
-         incl.cut = 1, cov.cut = 0, use.tilde = FALSE, use.letters = FALSE,
-         add = "", ...) {
+function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
+    cov.cut = 0, use.tilde = FALSE, use.letters = FALSE, add = "", ...) {
     
     memcare <- FALSE # to be updated with a future version
     
     other.args <- list(...)
+    
+    ### backwards compatibility 
+        neg.out <- FALSE
+        if ("neg.out" %in% names(other.args)) {
+            neg.out <- other.args$neg.out
+        }
+    ### 
     
     PRI <- FALSE
     if ("PRI" %in% names(other.args)) {
@@ -33,22 +39,44 @@ function(data, outcome = "", neg.out = FALSE, conditions = c(""), relation = "ne
         cov.cut <- cov.cut - .Machine$double.eps ^ 0.5
     }
     
-    if (all(conditions == c(""))) {
+    outcome <- toupper(outcome)
+    
+    if (substring(outcome, 1, 1) == "~") {
+        neg.out <- TRUE
+        outcome <- substring(outcome, 2)
+    }
+    
+    # for the moment, toupper(outcome) is redundant but if in the future
+    # the ngation will be treated with lower case letters, it will prove important
+    if (! toupper(curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
+        cat("\n")
+        stop("Inexisting outcome name.\n\n", call. = FALSE)
+    }
+    
+    if (grepl("\\{|\\}", outcome)) {
+        outcome.value <- curlyBrackets(outcome)
+        outcome <- curlyBrackets(outcome, outside=TRUE)
+        
+        data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% splitstr(outcome.value))
+    }
+    ### this was supposed to treat the negation using lower case letters
+    # else if (! outcome %in% colnames(data)) {
+    #     data[, toupper(outcome)] <- 1 - data[, toupper(outcome)]
+    # }
+    
+    # already on line 42
+    # outcome <- toupper(outcome)
+    ### 
+    
+    if (identical(conditions, "")) {
         conditions <- names(data)[-which(names(data) == outcome)]
     }
-    
-    if (grepl("[{]", outcome)) { # there is a "{" sign in the outcome's name
-        outcome <- unlist(strsplit(outcome, split = ""))
-        outcome.value <- as.numeric(outcome[which(outcome == "{") + 1L])
-        outcome <- paste(outcome[seq(1, which(outcome == "{") - 1L)], collapse="")
-        
-        if (!any(unique(data[, outcome]) == outcome.value)) {
-            cat("\n")
-            stop(paste("The value {", outcome.value, "} does not exist in the outcome.\n\n", sep=""), call. = FALSE)
-        }
-        data[, outcome] <- ifelse(data[, outcome] == outcome.value, 1, 0)
+    else {
+        conditions <- splitstr(conditions)
     }
     
+    conditions <- toupper(conditions)
+    outcome <- toupper(outcome)
     
     verify.data(data, outcome, conditions)
     

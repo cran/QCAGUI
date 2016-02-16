@@ -107,6 +107,7 @@ function(x, rules, ...) {
         x <- as.numeric(x) # to be safe
     }
     
+    
     for (i in seq(length(from))) {
         if (!is.na(to[i])) { # a range
             

@@ -38,7 +38,6 @@ Since this function pipes everything to \code{write.table} anyway, the argument 
 can also be a connection open for writing. \code{""} indicates output to the console.
 }
 
-
 \seealso{
   The \sQuote{R Data Import/Export} manual.
 

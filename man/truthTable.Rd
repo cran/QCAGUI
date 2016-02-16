@@ -12,19 +12,17 @@ a case is more a member than not before assigning it.
 }
 
 \usage{
-truthTable(data, outcome = "", neg.out = FALSE, conditions = "", 
-           n.cut = 1, incl.cut1 = 1, incl.cut0 = 1, complete = FALSE, 
-           show.cases = FALSE, sort.by = "", use.letters = FALSE,
-           inf.test = "", ...)
+truthTable(data, outcome = "", conditions = "",  n.cut = 1,
+    incl.cut1 = 1, incl.cut0 = 1, complete = FALSE,  show.cases = FALSE,
+    sort.by = "", use.letters = FALSE, inf.test = "", ...)
 
 is.tt(x)
 }
 
 \arguments{
-  \item{data}{A data set of bivalent crisp-set or fuzzy-set variables or multivalent
-        crisp-set variables.}
-  \item{outcome}{Scalar, the name of the outcome.}
-  \item{neg.out}{Logical, use negation of \code{outcome}.}
+  \item{data}{A data frame containing bivalent crisp-set or fuzzy-set 
+        variables or multivalent crisp-set variables.}
+  \item{outcome}{Scalar string, the name of the outcome.}
   \item{conditions}{A character vector of condition variables' names, or a single
         string containing the condition variables' names separated by commas.}
   \item{n.cut}{The minimum number of cases with set membership score above 0.5 
@@ -46,16 +44,43 @@ is.tt(x)
 }
 
 \details{
-The argument \code{data} requires a suitable data set. Suitable data sets have 
-the following structure: values of 0 and 1 for bivalent crisp-set variables, 
-values between 0 and 1 for bivalent fuzzy-set variables, and values beginning with 
-0 at increments of 1 for multivalent crisp-set variables. The placeholder "-" 
-indicates a "don't care" value in auxiliary conditions that specify temporal order 
-between other substantive conditions in tQCA. These values lead to the exclusion 
-of the auxiliary condition from the computation of parameters of fit. 
+The argument \code{data} requires a suitable data set, in the form of a data frame.
+As matrices assume that all data is of the same mode, they should be avoided, as
+for example a column such as case names would transform the entire matrix into a
+character, while the minimization procedure expects numeric data.
+
+In other cases (see below) the data itself might contain a "-" placeholder, which
+would transform the entire matrix into a character. The correct way to import the
+data is to read it into a data frame.
+
+Suitable data frames have the following structure: values of 0 and 1 for bivalent
+crisp-set variables,  values between 0 and 1 for bivalent fuzzy-set variables, and
+values beginning with 0 at increments of 1 for multivalent crisp-set variables. The
+placeholder "-" indicates a "don't care" value in auxiliary conditions that specify
+temporal order between other substantive conditions in tQCA. These values lead to
+the exclusion of the auxiliary condition from the computation of parameters of fit. 
+
+The argument \code{outcome} specifies the outcome to be explained, either in
+curly-bracket notation (e.g., \code{O{value}}) if the outcome is from a multivalent
+or a bivalent variable, or in upper-case notation if the outcome is from a bivalent
+variable (e.g., \code{O} to mean \code{O{1}}). Outcomes can be single values of
+variables not simultaneously passed to \code{conditions}, or values from any subset
+of the variables specified in \code{conditions} if \code{data} is not a truth table
+object. At least one outcome always has to be specified.
+
+Outcomes can be negated using a tilde operator \code{~O}. The logical argument
+\code{neg.out} is now deprecated, but still backwards compatible. Replaced by the tilde
+in front of the outcome name, it controls whether \code{outcome} is to be explained or
+its negation. If \code{outcome} is from a multivalent variable, it has the effect that
+the disjunction of all remaining values becomes the new outcome to be explained.
+\code{neg.out = TRUE} and a tilde \code{~} in the outcome name don't cancel each
+other out, either one (or even both) signaling if the \code{outcome} should be negated.
 
 The argument \code{conditions} specifies the names of the condition variables.
 If omitted, all variables in \code{data} are used except \code{outcome}.
+
+Arguments \code{outcome} and \code{conditions} should be specificed as upper case
+letters, for the moment their negation is not supported with lower case letters.
 
 Configurations that contain fewer than \code{n.cut} cases with membership scores 
 above 0.5 are coded as logical remainders (\code{OUT = "?"}). If the number of 
@@ -80,7 +105,7 @@ present in the truth table. Typically, sorting occurs by their inclusion scores
 columns to sort and the logical value indicating a decreasing order (\code{TRUE})
 or not.
 
-Aternatively, the (now unformal) \code{decreasing} argument can be used either as
+Aternatively, the (now informal) \code{decreasing} argument can be used either as
 a logical vector of the same length as \code{sort.by}, or a single logical value
 which will be used for all columns in \code{sort.by}. If the length of the 
 \code{decreasing} is shorter than \code{sort.by}'s, it will be augmented with
@@ -102,10 +127,6 @@ significantly higher than the the lower critical inclusion cut-off
 \code{incl.cut0}, it will be coded as a contradiction (\code{OUT = "C"}). If it
 is not significantly higher than \code{incl.cut0}, it will be coded negative
 (\code{OUT = "0"}).
-
-For backward compatibility, the (non-formal) logical argument \code{PRI} returns
-PRI (proportional reduction in inconsistency) scores (see Schneider and Wagemann 
-2012, pp. 241-249; Thiem and Dusa 2013, pp. 63-64, 78-79).
 }
 
 \value{An object of class "tt", which is a list with the following components:\cr
@@ -114,7 +135,7 @@ PRI (proportional reduction in inconsistency) scores (see Schneider and Wagemann
   \item{noflevels}{A vector with the number of condition variable values.}
   \item{initial.data}{The initial data.}
   \item{recoded.data}{Recoded data (if crisp, same as \code{initial.data}; if 
-                      fuzzy, dichotomized version of \code{initial.data}).}
+        fuzzy, dichotomized version of \code{initial.data}).}
   \item{cases}{The cases with membership above 0.5 in each configuration.}
   \item{options}{The command options used.}
   \item{rowsorder}{Only if \code{sort.by} was used, containing the order of
@@ -196,7 +217,7 @@ Emm.tt <- truthTable(d.jobsecurity, outcome = "JSR", incl.cut1 = 0.9,
 Emm.tt
 
 # truth table based on negated outcome set
-Emm.tt <- truthTable(d.jobsecurity, outcome = "JSR", neg.out = TRUE, 
+Emm.tt <- truthTable(d.jobsecurity, outcome = "~JSR", 
   incl.cut1 = 0.9, incl.cut0 = 0.5)
 Emm.tt
 

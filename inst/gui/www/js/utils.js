@@ -1,6 +1,5 @@
 
 
-// detect browser
 navigator.browserType = (function(){
     var N = navigator.appName, ua = navigator.userAgent, tem;
     var M = ua.match(/(opera|chrome|safari|firefox|msie|trident)\/?\s*(\.?\d+(\.\d+)*)/i);
@@ -107,7 +106,6 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
     cb.isChecked = isChecked;
     
     
-    // the cover needs to be drawn last, to cover all other drawings (for click events)
     cb.cover = this.rect(x, y, dim, dim)
         .attr({fill: "#000", opacity: 0, cursor: "pointer"})
         .click(function() {
@@ -225,24 +223,20 @@ Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, siz
     var newvert = 0;
     
     for (var i = 0; i < labels.length; i++) {
-        // the labels
+        
         rd.label[i] = this.text(x + horspace, y + newvert - 1, labels[i]).attr({"text-anchor": "start", "font-size": fontsize+"px"});
         
-        // the regular gray circles
         rd.circle[i] = this.circle(x, y + newvert, size).attr({fill: "#eeeeee", "stroke": "#a0a0a0", "stroke-width": 1.2});
         
-        //the covers, for click events
         rd.cover[i] = this.circle(x, y + newvert, size + 2).attr({fill: "#eeeeee", stroke: "none", "fill-opacity": 0, "cursor": "pointer"});
         rd.cover[i].i = i;
         rd.cover[i].click(function() {
             rd.fill.show();
-            //rd[labels.length*2].show();
             rd.fill.transform("t0," + (this.getBBox().y - y + size + 2));
             rd.whichChecked = this.i;
         });
         
         if (Array.isArray(vertspace)) {
-            // assume vertspace is an Array of vertical spaces between radio buttons
             newvert = vertspace[i];
         }
         else {
@@ -251,9 +245,7 @@ Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, siz
     }
     
     
-    // the interior green circle
     rd.fill.push(this.circle(x, y, size - 0.5).attr({fill: "#97bd6c", stroke: "none"}));
-    // the interior black smaller circle
     rd.fill.push(this.circle(x, y, size - 4.5).attr({fill: "#000000", stroke: "none"}));
     
     
@@ -304,11 +296,8 @@ Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, siz
 
 function isNumeric(n) {
     return !/^(NaN|-?Infinity)$/.test(+n);
-    //return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
-
-// maybe copyObject and copyArray could be merged into one single function?
 
 function copyObject(obj) {
     
@@ -367,7 +356,7 @@ function getKeys(obj) {
 }
 
 
-function getTrueKeys(obj) { // get those keys which have a logical true
+function getTrueKeys(obj) {
     var trueKeys = new Array();
     for (var key in obj) {
         if (obj[key]) {
@@ -415,19 +404,8 @@ function changeCol(obj, oldname, newname) {
 
 
 
-// sat : Set ATtributes
 
 function sat(obj, options) {
-    
-    // for text, obj is an object with three components: text, clip, and size
-    
-    // text is either an array of named objects
-    // or the object to apply the attributes to
-    
-    // clip should be the paper.rect where the clip size is taken from
-    // or an array of x, y, width and height
-    
-    // for covers, obj is either an array of rects or a single one
     
     if (options == void 0) {
         options = {};
@@ -523,15 +501,46 @@ function setAttrCover(obj) {
 
 
 
-function all(obj, rule) {
+
+function round(x, y) {
+    y = Math.pow(10, y);
+    return(Math.round(x*y)/y);
+}
+
+
+
+
+function all(obj, rule, value) {
+    if (value === void 0) {
+        value = "";
+    }
     var check = true;
     if (Array.isArray(obj)) {
+        var keys = getKeys(obj);
+        
         for (var i = 0; i < obj.length; i++) {
-            check = check && eval("obj[i]" + rule);
+            if (Array.isArray(value)) {
+                var check2 = false;
+                for (var j = 0; j < value.length; j++) {
+                    check2 = check2 || eval("obj[keys[i]]" + rule + value[j]);
+                }
+                check = check && check2;
+            }
+            else {
+                check = check && eval("obj[keys[i]]" + rule + value);
+            }
         }
     }
     else {
-        check = eval("obj" + rule);
+        if (Array.isArray(value)) {
+            var check = false;
+            for (var j = 0; j < value.length; j++) {
+                check = check || eval("obj" + rule + value[j]);
+            }
+        }
+        else {
+            check = eval("obj" + rule, value);
+        }
     }
     
     return(check);
@@ -539,21 +548,38 @@ function all(obj, rule) {
 
 
 
-function any(obj, rule) {
+function any(obj, rule, value) {
+    if (value === void 0) {
+        value = "";
+    }
     var check = false;
+    
     if (Array.isArray(obj)) {
         var keys = getKeys(obj);
         for (var i = 0; i < obj.length; i++) {
-            check = check || eval("obj[keys[i]]" + rule);
+            if (Array.isArray(value)) {
+                for (var j = 0; j < value.length; j++) {
+                    check = check || eval("obj[keys[i]]" + rule + value[j]);
+                }
+            }
+            else {
+                check = check || eval("obj[keys[i]]" + rule + value);
+            }
         }
     }
     else {
-        check = eval("obj" + rule);
+        if (Array.isArray(value)) {
+            for (var j = 0; j < value.length; j++) {
+                check = check || eval("obj" + rule + value[j]);
+            }
+        }
+        else {
+            check = eval("obj" + rule + value);
+        }
     }
     
     return(check);
 }
-
 
 
 
@@ -658,7 +684,7 @@ function checkRecodeSelections(colclicks, paper) {
             }
         }
         
-        if (idx == 0) { // idx survived...
+        if (idx == 0) { 
             paper.oldv.texts.VALUE.attr({"text": lhs[0]});
             paper.rules.oldv = lhs[0];
         }
@@ -762,14 +788,13 @@ function scaleplot(paper) {
     }
     
     paper.total = paper.set();
-    paper.afv = paper.set(); // axes font values
+    paper.afv = paper.set(); 
     paper.ticks = paper.set();
-    paper.mdlines = paper.set(); // middle guides
+    paper.mdlines = paper.set(); 
     paper.pointsset = paper.set();
     paper.points = new Array();
     
     paper.total.push(paper.rect(sx, sy, scale*dim, scale*dim));
-    //paper.total.push(paper.path("M" + sx + "," + sy + " L" + (sx + scale*dim) + "," + (sy + scale*dim)).attr({"stroke": "#a0a0a0"}));
     paper.total.push(paper.path("M" + sx + "," + (sy + scale*dim) + " L" + (sx + scale*dim) + "," + sy).attr({"stroke": "#a0a0a0"}));
     
     paper.mdlines.push(paper.path("M" + sx + "," + (sy + scale*dim/2) +  " L" + (sx + scale*dim) + "," + (sy + scale*dim/2)).attr({"stroke-dasharray": "--"}));
@@ -779,20 +804,14 @@ function scaleplot(paper) {
     for (var i = 0; i < 11; i++) {
         
         var vertick = 
-        // on the horizontal axis
         paper.ticks.push(paper.path("M" + (sx + scale*(offset + i*rdim/10)) + "," + (sy + scale*dim) + " L" + (sx + scale*(offset + i*rdim/10)) + "," + (sy + scale*dim + 7)));
-        // on the vertical axis
         paper.ticks.push(paper.path("M" + (sx - 7) + "," + (sy + scale*(offset + i*rdim/10)) + " L" + sx + "," + (sy + scale*(offset + i*rdim/10)) ) );
         
-        // on the horizontal axis
         paper.afv.push(sat(paper.text(sx + scale*(offset + i*rdim/10), sy + scale*dim + 15, i/10), {"size": 12, "anchor": "middle"}));
-        // on the vertical axis
         paper.afv.push(sat(paper.text(sx - 10, sy + scale*(offset + i*rdim/10), (10 - i)/10), {"size": 12, "anchor": "end"}));
         
         if (i == 5) {
-            // on the horizontal axis (X)
             paper.afv.push(sat(paper.text(sx + scale*(offset + i*rdim/10), sy + scale*dim + 34, paper.x), {"size": 14, "anchor": "middle", "font-weight": "bold"}));
-            // on the vertical axis (Y)
             var temp = sat(paper.text(sx - 38, sy + scale*(offset + i*rdim/10), paper.y), {"size": 14, "anchor": "end", "font-weight": "bold"});
             var BBox = temp.getBBox();
             temp.transform("t" + (BBox.width/2) + ",0r-90");
@@ -880,11 +899,8 @@ function createLabels(paper) {
             y = paper.points[i].attr("cy");
             r = paper.points[i].attr("r");
             
-            // outer circle, radius plus the text width of the label
-            // plus 5 pixels on each left and right of the label
             outer = paper.circle(x, y, r + twidth + 2*5).attr({"fill": "none", "stroke": "none"});
             
-            //first try on the right side of the point
             coords = paper.points[i].getPointAtLength(paper.points[i].getTotalLength()*(90 - paper.labelRotation)/360);
             txtfundal = paper.rect(coords.x, coords.y - 8, twidth + 10, 16);
             txtfundal.attr({fill: "#c9c9c9", "fill-opacity": 0, stroke: "none"});
@@ -1050,6 +1066,28 @@ function reorder(obj, from, to) {
 
 
 
+// code from:
+// http://stackoverflow.com/questions/840781/easiest-way-to-find-duplicate-values-in-a-javascript-array
+function duplicates(arr) {
+    var len = arr.length,
+        out = [],
+        counts = {};
+    
+    for (var i = 0; i < len; i++) {
+        var item = arr[i];
+        counts[item] = counts[item] >= 1 ? counts[item] + 1 : 1;
+    }
+    
+    for (var item in counts) {
+        if (counts[item] > 1) {
+            out[out.length] = item*1;
+        }
+    }
+    
+    return out;
+}
+
+
 
 // code from: http://www.alexandre-gomes.com/?p=115
 function getScrollBarWidth() {
@@ -1092,64 +1130,230 @@ function scaleShape(path, scale) {
 }
 
 
-
-
-
-function customShape(rule, paths, paper) {
-    //
-    // example of rules:
-    // "-0-": b (not B), from three sets A, B and C
-    // or
-    // "1-01": AcD, from 4 sets A, B, C and D
+function getShape(x, venn, scale) {
     
-    rule = rule.split("");
-    var base = "M0,0 L400,0 400,400 0,400 Z";
+    bigpath = "";
     
-    for (var i = 0; i < rule.length; i++) {
-        if (rule[i] == "1" || rule[i] == "0") {
-            var basepath = paper.path(base);
-            var temppath = paper.path(paths[i]);
-            var base = (rule[i] == "1")?(paper.intersection(basepath, temppath)):(paper.difference(basepath, temppath));
-            basepath.remove();
-            temppath.remove();
+    
+    for (var b = 0; b < x.length; b++) {
+        var path = "M";
+        var stb, endb, end;
+        var checkb = rep(false, x[b].length);
+        
+        var counter = 0;
+        
+        while(counter < 1000) { //any(checkb, "== false")
+            for (var i = 0; i < checkb.length; i++) {
+                if (!checkb[i]) {
+                    var y = venn[x[b][i]];
+                    
+                    if (i == 0) {
+                        for (var j = 0; j < y.length/2; j++) {
+                            path += ((j == 1)?" C":"") + " " + round(y[2*j]*scale, 3) + "," + round(y[2*j + 1]*scale, 3);
+                        }
+                        checkb[i] = true;
+                        end = y[y.length - 2] + " " + y[y.length - 1];
+                    }
+                    else {
+                        stb = y[0] + " " + y[1];
+                        endb = y[y.length - 2] + " " + y[y.length - 1]
+                        
+                        if (end == stb) {
+                            //path += " C";
+                            for (var j = 1; j < y.length/2; j++) {
+                                path += " " + round(y[2*j]*scale, 3) + "," + round(y[2*j + 1]*scale, 3);
+                            }
+                            checkb[i] = true;
+                            end = endb;
+                        }
+                        else if (end == endb) {
+                            //path += " C";
+                            for (var j = y.length/2 - 2; j >= 0; j--) {
+                                path += " " + round(y[2*j]*scale, 3) + "," + round(y[2*j + 1]*scale, 3);
+                            }
+                            checkb[i] = true;
+                            end = stb;
+                        }
+                    }
+                }
+            }
+            
+            if (all(checkb, "== true")) {
+                counter = 1001;
+            }
+            counter += 1
         }
+        
+        
+        bigpath += " " + path + " z";
     }
-    
-    return(base);
+    return(bigpath);
 }
 
 
 
 
+
+function customShape(rule, venn, scale, id) {
+    
+    var rowns = new Array();
+    rule = rule.split("");
+    var idis, i, j, k;
+    var check = rep(true, rule.length);
+    var keys = getKeys(id);
+    
+    for (i = 0; i < keys.length; i++) {
+        keys[i] = keys[i]*1;
+        idis = id[keys[i]].split("");
+        
+        for (j = 0; j < rule.length; j++) {
+            if (rule[j] != "-") {
+                check[j] = any(idis, "==", j + 1);
+                if (rule[j] == "0") {
+                    check[j] = !check[j];
+                }
+            }
+        }
+        
+        if (all(check, "== true")) {
+            rowns[rowns.length] = i;
+        }
+    }
+    
+    var ids = new Array();
+    for (i = 0; i < rowns.length; i++) {
+        ids[i] = id[rowns[i]];
+    }
+    
+    
+    var inverted = any(rowns, "==", 0);
+    
+    if (rowns.length == 1 && rowns[0] == 0) {
+        rowns = $(keys).not(rowns).get();
+    }
+    
+    
+    checkZone = function(from, rowns, checkz, venn) {
+        var fromz = venn[1][from];
+        var toz = new Array();
+        
+        for (var i = 0; i < rowns.length; i++) {
+            if (!checkz[i]) {
+                if (any(fromz, "==", venn[1][rowns[i]])) {
+                    checkz[i] = true;
+                    toz[toz.length] = rowns[i];
+                }
+            }
+        }
+        
+        if (toz.length > 0) {
+            for (var j = 0; j < toz.length; j++) {
+                var checkz2 = checkZone(toz[j], rowns, checkz, venn);
+                for (var i = 0; i < checkz.length; i++) {
+                    checkz[i] = checkz[i] || checkz2[i];
+                }
+            }
+        }
+        
+        return(checkz)
+    }
+    
+    var result = new Array();
+    
+    if (rowns.length > 1) {
+        var checkz = rep(false, rowns.length);
+        checkz[0] = true;
+        
+        while(any(checkz, "== false")) {
+            
+            checkz = checkZone(rowns[0], rowns, checkz, venn);
+            var temp1 = new Array();
+            var temp2 = new Array();
+            var checkz2 = new Array();
+            for (i = 0; i < rowns.length; i++) {
+                if (checkz[i]) {
+                    temp1[temp1.length] = rowns[i];
+                }
+                else {
+                    temp2[temp2.length] = rowns[i];
+                    checkz2[checkz2.length] = false;
+                }
+            }
+            
+            
+            result[result.length] = temp1;
+            if (checkz2.length > 0) {
+                rowns = copyArray(temp2);
+                checkz = copyArray(checkz2);
+                checkz[0] = true;
+            }
+        }
+        
+    }
+    else {
+        result[0] = [rowns];
+    }
+    
+    for (var i = 0; i < result.length; i++) {
+        var temp = venn[1][result[i][0]];
+        
+        if (result[i].length > 1) {
+            for (var j = 1; j < result[i].length; j++) {
+                temp = temp.concat(venn[1][result[i][j]]);
+            }
+        }
+        
+        result[i] = $(temp).not(duplicates(temp)).get();
+        
+    }
+    
+    return([getShape(result, venn[0], scale), inverted]);
+    
+}
+
+
+
 function parseText(text, conditions) {
-    // remove spaces
+    
     text = text.replace("(", "");
     text = text.replace(")", "");
     text = text.replace(/\s/g, "");
     splitchar = "*";
     var parsedPlus = text.split("+");
     
-    // check if the rule text contains something not in the conditions
+    
     var largecheck = rep(false, parsedPlus.length);
+    
     for (var i = 0; i < parsedPlus.length; i++) {
         var parsedStar = parsedPlus[i].split(splitchar);
         var upper = new Array(parsedStar.length);
+        var lower = new Array(parsedStar.length);
+        
         for (var j = 0; j < parsedStar.length; j++) {
             if (parsedStar[j][0] == "~") {
                 parsedStar[j] = parsedStar[j].substring(1, parsedStar[j].length);
             }
             upper[j] = parsedStar[j].toUpperCase();
+            lower[j] = parsedStar[j].toLowerCase();
+            
+            if (parsedStar[j] != upper[j] && parsedStar[j] != lower[j]) {
+                return("error");
+            }
         }
+        
+        
         var check = rep(false, parsedStar.length);
+        
         for (var j = 0; j < parsedStar.length; j++) {
             check[j] = conditions.indexOf(upper[j]) < 0;
         }
+        
         largecheck[i] = any(check, " == true")
     }
     
+    
     if (any(largecheck, " == true")) {
         
-        // try if not single letters
         splitchar = "";
         var largecheck = rep(false, parsedPlus.length);
         for (var i = 0; i < parsedPlus.length; i++) {
@@ -1199,4 +1403,9 @@ function parseText(text, conditions) {
     
     return(finalResult);
 }
+
+
+
+
+
 

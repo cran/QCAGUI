@@ -11,9 +11,8 @@ or subset (sufficiency) relation to the outcome with respect to their complexity
 }
 
 \usage{
-superSubset(data, outcome = "", neg.out = FALSE, conditions = c(""), 
-            relation = "nec", incl.cut = 1, cov.cut = 0, 
-            use.tilde = FALSE, use.letters = FALSE, add = "", ...)
+superSubset(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
+    cov.cut = 0, use.tilde = FALSE, use.letters = FALSE, add = "", ...)
 
 is.sS(x)
 }
@@ -22,8 +21,8 @@ is.sS(x)
   \item{data}{A data set of bivalent crisp-set or fuzzy-set variables or multivalent
         crisp-set variables.}
   \item{outcome}{The name of the outcome.}
-  \item{neg.out}{Logical, use negation of \code{outcome}.}
-  \item{conditions}{A vector of condition variables.}
+  \item{conditions}{A string containing the condition variables' names,
+        separated by commas.}
   \item{relation}{The set relation to \code{outcome}, either \code{"nec"},
         \code{"suf"}, \code{"necsuf"} or \code{"sufnec"}.}
   \item{incl.cut}{The minimal inclusion score of the set relation.}
@@ -74,13 +73,27 @@ details, see Thiem and Dusa (2013). For \code{relation = "necsuf"} and
 The argument \code{outcome} specifies the outcome to be explained. Outcomes from 
 multivalent variables require curly-bracket notation (\code{X{value}}).
 
-The logical argument \code{neg.out} controls whether \code{outcome} is to be 
-explained or its negation. If \code{outcome} is from a multivalent variable, 
-\code{neg.out = TRUE} has the effect that the union of all remaining values 
-becomes the new outcome to be explained.
+The argument \code{outcome} specifies the outcome to be explained, either in
+curly-bracket notation (e.g., \code{O{value}}) if the outcome is from a multivalent
+or a bivalent variable, or in upper-case notation if the outcome is from a bivalent
+variable (e.g., \code{O} to mean \code{O{1}}). Outcomes can be single values of
+variables not simultaneously passed to \code{conditions}, or values from any subset
+of the variables specified in \code{conditions} if \code{data} is not a truth table
+object. At least one outcome always has to be specified.
+
+Outcomes can be negated using a tilde operator \code{~O}. The logical argument
+\code{neg.out} is now deprecated, but still backwards compatible. Replaced by the tilde
+in front of the outcome name, it controls whether \code{outcome} is to be explained or
+its negation. If \code{outcome} is from a multivalent variable, it has the effect that
+the disjunction of all remaining values becomes the new outcome to be explained.
+\code{neg.out = TRUE} and a tilde \code{~} in the outcome name don't cancel each
+other out, either one (or even both) signaling if the \code{outcome} should be negated.
 
 The argument \code{conditions} specifies the condition variables. If omitted, 
 all variables in \code{data} are used except \code{outcome}.
+
+Arguments \code{outcome} and \code{conditions} should be specificed as upper case
+letters, for the moment their negation is not supported with lower case letters.
 
 The argument \code{use.tilde} only applies to bivalent set variables. If the 
 conditions are already named with single letters, the argument \code{use.letters} 
@@ -92,14 +105,13 @@ candidate measures that await their recognition as standard.
 
 One such example of an established measure is \code{ron}, suggested by
 Schneider & Wagemann's (2012) relevance of necessity formula.
-
 }
 
 \value{An object of class "ss", which is a list with the following components:\cr
   \item{incl.cov}{A data frame with the parameters of fit.}
   \item{coms}{A data frame with the combination membership scores.}
 }
-    
+  
 \references{
 Bol, Damien, and Francesca Luppi. 2013. \dQuote{Confronting Theories Based on 
 Necessary Relations: Making the Best of QCA Possibilities.} 
@@ -144,19 +156,12 @@ Kro.ss
 # first extract membership scores
 head(Kro.coms <- Kro.ss$coms)
 
-require(VennDiagram)
-vn.Kro.nec <- venn.diagram(
- x = list(
-  "WNP" = which(d.represent$WNP == 1),
-  "wm+LP" = which(Kro.coms[, 1] == 1),
-  "WS+LP" = which(Kro.coms[, 2] == 1),
-  "ES+LP" = which(Kro.coms[, 3] == 1)),
- filename = NULL,
- cex = 2.5, cat.cex = 2, cat.pos = c(-10, 10, 0, 0),
- cat.dist = c(0.25, 0.25, 0.12, 0.12),
- fill = gray(c(0.3, 0.5, 0.7, 0.9))
-)
-grid.draw(vn.Kro.nec)
+require(venn)
+x = list("WNP" = which(d.represent$WNP == 1),
+         "wm+LP" = which(Kro.coms[, 1] == 1),
+         "WS+LP" = which(Kro.coms[, 2] == 1),
+         "ES+LP" = which(Kro.coms[, 3] == 1))
+venn(x)
 
 # mvQCA using Hartmann and Kemmerzell (2010)
 #-------------------------------------------
@@ -184,7 +189,7 @@ Emm.ss <- superSubset(d.jobsecurity, outcome = "JSR", relation = "suf",
 Emm.ss
 
 # same criteria, but for the negation of the outcome
-Emm.ss.n <- superSubset(d.jobsecurity, outcome = "JSR", neg.out = TRUE, 
+Emm.ss.n <- superSubset(d.jobsecurity, outcome = "~JSR", 
   relation = "suf", incl.cut = 0.9, cov.cut = 0.4, use.tilde = TRUE)
 Emm.ss.n
 

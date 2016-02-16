@@ -33,6 +33,49 @@ function(x) {
 
 
 
+`print.fuzzyop` <-
+function(x, ...) {
+    x <- as.vector(x)
+    print(x)
+}
+
+
+
+`print.translate` <-
+function(x, ...) {
+    other.args <- list(...)
+    
+    cat("\n")
+    original <- FALSE
+    y <- matrix(as.vector(x), nrow=nrow(x))
+    if ("original" %in% names(other.args)) {
+        if (is.logical(other.args$original)) {
+            original <- other.args$original[1]
+        }
+    }
+    
+    cols <- colnames(x)
+    colnames(y) <- cols
+    
+    if (original) {
+        minus <- any(y < 0)
+        if (minus) {
+            y[y >= 0] <- paste("", y[y >= 0])
+            cols[nchar(cols) == 1] <- paste("", cols[nchar(cols) == 1])
+            colnames(y) <- cols
+        }
+    }
+    else {
+        y[x < 0] <- ""
+    }
+    
+    rownames(y) <- paste(rownames(x), " ")
+    print(prettyTable(y))
+    cat("\n")
+}
+
+
+
 `print.tt` <-
 function(x, ...) {
     
@@ -106,8 +149,8 @@ function(x, ...) {
         }
         
         if (any(names(x$tt) == "pval1")) {
-            x$tt[, "pval1"] <- formatC(as.numeric(x$tt[, "pval1"]), digits=3, format="f")
-            x$tt[, "pval0"] <- formatC(as.numeric(x$tt[, "pval0"]), digits=3, format="f")
+            x$tt[x$tt[, "pval1"] != "-", "pval1"] <- formatC(as.numeric(x$tt[x$tt[, "pval1"] != "-", "pval1"]), digits=3, format="f")
+            x$tt[x$tt[, "pval0"] != "-", "pval0"] <- formatC(as.numeric(x$tt[x$tt[, "pval0"] != "-", "pval0"]), digits=3, format="f")
         }
         
         if (any(missincl)) {
@@ -132,9 +175,9 @@ function(x, ...) {
         
         if (all(x$tt$OUT == 0)) {
             cat("\n")
-            cat(paste("It seems that all your outcome values have been coded to zero.",
-                      "May we suggest lowering the inclusion score for the presence of the outcome?", 
-                      paste("The relevant argument is \"incl.cut1\", which now has a value of ", x$incl.cut1, ".\n", sep=""), sep="\n"))
+            cat(paste("It seems that all outcome values have been coded to zero.",
+                      "One suggestion is to lower the inclusion score for the presence of the outcome", 
+                      paste("The relevant argument is \"incl.cut1\", which now has a value of ", x$options$incl.cut1, ".\n", sep=""), sep="\n"))
         }
         
         cat("\n")
@@ -168,39 +211,65 @@ function(x, ...) {
     other.args <- list(...)
     details <- x$options$details
     
-    if (grepl("[{]", x$tt$options$outcome)) {
-        outcome <- unlist(strsplit(x$tt$options$outcome, split = ""))
-        outcome.value <- as.numeric(outcome[which(outcome == "{") + 1])
-        outcome <- paste(outcome[seq(1, which(outcome == "{") - 1)], collapse="")
+    mqca <- FALSE
+    if ("mqca" %in% names(other.args)) {
+        if (is.logical(other.args$mqca)) {
+            mqca <- other.args$mqca
+        }
+    }
+    
+    
+    outcome <- x$tt$options$outcome
+    
+    # if (mqca) {
+    if (grepl("\\{|\\}", outcome)) {
+        # outcome.value <- curlyBrackets(outcome)
+        # outcome <- curlyBrackets(outcome, outside=TRUE)
+        
         
         if (x$options$neg.out) {
-            noflevels <- seq(max(x$tt$initial.data[, outcome]) + 1) - 1
-            noflevels <- paste(noflevels[-which(noflevels == outcome.value)], collapse = ",")
-            outcome <- paste(outcome, "{", noflevels, "}", sep="")
-        }
-        else {
-            outcome <- x$tt$options$outcome
+            # just to make sure it _does_ contain a tilde, the only way to
+            # display a negated multivalue outcome
+            outcome <- paste("~", gsub("~", "", toupper(outcome)), sep="")
         }
         
+        ### only explain == 1 otherwise it isn't clear what the solution is sufficient for
+        ### e.g. if the outcome is BLAH{0} and explain = "0", what is the sufficiency for...?
         if (any(x$options$explain != 1)) {
             outcome <- ""
         }
+        ### 
     }
     else {
-        outcome <- ifelse(any(x$options$explain == 1), ifelse(x$options$neg.out, tolower(x$tt$options$outcome), toupper(x$tt$options$outcome)), "")
+        ### 
+        if (any(x$options$explain != 1)) {
+            outcome <- ""
+        }
+        else {
+            if (x$options$neg.out) {
+                if (x$options$use.tilde) {
+                    outcome <- paste("~", gsub("~", "", toupper(outcome)), sep="")
+                }
+                else {
+                    outcome <- gsub("~", "", tolower(outcome))
+                }
+            }
+        }
+        ### 
     }
+    # }
+    # else {
+    #     # to make clear what the solution is sufficient for
+    #     outcome <- paste("OUT:\"", paste(x$options$explain, collapse=","), "\"", sep="")
+    # }
+    
+    # or
+    # outcome <- paste(outcome, ":", paste(x$options$explain, collapse=","), sep="")
     
     
     if ("show.cases" %in% names(other.args)) {
         if (is.logical(other.args$show.cases)) {
             x$options$show.cases <- other.args$show.cases
-        }
-    }
-    
-    mqca <- FALSE
-    if ("mqca" %in% names(other.args)) {
-        if (is.logical(other.args$mqca)) {
-            mqca <- other.args$mqca
         }
     }
     
@@ -448,6 +517,14 @@ function(x, ...) {
 
 `print.pof` <-
 function(x, ...) {
+    
+    if ("fuzzyop" %in% names(x$options)) {
+        if (x$options$fuzzyop) {
+            # treat relation as if it was suf (not printing cov.u)
+            # x$relation <- "nec"
+            # colnames(x$incl.cov)[3] <- "cov"
+        }
+    }
     
     essential.PIs <- NULL
     if ("essential" %in% names(x)) {

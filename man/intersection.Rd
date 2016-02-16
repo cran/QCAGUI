@@ -10,15 +10,13 @@ and finds their intersection.
 }
 
 \usage{
-intersection(e1, e2, prod.split = "", conditions = "")
+intersection(e1 = "", e2 = "", snames = "")
 }
 
 \arguments{
     \item{e1}{String, the first expression to intersect.}
     \item{e2}{String, the first expression to intersect.}
-    \item{prod.split}{The intersection (product) operator (if any).}
-    \item{conditions}{A string containing the condition variables' names
-         in the original data set, separated by commas.}
+    \item{snames}{A string containing the sets' names, separated by commas.}
 }
 
 \details{
@@ -43,7 +41,6 @@ of the causal conditions in the original dataset, otherwise it sorts the causal 
 in alphabetical order.
 }
 
-
 \references{
 Ragin, Charles C. 1987. \emph{The Comparative Method: Moving beyond Qualitative and 
 Quantitative Strategies}. Berkeley: University of California Press.
@@ -58,26 +55,26 @@ Quantitative Strategies}. Berkeley: University of California Press.
 
 # intersecting the reactive ethnicity perspective (R = lw)
 # with the equation E (page 144)
-intersection("lw", "SG + LW", conditions="S, L, W, G")
+intersection("lw", "SG + LW", snames="S, L, W, G")
 
 # [1] "SlwG"
 
 
 
 # resources for size and wealth (C = SW) with E (page 145)
-intersection("SW", "SG + LW", conditions="S, L, W, G")
+intersection("SW", "SG + LW", snames="S, L, W, G")
 
 # [1] "SWG + SLW"
 
 
 # and factorized
-factorize(intersection("SW", "SG + LW", conditions="S, L, W, G"))
+factorize(intersection("SW", "SG + LW", snames="S, L, W, G"))
 
 # F1: SW(G + L)
 
 
 # developmental perspective (D = Lg) and E (page 146)
-intersection("Lg", "SG + LW", conditions="S, L, W, G")
+intersection("Lg", "SG + LW", snames="S, L, W, G")
 
 # [1] "LWg"
 
@@ -86,7 +83,7 @@ intersection("Lg", "SG + LW", conditions="S, L, W, G")
 # not hypothesized by any of the three theories (page 147)
 # ~H = ~(lw + SW + Lg)
 
-intersection(deMorgan("lw + SW + Lg"), "SG + LW", conditions="S, L, W, G")
+intersection(deMorgan("lw + SW + Lg"), "SG + LW", snames="S, L, W, G")
 
 # [1] "sLWG + SLwG"
 }

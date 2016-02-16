@@ -1,5 +1,13 @@
 `verify.data` <-
 function(data, outcome = "", conditions = "") {
+    
+     # check if the data is a data.frame
+    if (!is.data.frame(data)) {
+        cat("\n")
+        stop("The input data should be a data frame.\n\n", call. = FALSE)
+    }
+    
+    
      # check if the data has column names
     if (is.null(colnames(data))) {
         cat("\n")
@@ -10,12 +18,12 @@ function(data, outcome = "", conditions = "") {
      
     if (identical(outcome, "")) {
         cat("\n")
-        stop("You haven't specified the outcome set.\n\n", call. = FALSE)
+        stop("The outcome set is not specified.\n\n", call. = FALSE)
     }
     
     if (! outcome %in% colnames(data)) {
         cat("\n")
-        stop("The outcome's name is not correct.\n\n", call. = FALSE)
+        stop("The name of the outcome is not correct.\n\n", call. = FALSE)
     }
     
     
@@ -35,39 +43,78 @@ function(data, outcome = "", conditions = "") {
             stop("Cannot find a solution with only one causal condition.\n\n", call. = FALSE)
         }
     }
-}
-
-         
-         
-`verify.expl` <-
-function(data, outcome = "", conditions = "", incl.rem = FALSE,
-         expl.1 = FALSE, expl.0 = FALSE, expl.ctr = FALSE, expl.mo = FALSE,
-         incl.1 = FALSE, incl.0 = FALSE, incl.ctr = FALSE, incl.mo = FALSE,
-         quiet = FALSE, details = FALSE, chart = FALSE, use.letters = TRUE,
-         show.cases = FALSE, diffmatrix=TRUE) {
-    
-    # check if all cases have been included in analysis
-    if ((expl.0 | incl.0) & (expl.1 | incl.1) & (expl.ctr | incl.ctr) & incl.rem) {
-        cat("\n")
-        stop("You have included all cases in the analysis!\n\n", call. = FALSE)
-    }
-    
-     # if more than 26 conditions (plus one outcome), we cannot use letters
-    if (use.letters & ncol(data) > 27) {
-        cat("\n")
-        stop("Cannot use letters. There are more than 26 conditions.\n\n", call. = FALSE)
-    }
-    
-    # check if the user specifies something to explain
-    if (sum(expl.0, expl.1, expl.ctr) == 0 ) {
-        cat("\n")
-        stop("You have not specified what to explain.\n\n", call. = FALSE)
-    }
     
     # checking for complete data (without missings)
     if (any(is.na(data))) {
+        checked <- sapply(data, function(x) any(is.na(x)))
         cat("\n")
-        stop("Missing data found; this is not (yet) supported.\n\n", call. = FALSE)
+        stop(paste("Missing values in the data are not allowed. Please check columns:\n",
+             paste(names(checked)[checked], collapse = ", "), "\n\n", sep=""), call. = FALSE)
+    }
+    
+}
+
+
+
+`verify.qca` <-
+function(data) {
+    
+    # determine if it's a dataframe
+    
+    if (is.data.frame(data)) {
+        if (is.null(colnames(data))) {
+            cat("\n")
+            stop("The dataset doesn't have any columns names.\n\n", call. = FALSE)
+        }
+        
+        # determine if it's a valid QCA dataframe
+        checkNumUncal <- lapply(data, function(x) {
+            # making sure it's not a temporal QCA column
+            x <- setdiff(x, c("-", "dc", "?"))
+            pn <- possibleNumeric(x)
+            
+            uncal <- FALSE
+            
+            if (pn) {
+                y <- asNumeric(x)
+                if (any(y > 1 & abs(y - round(y)) >= .Machine$double.eps^0.5)) {
+                    uncal <- TRUE
+                }
+            }
+            
+            return(c(pn, uncal))
+        })
+        
+        checknumeric <- sapply(checkNumUncal, "[[", 1)
+        checkuncal <- sapply(checkNumUncal, "[[", 2)
+        
+        if (!all(checknumeric)) {
+            cat("\n")
+            notnumeric <- colnames(data)[!checknumeric]
+            errmessage <- paste("The causal condition",
+                                ifelse(length(notnumeric) == 1, " ", "s "),
+                                paste(notnumeric, collapse=", "),
+                                ifelse(length(notnumeric) == 1, " is ", " are "),
+                                "not numeric.", sep="")
+            stop(paste(strwrap(errmessage, exdent = 7), collapse = "\n", sep=""), "\n\n", call. = FALSE)
+        }
+        
+        if (any(checkuncal)) {
+            cat("\n")
+            uncalibrated <- colnames(data)[uncalibrated]
+            errmessage <- paste("Uncalibrated data.\n",
+            "Fuzzy sets should have values bound to the interval [0 , 1] and all other values should be crisp.\n",
+            "Please check the following condition", ifelse(length(uncalibrated) == 1, "", "s"), ":\n",
+            paste(uncalibrated, collapse = ", "), sep="")
+            stop(paste(strwrap(errmessage, exdent = 7), collapse = "\n", sep=""), call. = FALSE)
+        }
+                   
+    }
+    else if (is.vector(data)) {
+        if (!possibleNumeric(data)) {
+            cat("\n")
+            stop("Non numeric input.\n\n", call. = FALSE)
+        }
     }
 }
 
@@ -128,9 +175,12 @@ function(data, outcome = "", conditions = "", complete = FALSE, show.cases = FAL
     
     # checking for complete data (without missings)
     if (any(is.na(data))) {
+        checked <- sapply(data, function(x) any(is.na(x)))
         cat("\n")
-        stop("Missing data found; this is not (yet) supported.\n\n", call. = FALSE)
+        stop(paste("Missing values in the data are not allowed. Please check columns:\n",
+             paste(names(checked)[checked], collapse = ", "), "\n\n", sep=""), call. = FALSE)
     }
+    
     
     # checking for the two including cut-offs
     if (any(c(incl.cut1, incl.cut0) < 0) | any(c(incl.cut1, incl.cut0) > 1)) {
@@ -147,55 +197,20 @@ function(data, outcome = "", conditions = "", complete = FALSE, show.cases = FAL
     
     data <- as.data.frame(lapply(data, function(x) {
         x <- as.character(x)
-        x[x %in% c("-", "dc")] <- -1
-        return(suppressWarnings(as.numeric(x)))
+        x[x %in% c("-", "dc", "?")] <- -1
+        return(asNumeric(x))
     }))
     
-    checknumeric <- unlist(lapply(data[, conditions], function(x) {
-        return(is.numeric(x) & !all(is.na(x)))
-    }))
-    
-    if (!all(checknumeric)) {
-        cat("\n")
-        notnumeric <- conditions[!checknumeric]
-        errmessage <- paste("The causal condition",
-                            ifelse(length(notnumeric) == 1, " ", "s "),
-                            paste(notnumeric, collapse=", "),
-                            ifelse(length(notnumeric) == 1, " is ", " are "),
-                            "not numeric.", sep="")
-        stop(paste(strwrap(errmessage, exdent = 7), collapse = "\n", sep=""), "\n\n", call. = FALSE)
-    }
-    
-    if (any(data[, conditions] > 1 & data[, conditions] %% 1 > 0)) {
-        cat("\n")
-        errmessage <- "Uncalibrated data.\nFuzzy sets should have values bound to the interval [0 , 1] and all other values should be crisp.\n\n"
-        stop(paste(strwrap(errmessage, exdent = 7), collapse = "\n", sep=""), call. = FALSE)
-    }
-    
+    verify.qca(data)
     verify.inf.test(inf.test, data)
 }
 
 
-`verify.qca` <-
+`verify.eqmcc` <-
 function(data, outcome = "", conditions = "", explain = "",
          include = "", use.letters = FALSE) {
 
-     # check if the data has column names
-    if (is.null(colnames(data))) {
-        cat("\n")
-        stop("Please specify the column names for your data.\n\n", call. = FALSE)
-    }
-    
-     # check the outcome specified by the user
-    if (identical(outcome, "")) {
-        cat("\n")
-        stop("You haven't specified the outcome set.\n\n", call. = FALSE)
-    }
-    
-    if (! outcome %in% colnames(data)) {
-        cat("\n")
-        stop("The outcome's name is not correct.\n\n", call. = FALSE)
-    }
+    verify.data(data, outcome = outcome, conditions = conditions)
     
      # check if the user specifies something to explain
     if (all(explain == "")) {
@@ -265,8 +280,10 @@ function(data, outcome = "", conditions = "", explain = "",
     
     # checking for complete data (without missings)
     if (any(is.na(data))) {
+        checked <- sapply(data, function(x) any(is.na(x)))
         cat("\n")
-        stop("Missing data found; this is not (yet) supported.\n\n", call. = FALSE)
+        stop(paste("Missing values in the data are not allowed. Please check columns:\n",
+             paste(names(checked)[checked], collapse = ", "), "\n\n", sep=""), call. = FALSE)
     }
 }
 

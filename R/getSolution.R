@@ -9,7 +9,6 @@ function(expressions, collapse, uplow, use.tilde, inputt, row.dom, initial, all.
     expressions <- expressions[match(sortVector(PI.sort, collapse=collapse), PI), , drop=FALSE]
     rownames(expressions) <- PI.sort
     
-     # create the prime implicants chart
     mtrx <- createChart(expressions, inputt)
     
     reduced <- list(expressions = expressions, mtrx = mtrx)
@@ -29,14 +28,6 @@ function(expressions, collapse, uplow, use.tilde, inputt, row.dom, initial, all.
     
     rownames(mtrx) <- PI.red.sort
     colnames(mtrx) <- initial
-    
-    # other.args <- list(...)
-    # if ("bla" %in% names(other.args)) {
-        # return(list(mtrx=mtrx, all.sol=all.sol))
-        # return(list(RE=reduced$expressions, AP = all.PIs))
-        # print(sortVector(rownames(reduced$expressions)[rownames(reduced$expressions) %in% all.PIs], collapse=collapse))
-        
-    # }
     
     sol.matrix <- solveChart(mtrx, all.sol=all.sol, ...=...)
     

@@ -1,5 +1,6 @@
 `findSupersets` <-
 function (noflevels3k, input.combs) {
+    
     if (!is.matrix(input.combs)) {
         if (!is.vector(input.combs)) {
             cat("\n")

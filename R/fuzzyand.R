@@ -1,9 +1,19 @@
 `fuzzyand` <- function(...) {
+    
     other.args <- list(...)
     if (is.matrix(other.args[[1]]) | is.data.frame(other.args[[1]])) {
-        return(apply(other.args[[1]], 1, min))
+        cols <- colnames(other.args[[1]])
+        
+        if (is.null(cols)) {
+            cols <- LETTERS[seq(ncol(other.args[[1]]))]
+        }
+        
+        result <- apply(other.args[[1]], 1, min)
+        attr(result, "name") <- paste(cols, collapse="*")
+        
+        return(structure(result, class = "fuzzyop"))
     }
     else {
-        return(pmin(...))
+        return(pmin(other.args[[1]]))
     }
 }

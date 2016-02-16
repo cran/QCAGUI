@@ -11,7 +11,7 @@ DeMorgan laws.
 }
 
 \usage{
-deMorgan(expression, prod.split = "", use.tilde = FALSE)
+deMorgan(expression, prod.split = "", use.tilde = FALSE, complete = TRUE)
 
 is.deMorgan(x)
 }
@@ -21,6 +21,7 @@ is.deMorgan(x)
                     object of class "qca".}
   \item{prod.split}{The intersection (product) operator (if any).}
   \item{use.tilde}{Logical, use tilde for negation with bivalent variables.}
+  \item{complete}{Logical, present the result broken down to individual pieces.}
   \item{x}{An object of class "deMorgan".}
 }
 

@@ -1,5 +1,6 @@
 `createMatrix` <-
 function(noflevels, logical = FALSE) {
+    
     conds <- length(noflevels)
     pwr <- unique(noflevels)
     

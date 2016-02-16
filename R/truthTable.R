@@ -1,11 +1,18 @@
 `truthTable` <-
-function(data, outcome = "", neg.out = FALSE, conditions = "", n.cut = 1,
+function(data, outcome = "", conditions = "", n.cut = 1,
          incl.cut1 = 1, incl.cut0 = 1, complete = FALSE, show.cases = FALSE,
          sort.by = c(""), use.letters = FALSE, inf.test = "", ...) {
     
     memcare <- FALSE # to be updated with a future version
     other.args <- list(...)
     via.pof <- "via.pof" %in% names(other.args)
+    
+    ### backwards compatibility 
+        neg.out <- FALSE
+        if ("neg.out" %in% names(other.args)) {
+            neg.out <- other.args$neg.out
+        }
+    ### 
     
     if (memcare) {
         complete <- FALSE
@@ -21,19 +28,36 @@ function(data, outcome = "", neg.out = FALSE, conditions = "", n.cut = 1,
     }
     
     outcome.copy <- outcome
-    
     initial.data <- data
     
-    if (grepl("[{]", outcome)) {
-        outcome <- unlist(strsplit(outcome, split = ""))
-        outcome.value <- as.numeric(outcome[which(outcome == "{") + 1])
-        outcome <- paste(outcome[seq(1, which(outcome == "{") - 1)], collapse="")
-        if (!any(unique(data[, outcome]) == outcome.value)) {
-            cat("\n")
-            stop(paste("The value {", outcome.value, "} does not exist in the outcome.\n\n", sep=""), call. = FALSE)
-        }
-        data[, outcome] <- ifelse(data[, outcome] == outcome.value, 1, 0)
+    if (substring(outcome, 1, 1) == "~") {
+        neg.out <- TRUE
+        outcome <- substring(outcome, 2)
     }
+    
+    # for the moment, toupper(outcome) is redundant but should the negation be 
+    # treated with lower case letters in the future, it will prove important
+    if (!identical(outcome, "")) {
+        if (! toupper(curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
+            cat("\n")
+            stop("Inexisting outcome name.\n\n", call. = FALSE)
+        }
+    }
+    
+    if (grepl("\\{|\\}", outcome)) {
+        outcome.value <- curlyBrackets(outcome)
+        outcome <- curlyBrackets(outcome, outside=TRUE)
+        
+        data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% splitstr(outcome.value))
+    }
+    ### this was supposed to treat the negation using lower case letters
+    # else if (! outcome %in% colnames(data)) {
+    #     data[, toupper(outcome)] <- 1 - data[, toupper(outcome)]
+    # }
+    
+    # already on line 23
+    # outcome <- toupper(outcome)
+    ### 
     
     if (identical(conditions, "")) {
         conditions <- names(data)[-which(names(data) == outcome)]
@@ -47,7 +71,6 @@ function(data, outcome = "", neg.out = FALSE, conditions = "", n.cut = 1,
     if (is.character(sort.by) & length(sort.by) == 1 & !identical(sort.by, "")) {
         sort.by <- splitstr(sort.by)
     }
-    
     
     decreasing <- TRUE # just to set a default value
     if ("decreasing" %in% names(other.args)) {
@@ -103,9 +126,13 @@ function(data, outcome = "", neg.out = FALSE, conditions = "", n.cut = 1,
     }
     
     data <- as.data.frame(lapply(data, function(x) {
+        # to make sure that any factor is character
         x <- as.character(x)
+        
+        # otherwise replacement was not possible
         x[x == dc.code] <- -1
-        return(suppressWarnings(as.numeric(x)))
+        
+        return(asNumeric(x))
     }))
     
     names(data) <- c(conditions, outcome)
@@ -114,6 +141,8 @@ function(data, outcome = "", neg.out = FALSE, conditions = "", n.cut = 1,
     rownames(data) <- rownames(initial.data)
     
     nofconditions <- length(conditions)
+    fuzzy.cc <- apply(data[, conditions, drop=FALSE], 2, function(x) any(abs(x - round(x)) >= .Machine$double.eps^0.5))
+    
     fuzzy.cc <- apply(data[, conditions, drop=FALSE], 2, function(x) any(x %% 1 > 0))
     
     
@@ -294,9 +323,9 @@ function(data, outcome = "", neg.out = FALSE, conditions = "", n.cut = 1,
     
     x <- list(tt = tt, indexes = sort(unique(line.data[line.data > 0])), noflevels = as.vector(noflevels),
               initial.data = initial.data, recoded.data = data, cases = cases, 
-              options = list(outcome = outcome.copy, neg.out = neg.out, n.cut = n.cut,
+              options = list(outcome = outcome.copy, conditions = conditions, neg.out = neg.out, n.cut = n.cut,
                              incl.cut1 = incl.cut1, incl.cut0 = incl.cut0, complete = complete,
-                             show.cases = show.cases, inf.test = statistical.testing))
+                             show.cases = show.cases, use.letters = use.letters, inf.test = statistical.testing))
     
     if (any(excluded)) {
        x$excluded <- excluded.cases
@@ -320,6 +349,7 @@ function(data, outcome = "", neg.out = FALSE, conditions = "", n.cut = 1,
         x$rowsorder <- rowsorder
     }
     
+    x$origin <- "QCAGUI"
     return(structure(x, class="tt"))
 }
 

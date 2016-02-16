@@ -1,5 +1,6 @@
 `demoChart` <-
 function(primes = c(""), configs = c(""), prod.split="") {
+    
     if (prod.split != "") prod.split <- paste("\\", prod.split, sep="")
     
     primes.split <- strsplit(primes, prod.split)

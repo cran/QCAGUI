@@ -1,15 +1,21 @@
 `eqmcc` <-
-function(data, outcome = "", neg.out = FALSE, conditions = "", 
-      relation = "suf", n.cut = 1, incl.cut1 = 1, incl.cut0 = 1, 
-      explain = "1", include = "", row.dom = FALSE, all.sol = FALSE, 
-      omit = NULL, dir.exp = "", details = FALSE, show.cases = FALSE, 
-      inf.test = "", use.tilde = FALSE, use.letters = FALSE, ...) {
+function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
+    incl.cut1 = 1, incl.cut0 = 1, explain = "1", include = "", row.dom = FALSE,
+    all.sol = FALSE, omit = NULL, dir.exp = "", details = FALSE, show.cases = FALSE, 
+    inf.test = "", use.tilde = FALSE, use.letters = FALSE, ...) {
     
     m2 <- FALSE
     
     metacall <- match.call()
     
     other.args <- list(...)
+    
+    ### backwards compatibility 
+        neg.out <- FALSE
+        if ("neg.out" %in% names(other.args)) {
+            neg.out <- other.args$neg.out
+        }
+    ### 
     
     if ("rowdom" %in% names(other.args)) {
         row.dom <- other.args$rowdom
@@ -39,7 +45,7 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
         stop("Data is missing.\n\n", call. = FALSE)
     }
     
-    if (identical(outcome, c("")) & !is.tt(data)) {
+    if (identical(outcome, "") & !is.tt(data)) {
         cat("\n")
         stop("You haven't specified the outcome set.\n\n", call. = FALSE)
     }
@@ -76,30 +82,45 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
         
         if (length(outcome) > 1) {
             
-            return(eqmccLoop(data=data, outcome=outcome, neg.out=neg.out, conditions=conditions, n.cut=n.cut,
+            return(eqmccLoop(data=data, outcome=outcome, conditions=conditions, n.cut=n.cut,
                       incl.cut1=incl.cut1, incl.cut0 = incl.cut0, explain=explain, include=include, row.dom=row.dom,
                       all.sol = all.sol, omit=omit, dir.exp = dir.exp, details=details, show.cases=show.cases,
                       use.tilde=use.tilde, use.letters=use.letters, inf.test=inf.test, relation=relation, ...=...))
         }
         
-        outcome.copy <- outcome
-        indata <- data # important before altering the outcome, if multi-value
-        
         names(data) <- toupper(names(data))
         conditions <- toupper(conditions)
         outcome <- toupper(outcome)
         
-        if (grepl("[{]", outcome)) { # there is a "{" sign in the outcome's name
-            outcome <- unlist(strsplit(outcome, split = ""))
-            outcome.value <- as.numeric(outcome[which(outcome == "{") + 1])
-            outcome <- paste(outcome[seq(1, which(outcome == "{") - 1)], collapse="")
-            
-            if (!any(unique(data[, outcome]) == outcome.value)) {
-                cat("\n")
-                stop(paste("The value {", outcome.value, "} does not exist in the outcome.\n\n", sep=""), call. = FALSE)
-            }
-            data[, outcome] <- ifelse(data[, outcome] == outcome.value, 1, 0)
+        outcome.copy <- outcome
+        indata <- data # important before altering the outcome, if multi-value
+        
+        if (substring(outcome, 1, 1) == "~") {
+            neg.out <- TRUE
+            outcome <- substring(outcome, 2)
         }
+        
+        # for the moment, toupper(outcome) is redundant but if in the future
+        # the negation will be treated with lower case letters, it will prove important
+        if (! toupper(curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
+            cat("\n")
+            stop("Inexisting outcome name.\n\n", call. = FALSE)
+        }
+        
+        if (grepl("\\{|\\}", outcome)) {
+            outcome.value <- curlyBrackets(outcome)
+            outcome <- curlyBrackets(outcome, outside=TRUE)
+            
+            data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% splitstr(outcome.value))
+        }
+        ### this was supposed to treat the negation using lower case letters
+        # else if (! outcome %in% colnames(data)) {
+        #     data[, toupper(outcome)] <- 1 - data[, toupper(outcome)]
+        # }
+        
+        # already on line 93
+        # outcome <- toupper(outcome)
+        ### 
         
         if (identical(conditions, "")) {
             conditions <- names(data)[-which(names(data) == outcome)]
@@ -110,7 +131,7 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
         
         data <- data[, c(conditions, outcome)]
         
-        verify.qca(data, outcome, conditions, explain, include, use.letters)
+        verify.eqmcc(data, outcome, conditions, explain, include, use.letters)
         
         complete <- FALSE
         if ("complete" %in% names(other.args)) {
@@ -152,7 +173,7 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
         recdata <- tt$recoded.data
         conditions <- colnames(recdata)[seq(length(tt$noflevels))]
         outcome <- colnames(recdata)[ncol(recdata)]
-        
+        use.letters <- tt$options$use.letters
         neg.out <- tt$options$neg.out
     }
     
@@ -274,7 +295,6 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
     collapse <- ifelse(alreadyletters & uplow | use.tilde, "", "*")
     changed <- FALSE
     
-    
      # if not already letters and user specifies using letters for conditions, change it
     if (use.letters & !alreadyletters) {
         colnames(expressions) <- colnames(inputt) <- colnames(expl.matrix) <- LETTERS[seq(ncol(inputt))]
@@ -365,23 +385,21 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
         expr.cases[l] <- paste(inputcases[mtrxlines[l, ]], collapse="; ")
     }
     
-    
     if (length(p.sol$solution.list[[1]]) == 1) {
-        
         listIC <- pof(p.sol$reduced$expressions - 1, tt$options$outcome, indata, showc=TRUE, cases=expr.cases, neg.out=neg.out,
-                      relation = "sufficiency", via.eqmcc=TRUE)
+                      relation = "sufficiency", conditions = conditions, via.eqmcc=TRUE)
         listIC$options$show.cases <- show.cases
         
     }
     else {
-        
         listIC <- pof(p.sol$reduced$expressions - 1, tt$options$outcome, indata, showc=TRUE, cases=expr.cases, neg.out=neg.out,
-                      relation = "sufficiency", via.eqmcc=TRUE, solution.list=output$solution, essential=output$essential)
+                      relation = "sufficiency", conditions = conditions, via.eqmcc=TRUE, solution.list=output$solution, essential=output$essential)
         listIC$options$show.cases <- show.cases
         
     }
     
     output$pims <- listIC$pims
+    attr(output$pims, "conditions") <- conditions
     
     listIC$pims <- NULL
     output$IC <- listIC
@@ -397,8 +415,10 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
     output$options$explain <- explain
     output$options$neg.out <- neg.out
     output$options$details <- details
+    output$options$relation <- relation
     output$options$show.cases <- show.cases
     output$options$use.letters <- use.letters
+    output$options$use.tilde <- use.tilde
     output$options$collapse <- collapse
     
     # if (PRI) {
@@ -630,6 +650,7 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
                     i.sol[[index]]$IC$options$show.cases <- show.cases
                 }
                 i.sol[[index]]$pims <- i.sol[[index]]$IC$pims
+                attr(i.sol[[index]]$pims, "conditions") <- conditions
                 i.sol[[index]]$IC$pims <- NULL
                 index <- index + 1
             }
