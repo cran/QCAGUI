@@ -1,9 +1,11 @@
 `allExpressions` <-
 function(noflevels, raw=FALSE, arrange=FALSE) {
-    
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
     aEmat <- createMatrix(noflevels + 1)
     if (arrange) {
-        aEmat <- sortMatrix(aEmat)
+        aEmat <- QCA::sortMatrix(aEmat)
         sum.zeros <- apply(aEmat, 1, function(idx) sum(idx == 0))
         aEmat <- aEmat[order(sum.zeros, decreasing=TRUE), ]
     }

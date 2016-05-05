@@ -22,8 +22,9 @@ retention(data, outcome = "", conditions = "", type = "corruption",
         separated by commas.}
   \item{type}{Simulate corruptions of values in the conditions, or cases deleted
         entirely.}
-  \item{dep}{Logical, if TRUE indicating DPA - Dependent Perturbations Assumption
-        and if FALSE indicating IPA - Independent Perturbations Assumption.}
+  \item{dep}{Logical, if \bold{\code{TRUE}} indicating DPA - Dependent Perturbations
+        Assumption and if \bold{\code{FALSE}} indicating IPA - Independent
+        Perturbations Assumption.}
   \item{n.cut}{The minimum number of cases for a causal combination with a set
         membership score above 0.5, for an output function value of "0" or "1".}
   \item{incl.cut}{The minimum sufficiency inclusion score for an output function 
@@ -34,60 +35,61 @@ retention(data, outcome = "", conditions = "", type = "corruption",
 
 \details{
 
-The argument \code{data} requires a suitable data set, in the form of a data frame.
+The argument \bold{\code{data}} requires a suitable data set, in the form of a data frame.
 with the following structure: values of 0 and 1 for bivalent crisp-set variables.
 
-The argument \code{outcome} specifies the outcome to be explained, in upper-case
-notation (e.g. \code{O}). 
+The argument \bold{\code{outcome}} specifies the outcome to be explained, in upper-case
+notation (e.g. \bold{\code{X}}). 
 
-The argument \code{conditions} specifies the names of the condition variables.
-If omitted, all variables in \code{data} are used except \code{outcome}.
+The argument \bold{\code{conditions}} specifies the names of the condition variables.
+If omitted, all variables in \bold{\code{data}} are used except \bold{\code{outcome}}.
 
-The argument \code{type} controls which type of perturbations should be simulated
+The argument \bold{\code{type}} controls which type of perturbations should be simulated
 to calculate the retention probability.
-When \code{type = "corruption"}, it simulates changes of values in the conditions
-(values of 0 become 1, and values of 1 become 0). When \code{type = "deletion"}, it
-calculates the probability of retaining the same solution if a number of cases are
+When \bold{\code{type = "corruption"}}, it simulates changes of values in the conditions
+(values of 0 become 1, and values of 1 become 0). When \bold{\code{type = "deletion"}},
+it calculates the probability of retaining the same solution if a number of cases are
 deleted from the original data.
 
-
-The argument \code{dep} is a logical which choses between two categories of assumptions. 
-If \code{dep = TRUE} (the default) it indicates DPA - Dependent Perturbations Assumption,
+The argument \bold{\code{dep}} is a logical which choses between two categories of assumptions. 
+If \bold{\code{dep = TRUE}} (the default) it indicates DPA - Dependent Perturbations Assumption,
 when perturbations depend on each other and are tied to a fixed number of cases, ex-ante
 (see Thiem, Spohel and Dusa, 2016).
-If \code{dep = FALSE}, it indicates IPA - Independent Perturbations Assumption, when
+If \bold{\code{dep = FALSE}}, it indicates IPA - Independent Perturbations Assumption, when
 perturbations are assumed to occur independently of each other.
 
-The argument \code{n.cut} is one of the factors that decide which configurations
-are coded as logical remainders or not, in conjunction with argument \code{incl.cut}.
-Those configurations that contain fewer than \code{n.cut} cases with membership scores
-above 0.5 are coded as logical remainders (\code{OUT = "?"}). If the number of such
-cases is at least \code{n.cut}, configurations with an inclusion score of at least
-\code{incl.cut} are coded positive (\code{OUT = "1"}), while configurations with an
-inclusion score below \code{incl.cut} are coded negative (\code{OUT = "0"}).
+The argument \bold{\code{n.cut}} is one of the factors that decide which configurations
+are coded as logical remainders or not, in conjunction with argument \bold{\code{incl.cut}}.
+Those configurations that contain fewer than \bold{\code{n.cut}} cases with membership scores
+above 0.5 are coded as logical remainders (\bold{\code{OUT = "?"}}). If the number of such
+cases is at least \bold{\code{n.cut}}, configurations with an inclusion score of at least
+\bold{\code{incl.cut}} are coded positive (\bold{\code{OUT = "1"}}), while configurations with an
+inclusion score below \bold{\code{incl.cut}} are coded negative (\bold{\code{OUT = "0"}}).
 
-The argument \code{p.pert} specifies the probability of perturbation under the
-\code{type = "IPA"} independent perturbations assumption.
+The argument \bold{\code{p.pert}} specifies the probability of perturbation under the
+\bold{\code{type = "IPA"}} independent perturbations assumption.
 
-The argument \code{n.pert} specifies the number of perturbations under the
-\code{type = "DPA"} dependent perturbations assumption. At least one perturbation is
+The argument \bold{\code{n.pert}} specifies the number of perturbations under the
+\bold{\code{type = "DPA"}} dependent perturbations assumption. At least one perturbation is
 needed to possibly change a csQCA solution, otherwise the solution will remain the
 same (retention equal to 100\%) if zero perturbations occur under this argument.
-
 }
+
+\author{
+Adrian Dusa
+}
+
 
 \references{
     
-Thiem, Alrik, Reto Spoehel, and Adrian Dusa, 2015, \dQuote{Replication Package for:
+Thiem, A.; Spoehel, R.; Dusa, A. (2015) \dQuote{Replication Package for:
 Enhancing Sensitivity Diagnostics for Qualitative Comparative Analysis: A Combinatorial
 Approach}, Harvard Dataverse, V1.
-DOI: \href{http://dx.doi.org/10.7910/DVN/QE27H9}{10.7910/DVN/QE27H9}, 
+DOI: \url{http://dx.doi.org/10.7910/DVN/QE27H9}
 
-Thiem, Alrik, Reto Spoehel, and Adrian Dusa. 2016. \dQuote{Enhancing Sensitivity
+Thiem, A.; Spoehel, R.; Dusa, A. (2016) \dQuote{Enhancing Sensitivity
 Diagnostics for Qualitative Comparative Analysis: A Combinatorial Approach.}
-\emph{Political Analysis} \strong{24} (1):104-20.
-DOI: \href{http://dx.doi.org/10.1093/pan/mpv028}{10.1093/pan/mpv028}.
-
+\emph{Political Analysis} vol.24, no.1, pp.104-120.
 }
 
 \examples{

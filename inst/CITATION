@@ -1,10 +1,7 @@
 meta <- packageDescription("QCAGUI")
-# year <- sub("-.*", "", meta$Date)
-year <- "2015"
-# note <- sprintf("R Package Version %s", meta$Version)
-note <- "R Package Version 2.0-0"
-# title <- sprintf("%s", meta$Title)
-title <- "QCAGUI: Modern functions for Qualitative Comparative Analysis"
+year <- sub("-.*", "", meta["Date"])
+note <- sprintf("R Package Version %s", meta["Version"])
+title <- sprintf("%s", meta["Title"])
 
 citHeader("To cite this package in publications, please use:")
 
@@ -23,7 +20,7 @@ citEntry(entry = "Article",
 
 citEntry(entry = "Manual",
     author      = personList(as.person("Adrian Dusa")),
-    year        = "2015",
+    year        = "2016",
     title       = title,
     note        = note,
     url         = "http://cran.r-project.org/package=QCAGUI",
@@ -55,7 +52,6 @@ citEntry(entry = "Article",
     title       = "Enhancing the Minimization of Boolean and Multivalue Output Functions With eQMC",
     textVersion = paste("Dusa, Adrian and Alrik Thiem (2015).",
                      "Enhancing the Minimization of Boolean and Multivalue Output Functions With eQMC, ",
-                     "Journal of Mathematical Sociology vol.39, pp.92-108,",
-                     "DOI: 10.1080/0022250X.2014.897949"),
+                     "Journal of Mathematical Sociology vol.39, pp.92-108"),
     header      = "The current minimization algorithm has been described in:"
 )

@@ -16,7 +16,7 @@ intersection(e1 = "", e2 = "", snames = "")
 \arguments{
     \item{e1}{String, the first expression to intersect.}
     \item{e2}{String, the first expression to intersect.}
-    \item{snames}{A string containing the sets' names, separated by commas.}
+    \item{snames}{A string containing the set names, separated by commas.}
 }
 
 \details{
@@ -32,14 +32,15 @@ for the absence and the presence of the causal condition, or use the tilde notat
 (see examples below). Usage of either of these is automatically detected, as long as both
 expressions use the same notation.
 
-The \code{prod.split} argument also has some auto-detection capabilities, if the two
-expressions use either the \code{*} symbol, or no symbol at all if using lower-case and
-upper-case notation, and the names of the causal conditions are single letters.
-
-If the \code{conditions} argument is provided, the result is sorted according to the order
-of the causal conditions in the original dataset, otherwise it sorts the causal conditions
-in alphabetical order.
+If the \bold{\code{snames}} argument is provided, the result is sorted according to the order
+of the causal conditions (set names) in the original dataset, otherwise it sorts the causal
+conditions in alphabetical order.
 }
+
+\author{
+Adrian Dusa
+}
+
 
 \references{
 Ragin, Charles C. 1987. \emph{The Comparative Method: Moving beyond Qualitative and 
@@ -49,32 +50,31 @@ Quantitative Strategies}. Berkeley: University of California Press.
 
 \examples{
 
-    
 # in Ragin's (1987) book, the equation E = SG + LW is the result
-# of the boolean minimization for the ethnic political mobilization.
+# of the Boolean minimization for the ethnic political mobilization.
 
 # intersecting the reactive ethnicity perspective (R = lw)
 # with the equation E (page 144)
-intersection("lw", "SG + LW", snames="S, L, W, G")
+intersection("lw", "SG + LW", snames = "S, L, W, G")
 
 # [1] "SlwG"
 
 
 
 # resources for size and wealth (C = SW) with E (page 145)
-intersection("SW", "SG + LW", snames="S, L, W, G")
+intersection("SW", "SG + LW", snames = "S, L, W, G")
 
 # [1] "SWG + SLW"
 
 
 # and factorized
-factorize(intersection("SW", "SG + LW", snames="S, L, W, G"))
+factorize(intersection("SW", "SG + LW", snames = "S, L, W, G"))
 
 # F1: SW(G + L)
 
 
 # developmental perspective (D = Lg) and E (page 146)
-intersection("Lg", "SG + LW", snames="S, L, W, G")
+intersection("Lg", "SG + LW", snames = "S, L, W, G")
 
 # [1] "LWg"
 
@@ -83,7 +83,7 @@ intersection("Lg", "SG + LW", snames="S, L, W, G")
 # not hypothesized by any of the three theories (page 147)
 # ~H = ~(lw + SW + Lg)
 
-intersection(deMorgan("lw + SW + Lg"), "SG + LW", snames="S, L, W, G")
+intersection(deMorgan("lw + SW + Lg"), "SG + LW", snames = "S, L, W, G")
 
 # [1] "sLWG + SLwG"
 }

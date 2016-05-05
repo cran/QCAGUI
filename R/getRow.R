@@ -1,10 +1,14 @@
 `getRow` <- 
 function(noflevels, row.no, zerobased=FALSE) {
     
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
     max.combs <- prod(noflevels)
     if (any(row.no > (max.combs - zerobased))) {
         cat("\n")
-        stop("There cannot be more than ", max.combs, " rows.\n\n", call. = FALSE)
+        stop(simpleError(paste("There cannot be more than ", max.combs, " rows.\n\n", sep="")))
     }
     
     if (!zerobased) {row.no <- row.no - 1}

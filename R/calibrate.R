@@ -1,28 +1,53 @@
 `calibrate` <-
 function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
-          idm = 0.95, ecdf = FALSE, p = 1, q = 1) {
+          idm = 0.95, ecdf = FALSE, above = 1, below = 1, ...) {
+    
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
+    other.args <- list(...)
+    
+    if ("q" %in% names(other.args)) {
+        above <- other.args$q
+    }
+    
+    if ("p" %in% names(other.args)) {
+        below <- other.args$p
+    }
     
     if (!is.numeric(x)) {
         cat("\n")
-        stop("x is not numeric.\n\n", call. = FALSE)
+        stop(simpleError("x is not numeric.\n\n"))
     }
     
     if (!(type %in% c("crisp", "fuzzy"))) {
         cat("\n")
-        stop("Unknown calibration type.\n\n", call. = FALSE)
+        stop(simpleError("Unknown calibration type.\n\n"))
     }
     
     if (all(is.na(thresholds))) {
         cat("\n")
-        stop("Threshold value(s) not specified.\n\n", call. = FALSE)
+        stop(simpleError("Threshold value(s) not specified.\n\n"))
+    }
+    
+    if (is.character(thresholds) & length(thresholds) == 1) {
+        thresholds <- QCA::splitstr(thresholds)
     }
     
     if (type == "crisp") {
         xrange <- range(x, na.rm=TRUE)
+        
         if (any(as.numeric(unclass(cut(thresholds, breaks=c(-Inf, xrange, Inf)))) != 2)) {
             cat("\n")
-            stop("Threshold value(s) outside the range of x.\n\n", call. = FALSE)
-        }   
+            stop(simpleError("Threshold value(s) outside the range of x.\n\n"))
+        }
+        
+        if (!is.null(names(thresholds))) {
+            cat("\n")
+            stop(simpleError("Named thresholds require fuzzy type calibration.\n\n"))
+        }
+        
         return(as.numeric(unclass(cut(x, breaks=c(-Inf, thresholds, Inf), right=!include))) - 1)
         # the built-in findInterval() was interesting, but doesn't cope well with the include argument
     }
@@ -33,22 +58,18 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
             return(check.vector)
         }
         
-        if (is.character(thresholds) & length(thresholds) == 1) {
-            thresholds <- splitstr(thresholds)
-        }
-        
         lth <- length(thresholds)
         nth <- names(thresholds)
         
         
         if (lth != 3 & lth != 6) {
             cat("\n")
-            stop("For fuzzy data, there should be either 3 or 6 thresholds\".\n\n", call. = FALSE)
+            stop(simpleError("For fuzzy data, there should be either 3 or 6 thresholds\".\n\n"))
         }
         
         if (idm <= 0.5 | idm >= 1) {
             cat("\n")
-            stop("The inclusion degree of membership has to be bigger than 0.5 and less than 1.\n\n", call. = FALSE)
+            stop(simpleError("The inclusion degree of membership has to be bigger than 0.5 and less than 1.\n\n"))
         }
         
         
@@ -87,7 +108,7 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
             else {
                 if (any(table(c(thEX, thCR, thIN)) > 1)) {
                     cat("\n")
-                    warning("Some thresholds equal, that should not be equal.\n\n", call. = FALSE)
+                    warning(simpleWarning("Some thresholds equal, that should not be equal.\n\n"))
                 }
                 
                 increasing <- TRUE
@@ -109,13 +130,13 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                             fs[i] <- 0
                         }
                         else if (x[i] < thCR | check.equal(x[i], thCR)) {
-                            fs[i] <- (((thEX - x[i])/(thEX - thCR))^p)/2
+                            fs[i] <- (((thEX - x[i])/(thEX - thCR))^below)/2
                             if (ecdf) {
                                 fs[i] <- (Fn(x[i])/Fn(thCR))/2
                             }
                         }
                         else if (x[i] < thIN | check.equal(x[i], thIN)) {
-                            fs[i] <- 1 - (((thIN - x[i])/(thIN - thCR))^q)/2
+                            fs[i] <- 1 - (((thIN - x[i])/(thIN - thCR))^above)/2
                             if (ecdf) {
                                 fs[i] <- 1 - ((1 - Fn(x[i]))/(1 - Fn(thCR)))/2
                             }
@@ -129,13 +150,13 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                             fs[i] <- 1
                         }
                         else if (x[i] < thCR | check.equal(x[i], thCR)) {
-                            fs[i] <- 1 - (((thIN - x[i])/(thIN - thCR))^q)/2
+                            fs[i] <- 1 - (((thIN - x[i])/(thIN - thCR))^above)/2
                             if (ecdf) {
                                 fs[i] <- 1 - (Fn(x[i])/Fn(thCR))/2
                             }
                         }
                         else if (x[i] < thEX | check.equal(x[i], thEX)) {
-                            fs[i] <- (((thEX - x[i])/(thEX - thCR))^p)/2
+                            fs[i] <- (((thEX - x[i])/(thEX - thCR))^below)/2
                             if (ecdf) {
                                 fs[i] <- ((1 - Fn(x[i]))/(1 - Fn(thCR)))/2
                             }
@@ -167,12 +188,12 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
             
             if (thCR1 < min(thEX1, thIN1) | thCR1 > max(thEX1, thIN1)) {
                 cat("\n")
-                stop("First crossover threshold not between first exclusion and inclusion thresholds.\n\n", call. = FALSE)
+                stop(simpleError("First crossover threshold not between first exclusion and inclusion thresholds.\n\n"))
             }
             
             if (thCR2 < min(thEX2, thIN2) | thCR2 > max(thEX2, thIN2)) {
                 cat("\n")
-                stop("Second crossover threshold not between second exclusion and inclusion thresholds.\n\n", call. = FALSE)
+                stop(simpleError("Second crossover threshold not between second exclusion and inclusion thresholds.\n\n"))
             }
             
             
@@ -199,7 +220,7 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
             
             if (somequal) {
                 cat("\n")
-                stop("Some thresholds equal, that should not be equal.\n\n", call. = FALSE)
+                stop(simpleError("Some thresholds equal, that should not be equal.\n\n"))
             }
             
             fs <- rep(NA, length(x))
@@ -209,19 +230,19 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                         fs[i] <- 0
                     }
                     else if (x[i] < thCR1 | check.equal(x[i], thCR1)) {
-                        fs[i] <- (((thEX1 - x[i])/(thEX1 - thCR1))^p)/2
+                        fs[i] <- (((thEX1 - x[i])/(thEX1 - thCR1))^below)/2
                     }
                     else if (x[i] < thIN1) {
-                        fs[i] <- 1 - (((thIN1 - x[i])/(thIN1 - thCR1))^q)/2
+                        fs[i] <- 1 - (((thIN1 - x[i])/(thIN1 - thCR1))^above)/2
                     }
                     else if (x[i] < thIN2 | check.equal(x[i], thIN2)) {
                         fs[i] <- 1
                     }
                     else if (x[i] < thCR2 | check.equal(x[i], thCR2)) {
-                        fs[i] <- 1 - (((thIN2 - x[i])/(thIN2 - thCR2))^q)/2
+                        fs[i] <- 1 - (((thIN2 - x[i])/(thIN2 - thCR2))^above)/2
                     }
                     else if (x[i] < thEX2 | check.equal(x[i], thEX2)) {
-                        fs[i] <- (((thEX2 - x[i])/(thEX2 - thCR2))^p)/2
+                        fs[i] <- (((thEX2 - x[i])/(thEX2 - thCR2))^below)/2
                     }
                     else {
                         fs[i] <- 0
@@ -232,19 +253,19 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                         fs[i] <- 1
                     }
                     else if (x[i] < thCR1 | check.equal(x[i], thCR1)) {
-                        fs[i] <- 1 - (((thIN1 - x[i])/(thIN1 - thCR1))^q)/2
+                        fs[i] <- 1 - (((thIN1 - x[i])/(thIN1 - thCR1))^above)/2
                     }
                     else if (x[i] < thEX1) {
-                        fs[i] <- (((thEX1 - x[i])/(thEX1 - thCR1))^p)/2
+                        fs[i] <- (((thEX1 - x[i])/(thEX1 - thCR1))^below)/2
                     }
                     else if (x[i] < thEX2 | check.equal(x[i], thEX2)) {
                         fs[i] <- 0
                     }
                     else if (x[i] < thCR2 | check.equal(x[i], thCR2)) {
-                        fs[i] <- (((thEX2 - x[i])/(thEX2 - thCR2))^p)/2
+                        fs[i] <- (((thEX2 - x[i])/(thEX2 - thCR2))^below)/2
                     }
                     else if (x[i] < thIN2 | check.equal(x[i], thIN2)) {
-                        fs[i] <- 1 - (((thIN2 - x[i])/(thIN2 - thCR2))^q)/2
+                        fs[i] <- 1 - (((thIN2 - x[i])/(thIN2 - thCR2))^above)/2
                     }
                     else {
                         fs[i] <- 1

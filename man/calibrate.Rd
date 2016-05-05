@@ -2,182 +2,233 @@
 
 \alias{calibrate}
 
-\title{Calibrate Crisp and Fuzzy Set Variables}
+\title{Calibrate raw data to crisp or fuzzy sets}
 
 \description{
-This function produces crisp and fuzzy sets from base variables and some specified 
-threshold(s). The calibration of fuzzy sets is possible for positive and negative 
-end-point and mid-point concepts, using the method of transformational assignment.
+This function transforms (calibrates) the raw data to either crisp or fuzzy sets
+values, using the \dfn{direct} method of calibration.
 }
 
 \usage{
-calibrate(x, type = "crisp", thresholds = NA, include = TRUE, 
-          logistic = TRUE, idm = 0.95, ecdf = FALSE, p = 1, q = 1)
+calibrate(x, type = "crisp", thresholds = NA, include = TRUE, logistic = TRUE,
+          idm = 0.95, ecdf = FALSE, above = 1, below = 1, ...)
 }
 
 \arguments{
-  \item{x}{An interval or ratio-scaled base variable.}
-  \item{type}{The calibration type, either "crisp" or "fuzzy".}
+  \item{x}{A numerical causal condition.}
+  \item{type}{Calibration type, either \bold{\code{"crisp"}} or \bold{\code{"fuzzy"}}.}
   \item{thresholds}{A vector of (named) thresholds.}
-  \item{include}{Logical, include threshold(s) in the set (\code{type = "crisp"} 
+  \item{include}{Logical, include threshold(s) in the set (\bold{\code{type = "crisp"}} 
         only).}
   \item{logistic}{Calibrate to fuzzy sets using the logistic function.}
   \item{idm}{The set inclusion degree of membership for the logistic function.}
   \item{ecdf}{Calibrate to fuzzy sets using the empirical cumulative distribution 
-        function of the base variable.}
-  \item{p}{Parameter: if \eqn{p > 1} concentration, if \eqn{0 < p < 1} dilation 
-           below crossover.}
-  \item{q}{Parameter: if \eqn{q > 1} dilation, if \eqn{0 < q < 1} concentration 
-           above crossover.}
+        function of the raw data.}
+  \item{above}{Numeric (non-negative), determines the shape above crossover.}
+  \item{below}{Numeric (non-negative), determines the shape below crossover.}
+  \item{...}{Additional parameters, mainly for backwards compatibility.}
 }
 
 \details{
-Calibration is the process by which set membership scores are assigned to cases.
-With interval and ratio-scaled base variables, calibration can be based on
-transformational assignments using (piecewise-defined) membership functions.
+Calibration is a transformational process from raw numerical data (interval or
+ratio level of measurement) to set membership scores, based on a certain number of
+qualitative anchors.
 
-For \code{type = "crisp"}, one threshold produces two crisp sets: 0 and 1. 
-More thresholds produce multiple crisp sets. For example, two thresholds 
-produce three crisp sets: 0, 1 and 2.
+When \bold{\code{type = "crisp"}}, the process is similar to recoding the original
+values to a number of categories defined by the number of thresholds. For one
+threshold, the calibration produces two categories (intervals): 0 if below, 1 if above.
+For two thresholds, the calibration produces three categories: 0 if below the first threshold,
+1 if in the interval between the thresholds and 2 if above the second threshold etc.
 
-For \code{type = "fuzzy"}, this function can generate fuzzy sets by linear, 
-s-shaped, inverted s-shaped and logistic transformation for end-point concepts. 
-It can generate fuzzy sets by trapezoidal, triangular and bell-shaped transformation
-for mid-point concepts (Bojadziev and Bojadziev 2007; Clark et al. 2008; Thiem 2014; 
-Thiem and Dusa 2013).
+The \bold{\code{include}} argument decides whether a value equal to a certain threshold is
+included in the interval above or left in the interval below.
 
-The \code{thresholds} argument can be specified either as a simple numeric vector,
-or as a named numeric vector. If used as a named vector, the names for the end-point
-concepts should be:\cr
+When \bold{\code{type = "fuzzy"}}, calibration produces fuzzy set membership scores, using
+three anchors for the increasing or decreasing \dfn{s-shaped} distributions (including
+the logistic function), and six anchors for the increasing or decreasing \dfn{bell-shaped}
+distributions.
 
-\tabular{ll}{
-    \code{"e"} \tab for the full set exclusion\cr
-    \code{"c"} \tab for the set crossover\cr
-    \code{"i"} \tab for the full set inclusion\cr
+The argument \bold{\code{thresholds}} can be specified either as a simple numeric vector, or as a
+named numeric vector. If used as a named vector, for the first category of \dfn{s-shaped}
+distributions, the names of the thresholds should be:\cr
+
+\tabular{rl}{
+    \bold{\code{"e"}} \tab for the full set exclusion\cr
+    \bold{\code{"c"}} \tab for the set crossover\cr
+    \bold{\code{"i"}} \tab for the full set inclusion\cr
 }
 
-and for mid-point concepts the names should be:\cr
+For the second category of \dfn{bell-shaped} distributions, the names of the thresholds
+should be:\cr
 
-\tabular{ll}{
-    \code{"e1"} \tab for the first (left) threshold for full set exclusion\cr
-    \code{"c1"} \tab for the first (left) threshold for set crossover\cr
-    \code{"i1"} \tab for the first (left) threshold for full set inclusion\cr
-    \code{"i2"} \tab for the second (right) threshold for full set inclusion\cr
-    \code{"c2"} \tab for the second (right) threshold for set crossover\cr
-    \code{"e2"} \tab for the second (right) threshold for full set exclusion\cr
+\tabular{rl}{
+    \bold{\code{"e1"}} \tab for the first (left) threshold for full set exclusion\cr
+    \bold{\code{"c1"}} \tab for the first (left) threshold for set crossover\cr
+    \bold{\code{"i1"}} \tab for the first (left) threshold for full set inclusion\cr
+    \bold{\code{"i2"}} \tab for the second (right) threshold for full set inclusion\cr
+    \bold{\code{"c2"}} \tab for the second (right) threshold for set crossover\cr
+    \bold{\code{"e2"}} \tab for the second (right) threshold for full set exclusion\cr
 }
 
 If used as a simple numerical vector, the order of the values matter.
 
-If \code{e} \eqn{<} \code{c} \eqn{<} \code{i}, then the membership 
-function is increasing from \code{e} to \code{i}. If \code{i} \eqn{<} 
-\code{c} \eqn{<} \code{e}, then the membership function is decreasing from 
-\code{i} to \code{e}.
+If \bold{\code{e}} \eqn{<} \bold{\code{c}} \eqn{<} \bold{\code{i}}, then the membership 
+function is increasing from \bold{\code{e}} to \bold{\code{i}}. If \bold{\code{i}} \eqn{<} 
+\bold{\code{c}} \eqn{<} \bold{\code{e}}, then the membership function is decreasing from 
+\bold{\code{i}} to \bold{\code{e}}.
 
-Same for mid-point concepts, if \code{e1} \eqn{<} \code{c1} \eqn{<} \code{i1}
-\eqn{\le} \code{i2} \eqn{<} \code{c2} \eqn{<} \code{e2}, then the membership function
-is first increasing from \code{e1} to \code{i1}, then flat between \code{i1} and 
-\code{i2}, and finally decreasing from \code{i2} to \code{e2}. In contrast, 
-if \code{i1} \eqn{<} \code{c1} \eqn{<} \code{e1} \eqn{\le} \code{e2}
-\eqn{<} \code{c2} \eqn{<} \code{i1}, then the membership function is first 
-decreasing from \code{i1} to \code{e1}, then flat between \code{e1} and 
-\code{e2}, and finally increasing from \code{e2} to \code{i2}.
+Same for the \dfn{bell-shaped} distribution, if \bold{\code{e1}} \eqn{<} \bold{\code{c1}}
+\eqn{<} \bold{\code{i1}} \eqn{\le} \bold{\code{i2}} \eqn{<} \bold{\code{c2}} \eqn{<}
+\bold{\code{e2}}, then the membership function is first increasing from \bold{\code{e1}}
+to \bold{\code{i1}}, then flat between \bold{\code{i1}} and  \bold{\code{i2}}, and then
+decreasing from \bold{\code{i2}} to \bold{\code{e2}}. In contrast, if \bold{\code{i1}}
+\eqn{<} \bold{\code{c1}} \eqn{<} \bold{\code{e1}} \eqn{\le} \bold{\code{e2}} \eqn{<}
+\bold{\code{c2}} \eqn{<} \bold{\code{i1}}, then the membership function is first decreasing
+from \bold{\code{i1}} to \bold{\code{e1}}, then flat between \bold{\code{e1}} and 
+\bold{\code{e2}}, and finally increasing from \bold{\code{e2}} to \bold{\code{i2}}.
 
-The parameters \code{p} and \code{q} control the degree of concentration and 
-dilation. They should be left at their default values unless good reasons for 
-changing them exist.
+When \bold{\code{logistic = TRUE}} (the default), the argument \bold{\code{idm}} specifies the
+inclusion degree of membership for the logistic function. If \bold{\code{logistic = FALSE}}, the
+function returns linear \dfn{s-shaped} or \dfn{bell-shaped} distributions (curved using the
+arguments \bold{\code{below}} and \bold{\code{above}}), unless activating the argument
+\bold{\code{ecdf}}.
 
-When \code{logistic = TRUE} (default), the argument \code{idm} specifies the
-inclusion degree of membership in the set.
+If there is no prior knowledge on the shape of the distribution, the argument \bold{\code{ecdf}}
+asks the computer to determine the underlying distribution of the empirical, observed points,
+and the calibrated measures are found along that distribution.
 
-If \code{ecdf = TRUE}, calibration is based on the empirical cumulative distribution 
-function of \code{x}.
+Both \bold{\code{logistic}} and \bold{\code{ecdf}} arguments can be used only for \dfn{s-shaped}
+distributions (using 3 thresholds), and they are mutually exclusive.
+
+The parameters \bold{\code{below}} and \bold{\code{above}} (active only when both
+\bold{\code{logistic = TRUE}} and \bold{\code{ecdf}} are deactivated, establish the degree of
+concentration and  dilation (convex or concave shape) between the threshold and crossover:\cr
+
+\tabular{ll}{
+    \bold{\code{0 < below < 1}} \tab dilates in a concave shape below the crossover\cr
+    \bold{\code{below = 1}}     \tab produces a linear shape (neither convex, nor concave)\cr
+    \bold{\code{below > 1}}     \tab concentrates in a convex shape below the crossover\cr
+    \bold{\code{0 < above < 1}} \tab dilates in a concave shape above the crossover\cr
+    \bold{\code{above = 1}}     \tab produces a linear shape (neither convex, nor concave)\cr
+    \bold{\code{above > 1}}     \tab concentrates in a convex shape above the crossover\cr
+}
+
+Usually, \bold{\code{below}} and \bold{\code{above}} have equal values, unless specific reasons
+exist to make them different.
+
 }
 
 \value{
-A numeric vector of set membership scores between 0 and 1 for bivalent crisp and
-fuzzy set variables, or a numeric vector of set values for multivalent set variables 
-(beginning with 0 at increments of 1).
+A numeric vector of set membership scores, either crisp (starting from 0 with increments of 1),
+or fuzzy numeric values between 0 and 1.
+}
+
+\author{
+Adrian Dusa
 }
 
 \references{
-Bojadziev, George, and Maria Bojadziev. 2007. \emph{Fuzzy Logic for Business, Finance, 
-and Management}. 2nd ed. Hackensack, NJ: World Scientific.
-
-Clark, Terry D., Jennifer M. Larson, John N. Mordeson, Joshua D. Potter, and 
-Mark J. Wierman. 2008. \emph{Applying Fuzzy Mathematics to Formal Models in Comparative 
-Politics}. Berlin: Springer.
-
-Thiem, Alrik. 2014. \dQuote{Membership Function Sensitivity of Descriptive Statistics 
-in Fuzzy-Set Relations.} \emph{International Journal of Social Research Methodology} 
-17 (6):625-42. 
-DOI: \href{http://dx.doi.org/10.1080/13645579.2013.806118}{10.1080/13645579.2013.806118}.
-
-Thiem, Alrik, and Adrian Dusa. 2013. \emph{Qualitative Comparative Analysis with R: 
+Thiem, A.; Dusa, A. (2013) \emph{Qualitative Comparative Analysis with R: 
 A User's Guide}. New York: Springer.
+
+Thiem, A. (2014) \dQuote{Membership Function Sensitivity of Descriptive Statistics 
+in Fuzzy-Set Relations.} \emph{International Journal of Social Research Methodology} 
+vol.17, no.6, pp.625-642. 
 }
 
 \examples{
-# base variable; random draw from standard normal distribution
-set.seed(30)
-x <- rnorm(30)
 
-# calibration thresholds
-th <- quantile(x, seq(from = 0.1, to = 0.9, length = 5))
+# generate heights for 100 people
+# with an average of 175cm and a standard deviation of 10cm
+set.seed(12345)
+x <- rnorm(n = 100, mean = 175, sd = 10)
 
-# calibration of bivalent crisp set variables
-calibrate(x, thresholds = th[3])
 
-# calibration of trivalent crisp set variables
-calibrate(x, thresholds = c(th[2], th[4]))
+cx <- calibrate(x, thresholds = 175)
+plot(x, cx, main="Binary crisp set using 1 threshold",
+     xlab = "Raw data", ylab = "Calibrated data", yaxt="n")
+axis(2, at = 0:1)
 
-# fuzzy-set calibration (positive end-point concept, linear)
-plot(x, calibrate(x, type = "fuzzy",
-                  thresholds = c("e"=th[1], "c"=th[3], "i"=th[5])), 
-     ylab = "Fuzzy Set Membership")
 
-# fuzzy-set calibration (positive and corresponding negative
-# end-point concept, logistic)
-plot(x, calibrate(x, type = "fuzzy",
-                  thresholds = c("e"=th[1], "c"=th[3], "i"=th[5]), 
-                  logistic = TRUE, idm = 0.99),
-     ylab = "Fuzzy Set Membership")
-points(x, calibrate(x, type = "fuzzy",
-                    thresholds = c("e"=th[5], "c"=th[3], "i"=th[1]),
-                    logistic = TRUE, idm = 0.99))
+cx <- calibrate(x, thresholds = c(170, 180))
+plot(x, cx, main="3 value crisp set using 2 thresholds",
+     xlab = "Raw data", ylab = "Calibrated data", yaxt="n")
+axis(2, at = 0:2)
 
-# fuzzy-set calibration (positive end-point concept, ECDF)
-plot(x, calibrate(x, type = "fuzzy",
-                  thresholds = c("e"=th[1], "c"=th[3], "i"=th[5]), 
-                  ecdf = TRUE),
-     ylab = "Fuzzy Set Membership")
 
-# fuzzy-set calibration (negative end-point concept, s-shaped)
-plot(x, calibrate(x, type = "fuzzy",
-                  thresholds = c("e"=th[5], "c"=th[3], "i"=th[1]), 
-                  p = 2, q = 2),
-     ylab = "Fuzzy Set Membership")
+# calibrate to a increasing, s-shaped fuzzy-set
+cx <- calibrate(x, type = "fuzzy", thresholds = "e=165, c=175, i=185")
+plot(x, cx, main = "Membership scores in the set of tall people", 
+     xlab = "Raw data", ylab = "Calibrated data")
 
-# fuzzy-set calibration (positive mid-point concept, triangular)
-plot(x, calibrate(x, type = "fuzzy",
-                  thresholds = th[c(1,2,3,3,4,5)]),
-     ylab = "Fuzzy Set Membership")
+     
+# calibrate to an decreasing, s-shaped fuzzy-set
+cx <- calibrate(x, type = "fuzzy", thresholds = "i=165, c=175, e=185")
+plot(x, cx, main = "Membership scores in the set of short people", 
+     xlab = "Raw data", ylab = "Calibrated data")
 
-# same thing with
-ths <- th[c(1,2,3,3,4,5)]
-names(ths) <- c("e1", "c1", "i1", "i2", "c2", "e2")
-plot(x, calibrate(x, type = "fuzzy", thresholds = ths),
-     ylab = "Fuzzy Set Membership")
 
-# fuzzy-set calibration (negative mid-point concept, bell-shaped)
-plot(x, calibrate(x, type = "fuzzy", p = 3, q = 3,
-                  thresholds = th[c(3,2,1,5,4,3)]),
-     ylab = "Fuzzy Set Membership")
+# when not using the logistic function, linear increase
+cx <- calibrate(x, type = "fuzzy", logistic = FALSE,
+      thresholds = "e=165, c=175, i=185")
+plot(x, cx, main = "Membership scores in the set of tall people", 
+     xlab = "Raw data", ylab = "Calibrated data")
 
-# same thing with
-names(ths) <- c("i1", "c1", "e1", "e2", "c2", "i2")
-plot(x, calibrate(x, type = "fuzzy", p = 3, q = 3, thresholds = ths),
-     ylab = "Fuzzy Set Membership")
+
+# tweaking the parameters "above" and "below" the crossover,
+# at value 3.5 approximates a logistic distribution, when e=155 and i=195
+cx <- calibrate(x, type = "fuzzy", logistic = FALSE, above = 3.5, below = 3.5,
+      thresholds = "e=155, c=175, i=195")
+plot(x, cx, main = "Membership scores in the set of tall people", 
+     xlab = "Raw data", ylab = "Calibrated data")
+
+
+# calibrate to a bell-shaped fuzzy set
+cx <- calibrate(x, type = "fuzzy", below = 3, above = 3,
+      thresholds = "e1=155, c1=165, i1=175, i2=175, c2=185, e2=195")
+plot(x, cx, main = "Membership scores in the set of average height",
+     xlab = "Raw data", ylab = "Calibrated data")
+
+
+# calibrate to an inverse bell-shaped fuzzy set
+cx <- calibrate(x, type = "fuzzy", below = 3, above = 3,
+      thresholds = "i1=155, c1=165, e1=175, e2=175, c2=185, i2=195")
+plot(x, cx, main = "Membership scores in the set of non-average height",
+     xlab = "Raw data", ylab = "Calibrated data")
+
+
+# the default values of "above" and "below" will produce a triangular shape
+cx <- calibrate(x, type = "fuzzy",
+      thresholds = "e1=155, c1=165, i1=175, i2=175, c2=185, e2=195")
+plot(x, cx, main = "Membership scores in the set of average height",
+     xlab = "Raw data", ylab = "Calibrated data")
+
+
+# larger values will increase the membership in or out of the set
+cx <- calibrate(x, type = "fuzzy", below = 10, above = 10,
+      thresholds = "e1=155, c1=165, i1=175, i2=175, c2=185, e2=195")
+plot(x, cx, main = "Membership scores in the set of average height",
+     xlab = "Raw data", ylab = "Calibrated data")
+
+
+# while extremely large values will produce virtually crisp results
+cx <- calibrate(x, type = "fuzzy", below = 10000, above = 10000,
+      thresholds = "e1=155, c1=165, i1=175, i2=175, c2=185, e2=195")
+plot(x, cx, main = "Binary crisp scores in the set of average height",
+     xlab = "Raw data", ylab = "Calibrated data", yaxt="n")
+axis(2, at = 0:1)
+abline(v = c(165, 185), col = "red", lty = 2)
+
+# check if crisp
+round(cx, 0)
+
+
+# using the empirical cumulative distribution function
+# require manually setting logistic to FALSE
+cx <- calibrate(x, type = "fuzzy", logistic = FALSE, ecdf = TRUE,
+      thresholds = "e=155, c=175, i=195")
+plot(x, cx, main = "Membership scores in the set of tall people", 
+     xlab = "Raw data", ylab = "Calibrated data")
 }
 
 

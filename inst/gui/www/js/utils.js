@@ -1,16 +1,12 @@
 
-
 navigator.browserType = (function(){
     var N = navigator.appName, ua = navigator.userAgent, tem;
     var M = ua.match(/(opera|chrome|safari|firefox|msie|trident)\/?\s*(\.?\d+(\.\d+)*)/i);
     if (M && (tem= ua.match(/version\/([\.\d]+)/i))!= null) {M[2]=tem[1];}
-    //M = M? [M[1], M[2]]: [N, navigator.appVersion,'-?'];
+    
     M = M? M[1] : N;
     return M;
 })();
-
-
-
 
 $.extend($.fn.disableTextSelection = function() {
     return this
@@ -19,9 +15,6 @@ $.extend($.fn.disableTextSelection = function() {
          .on('selectstart', false);
     
 });
-
-
-
 
 function addDiv(olddiv, newdiv, settings) {
     var div1 = document.getElementById(olddiv);
@@ -59,15 +52,6 @@ function addDiv(olddiv, newdiv, settings) {
     
 }
 
-
-
-
-/* --------------------------------------------------------------------- */
-
-
-
-
-// modified version of http://mech.fsv.cvut.cz/~stransky/en/software/raphaeltools/
 Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
     
     if (dim == void 0) {
@@ -93,7 +77,6 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
         ["l", 0.3*dim*2, -0.45*dim*2]
     ]).attr({"stroke-width": 2});
     
-        
     if (isChecked) {
         cb.box.attr({fill: "#97bd6c"});
         cb.chk.show();
@@ -104,7 +87,6 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
     }
     
     cb.isChecked = isChecked;
-    
     
     cb.cover = this.rect(x, y, dim, dim)
         .attr({fill: "#000", opacity: 0, cursor: "pointer"})
@@ -124,18 +106,15 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
             }
         });
     
-        
     cb.activate = function() {
         cb.active = true;
         cb.cover.attr({fill: "#000", opacity: 0, cursor: "pointer"});
     }
     
-        
     cb.deactivate = function() {
         cb.active = false;
         cb.cover.attr({fill: "#000", opacity: 0, cursor: "default"});
     }
-        
         
     cb.uncheck = function() {
         cb.isChecked = false;
@@ -144,7 +123,6 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
         cb.cover.isChecked = false;
     }
     
-      
     cb.check = function() {
         cb.isChecked = true;
         cb.box.attr({fill: "#97bd6c"});
@@ -160,7 +138,6 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
             cb.label[i].hide();
         }
     }
-    
     
     cb.showIt = function() {
         cb.cover.show();
@@ -187,12 +164,6 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
     return(cb);
     
 }
-
-
-
-/* --------------------------------------------------------------------- */
-
-
 
 Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, size, fontsize) {
     
@@ -232,11 +203,13 @@ Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, siz
         rd.cover[i].i = i;
         rd.cover[i].click(function() {
             rd.fill.show();
+            
             rd.fill.transform("t0," + (this.getBBox().y - y + size + 2));
             rd.whichChecked = this.i;
         });
         
         if (Array.isArray(vertspace)) {
+            
             newvert = vertspace[i];
         }
         else {
@@ -244,10 +217,9 @@ Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, siz
         }
     }
     
-    
     rd.fill.push(this.circle(x, y, size - 0.5).attr({fill: "#97bd6c", stroke: "none"}));
-    rd.fill.push(this.circle(x, y, size - 4.5).attr({fill: "#000000", stroke: "none"}));
     
+    rd.fill.push(this.circle(x, y, size - 4.5).attr({fill: "#000000", stroke: "none"}));
     
     if (rd.whichChecked < 0) {
         rd.fill.hide();
@@ -290,14 +262,10 @@ Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, siz
     
 }
 
-
-
-
-
 function isNumeric(n) {
     return !/^(NaN|-?Infinity)$/.test(+n);
+    
 }
-
 
 function copyObject(obj) {
     
@@ -310,7 +278,6 @@ function copyObject(obj) {
     
     return(temp);
 }
-
 
 function copyArray(obj, exclude) {
     
@@ -330,8 +297,6 @@ function copyArray(obj, exclude) {
     return(temp);
 }
 
-
-
 function arraysEqual(a, b) {
     if (a === b) return true;
     if (a == null || b == null) return false;
@@ -343,8 +308,6 @@ function arraysEqual(a, b) {
     return true;
 }
 
-
-
 function getKeys(obj) {
     var keys = new Array(obj.length);
     var keycount = 0;
@@ -355,8 +318,7 @@ function getKeys(obj) {
     return(keys)
 }
 
-
-function getTrueKeys(obj) {
+function getTrueKeys(obj) { 
     var trueKeys = new Array();
     for (var key in obj) {
         if (obj[key]) {
@@ -371,8 +333,6 @@ function getTrueKeys(obj) {
         return(trueKeys);
     }
 }
-
-
 
 function changeCol(obj, oldname, newname) {
     var temp = new Array();
@@ -396,15 +356,6 @@ function changeCol(obj, oldname, newname) {
     return(temp);
 }
 
-
-
-
-
-/* --------------------------------------------------------------------- */
-
-
-
-
 function sat(obj, options) {
     
     if (options == void 0) {
@@ -419,18 +370,15 @@ function sat(obj, options) {
         options.anchor = "start";
     }
     
-    // create a copy of the options
     var optkeys = getKeys(options);
     var options2 = new Array();
     for (var i = 0; i < optkeys.length; i++) {
         options2[optkeys[i]] = options[optkeys[i]];
     }
             
-    
     if (Array.isArray(obj)) {
         var keys = getKeys(obj);
          
-        
         for (var i = 0; i < keys.length; i++) {
             if (optkeys.indexOf("clip") >= 0) {
                 if (typeof(options.clip) != "string") {
@@ -461,7 +409,6 @@ function sat(obj, options) {
                     clipattr = BBox.x + "," + BBox.y + "," + (BBox.width - 3) + "," + BBox.height;
                 }
                 
-                
                 obj.attr({"text-anchor": options.anchor, "font-size": (options.size + "px"), "clip-rect": clipattr});
             }
         }
@@ -472,14 +419,6 @@ function sat(obj, options) {
     
     return(obj);
 }
-
-
-
-
-/* --------------------------------------------------------------------- */
-
-
-
 
 function setAttrCover(obj) {
     
@@ -499,16 +438,10 @@ function setAttrCover(obj) {
     
 }
 
-
-
-
 function round(x, y) {
     y = Math.pow(10, y);
     return(Math.round(x*y)/y);
 }
-
-
-
 
 function all(obj, rule, value) {
     if (value === void 0) {
@@ -546,8 +479,6 @@ function all(obj, rule, value) {
     return(check);
 }
 
-
-
 function any(obj, rule, value) {
     if (value === void 0) {
         value = "";
@@ -581,8 +512,6 @@ function any(obj, rule, value) {
     return(check);
 }
 
-
-
 function rep(rule, times) {
     var result = new Array(times);
     for (var i = 0; i < times; i++) {
@@ -591,8 +520,20 @@ function rep(rule, times) {
     return(result);
 }
 
-
-
+function unique(obj) {
+    var uniques = new Array();
+    var present;
+    for (var i = 0; i < obj.length; i++) {
+        
+        if (uniques.indexOf(obj[i]) < 0) {
+            uniques.push(obj[i]);
+        }
+        
+    }
+    
+    return(uniques);
+    
+}
 
 function makeRules(oldv, newv) {
     
@@ -610,25 +551,6 @@ function makeRules(oldv, newv) {
     return(rule)
 }
 
-
-
-function getUniqueNewv(obj) {
-    var uniques = new Array();
-    var present;
-    for (var i = 0; i < obj.length; i++) {
-        
-        if (uniques.indexOf(obj[i]) < 0) {
-            uniques.push(obj[i]);
-        }
-        
-    }
-    
-    return(uniques);
-    
-}
-
-
-
 function eraseRecodeValues(paper) {
     paper.oldv.texts.VALUE.attr({"text": ""});
     paper.oldv.texts.range.FROM.attr({"text": ""});
@@ -638,14 +560,6 @@ function eraseRecodeValues(paper) {
     paper.newv.texts.VALUE.attr({"text": ""});
 }
 
-
-
-
-/* --------------------------------------------------------------------- */
-
-
-
-
 function checkRecodeSelections(colclicks, paper) {
     var cols = getTrueKeys(colclicks.recode.rules);
     eraseRecodeValues(paper);
@@ -654,7 +568,7 @@ function checkRecodeSelections(colclicks, paper) {
         var lr = cols[0].split("=");
         var lhs = lr[0].split(":");
         var rhs = lr[1];
-        var idx = 0; // assume VALUE
+        var idx = 0; 
         
         if (lhs.length > 1) {
             
@@ -705,17 +619,8 @@ function checkRecodeSelections(colclicks, paper) {
         
         paper.oldradio.moveTo(idx);
         
-        
     }
 }
-
-
-
-
-/* --------------------------------------------------------------------- */
-
-
-
 
 function deleteRule(colclicks, rule) {
     var keys = getKeys(colclicks.recode.rules);
@@ -729,9 +634,6 @@ function deleteRule(colclicks, rule) {
     
     colclicks.recode.rules = temp;
 }
-
-
-
 
 function changeRule(colclicks, selected, replacement) {
     var keys = getKeys(colclicks.recode.rules);
@@ -749,7 +651,6 @@ function changeRule(colclicks, selected, replacement) {
     colclicks.recode.rules = temp;
 }
 
-
 function unselect(colclicks, dialog, identifier) {
     if (colclicks[dialog][identifier] != void 0) {
         var keys = getKeys(colclicks[dialog][identifier]);
@@ -758,14 +659,6 @@ function unselect(colclicks, dialog, identifier) {
         }
     }
 }
-
-
-
-
-/* --------------------------------------------------------------------- */
-
-
-
 
 function scaleplot(paper) {
     var xyplotdata = paper.xyplotdata;
@@ -777,7 +670,6 @@ function scaleplot(paper) {
     var rdim = paper.rdim;
     var xcoord, ycoord;
     var randomjitter = paper.randomjitter;
-    
     
     if (paper.total != void 0) {
         paper.total.remove();
@@ -795,6 +687,7 @@ function scaleplot(paper) {
     paper.points = new Array();
     
     paper.total.push(paper.rect(sx, sy, scale*dim, scale*dim));
+    
     paper.total.push(paper.path("M" + sx + "," + (sy + scale*dim) + " L" + (sx + scale*dim) + "," + sy).attr({"stroke": "#a0a0a0"}));
     
     paper.mdlines.push(paper.path("M" + sx + "," + (sy + scale*dim/2) +  " L" + (sx + scale*dim) + "," + (sy + scale*dim/2)).attr({"stroke-dasharray": "--"}));
@@ -804,15 +697,20 @@ function scaleplot(paper) {
     for (var i = 0; i < 11; i++) {
         
         var vertick = 
+        
         paper.ticks.push(paper.path("M" + (sx + scale*(offset + i*rdim/10)) + "," + (sy + scale*dim) + " L" + (sx + scale*(offset + i*rdim/10)) + "," + (sy + scale*dim + 7)));
+        
         paper.ticks.push(paper.path("M" + (sx - 7) + "," + (sy + scale*(offset + i*rdim/10)) + " L" + sx + "," + (sy + scale*(offset + i*rdim/10)) ) );
         
         paper.afv.push(sat(paper.text(sx + scale*(offset + i*rdim/10), sy + scale*dim + 15, i/10), {"size": 12, "anchor": "middle"}));
+        
         paper.afv.push(sat(paper.text(sx - 10, sy + scale*(offset + i*rdim/10), (10 - i)/10), {"size": 12, "anchor": "end"}));
         
         if (i == 5) {
-            paper.afv.push(sat(paper.text(sx + scale*(offset + i*rdim/10), sy + scale*dim + 34, paper.x), {"size": 14, "anchor": "middle", "font-weight": "bold"}));
-            var temp = sat(paper.text(sx - 38, sy + scale*(offset + i*rdim/10), paper.y), {"size": 14, "anchor": "end", "font-weight": "bold"});
+            
+            paper.afv.push(sat(paper.text(sx + scale*(offset + i*rdim/10), sy + scale*dim + 34, ((paper.negx.isChecked?"~":"") + paper.x)), {"size": 14, "anchor": "middle", "font-weight": "bold"}));
+            
+            var temp = sat(paper.text(sx - 38, sy + scale*(offset + i*rdim/10), ((paper.negy.isChecked?"~":"") + paper.y)), {"size": 14, "anchor": "end", "font-weight": "bold"});
             var BBox = temp.getBBox();
             temp.transform("t" + (BBox.width/2) + ",0r-90");
             paper.afv.push(temp);
@@ -830,7 +728,6 @@ function scaleplot(paper) {
         }
     }
     
-    
     var hoverOut = function() {
         if (this.label.attr("text") != "" & !paper.labels.isChecked) {
             this.label[1].attr({"fill-opacity": 0});
@@ -838,8 +735,7 @@ function scaleplot(paper) {
         }
     }
     
-    
-    if (xyplotdata.length > 0) { // plot the points
+    if (xyplotdata.length > 0) { 
         for (var i = 0; i < xyplotdata[0].length; i++) {
             xcoord = sx + scale*(offset + rdim*((paper.negx.isChecked)?(1 - xyplotdata[1][i]):(xyplotdata[1][i]))) + ((getKeys(randomjitter).length > 0)?(randomjitter.x[i]):0);
             ycoord = sy + scale*(offset + rdim*((paper.negy.isChecked)?(xyplotdata[2][i]):(1 - xyplotdata[2][i]))) + ((getKeys(randomjitter).length > 0)?(randomjitter.y[i]):0);
@@ -855,12 +751,13 @@ function scaleplot(paper) {
                 paper.incl.attr({"text": "Inclusion: " + xyplotdata[3][paper.index][0]});
                 paper.cov.attr({"text": "Coverage: " + xyplotdata[3][paper.index][1]});
                 paper.PRI.attr({"text": "PRI: " + xyplotdata[3][paper.index][2]});
+                paper.ron.hide();
             }
             else {
                 paper.incl.attr({"text": "Inclusion: " + xyplotdata[4][paper.index][0]});              
                 paper.cov.attr({"text": "Coverage: " + xyplotdata[4][paper.index][1]});
-                paper.PRI.attr({"text": "PRI: " + xyplotdata[4][paper.index][2]});
-                paper.ron.attr({"text": "Relevance: " + xyplotdata[4][paper.index][3]});
+                paper.ron.attr({"text": "Relevance: " + xyplotdata[4][paper.index][2]});
+                paper.PRI.hide()
             }
         }
         
@@ -868,12 +765,6 @@ function scaleplot(paper) {
     }
     
 }
-
-
-
-/* --------------------------------------------------------------------- */
-
-
 
 function createLabels(paper) {
     var xyplotdata = paper.xyplotdata;
@@ -889,8 +780,7 @@ function createLabels(paper) {
     var rdim = paper.rdim;
     var txt, txtfundal, outer, BBox, coords, x, y, r, twidth;
     
-    
-    if (xyplotdata.length > 0) { // plot the points
+    if (xyplotdata.length > 0) { 
         for (var i = 0; i < xyplotdata[0].length; i++) {
             
             twidth = getTextWidth(xyplotdata[0][i])
@@ -930,7 +820,6 @@ function createLabels(paper) {
         }
     }
     
-    
     if (paper.labels.isChecked) {
         paper.labelsset.show();
     }
@@ -938,16 +827,7 @@ function createLabels(paper) {
         paper.labelsset.hide();
     }
     
-    
 }
-
-
-
-
-/* --------------------------------------------------------------------- */
-
-
-
 
 function setPath(paper, wd) {
     paper.clear();
@@ -983,7 +863,6 @@ function setPath(paper, wd) {
         }
     }
     
-    
     var lastX, groupX, groupWidth;
     
     function dragStartLarge(group) {
@@ -994,7 +873,6 @@ function setPath(paper, wd) {
             groupWidth = BBox.width;
         }
     };
-    
     
     function dragMoveLarge(group) {
         
@@ -1021,7 +899,6 @@ function setPath(paper, wd) {
         }
     };
     
-    
     function dragStopLarge(group) {
         return function() {
             
@@ -1033,18 +910,9 @@ function setPath(paper, wd) {
     paper.setSize(x + 20, 20);
 }
 
-
-
-/* --------------------------------------------------------------------- */
-
-
-
-
 function randomBetween(min, max) {
     return (min + Math.random()*(max - min + 1));
 }
-
-
 
 function reorder(obj, from, to) {
     var keys = getKeys(obj);
@@ -1064,10 +932,6 @@ function reorder(obj, from, to) {
     return(result);
 }
 
-
-
-// code from:
-// http://stackoverflow.com/questions/840781/easiest-way-to-find-duplicate-values-in-a-javascript-array
 function duplicates(arr) {
     var len = arr.length,
         out = [],
@@ -1087,9 +951,6 @@ function duplicates(arr) {
     return out;
 }
 
-
-
-// code from: http://www.alexandre-gomes.com/?p=115
 function getScrollBarWidth() {
     var inner = document.createElement('p');
     inner.style.width = "100%";
@@ -1116,9 +977,6 @@ function getScrollBarWidth() {
     return (w1 - w2);
 };
 
-
-
-
 function scaleShape(path, scale) {
     var parsed = Raphael.parsePathString(path);
     for (var j = 0; j < parsed.length; j++) {
@@ -1129,11 +987,9 @@ function scaleShape(path, scale) {
     return(parsed.toString());
 }
 
-
 function getShape(x, venn, scale) {
     
     bigpath = "";
-    
     
     for (var b = 0; b < x.length; b++) {
         var path = "M";
@@ -1142,7 +998,7 @@ function getShape(x, venn, scale) {
         
         var counter = 0;
         
-        while(counter < 1000) { //any(checkb, "== false")
+        while(counter < 1000) { 
             for (var i = 0; i < checkb.length; i++) {
                 if (!checkb[i]) {
                     var y = venn[x[b][i]];
@@ -1159,7 +1015,7 @@ function getShape(x, venn, scale) {
                         endb = y[y.length - 2] + " " + y[y.length - 1]
                         
                         if (end == stb) {
-                            //path += " C";
+                            
                             for (var j = 1; j < y.length/2; j++) {
                                 path += " " + round(y[2*j]*scale, 3) + "," + round(y[2*j + 1]*scale, 3);
                             }
@@ -1167,7 +1023,7 @@ function getShape(x, venn, scale) {
                             end = endb;
                         }
                         else if (end == endb) {
-                            //path += " C";
+                            
                             for (var j = y.length/2 - 2; j >= 0; j--) {
                                 path += " " + round(y[2*j]*scale, 3) + "," + round(y[2*j + 1]*scale, 3);
                             }
@@ -1184,15 +1040,10 @@ function getShape(x, venn, scale) {
             counter += 1
         }
         
-        
         bigpath += " " + path + " z";
     }
     return(bigpath);
 }
-
-
-
-
 
 function customShape(rule, venn, scale, id) {
     
@@ -1202,7 +1053,7 @@ function customShape(rule, venn, scale, id) {
     var check = rep(true, rule.length);
     var keys = getKeys(id);
     
-    for (i = 0; i < keys.length; i++) {
+    for (i = 0; i < keys.length; i++) { 
         keys[i] = keys[i]*1;
         idis = id[keys[i]].split("");
         
@@ -1225,13 +1076,11 @@ function customShape(rule, venn, scale, id) {
         ids[i] = id[rowns[i]];
     }
     
-    
     var inverted = any(rowns, "==", 0);
     
     if (rowns.length == 1 && rowns[0] == 0) {
         rowns = $(keys).not(rowns).get();
     }
-    
     
     checkZone = function(from, rowns, checkz, venn) {
         var fromz = venn[1][from];
@@ -1280,7 +1129,6 @@ function customShape(rule, venn, scale, id) {
                 }
             }
             
-            
             result[result.length] = temp1;
             if (checkz2.length > 0) {
                 rowns = copyArray(temp2);
@@ -1311,8 +1159,6 @@ function customShape(rule, venn, scale, id) {
     
 }
 
-
-
 function parseText(text, conditions) {
     
     text = text.replace("(", "");
@@ -1320,7 +1166,6 @@ function parseText(text, conditions) {
     text = text.replace(/\s/g, "");
     splitchar = "*";
     var parsedPlus = text.split("+");
-    
     
     var largecheck = rep(false, parsedPlus.length);
     
@@ -1341,7 +1186,6 @@ function parseText(text, conditions) {
             }
         }
         
-        
         var check = rep(false, parsedStar.length);
         
         for (var j = 0; j < parsedStar.length; j++) {
@@ -1350,7 +1194,6 @@ function parseText(text, conditions) {
         
         largecheck[i] = any(check, " == true")
     }
-    
     
     if (any(largecheck, " == true")) {
         
@@ -1378,7 +1221,6 @@ function parseText(text, conditions) {
         
     }
     
-    
     finalResult = {};
     
     for (var i = 0; i < parsedPlus.length; i++) {
@@ -1404,8 +1246,72 @@ function parseText(text, conditions) {
     return(finalResult);
 }
 
+function parseCommand(command) {
+    var pairs = {
+        "(": ")",
+        "[": "]",
+        "{": "}"
+    }
+    
+    command = command.replace(/"([^"]+)"/g, "");
+    command = command.replace(/'([^']+)'/g, "");
+    command = command.replace(/[^(|^)|^{|^}\^'\^"|^\[|^\]|\n]/g, "");
+    
+    command = command.split("");
+    var uniques = unique(command);
+    var frequencies = rep(0, uniques.length);
+    var found = rep("", uniques.length);
+    var temp;
+    
+    for (var i = 0; i < uniques.length; i++) {
+        for (var j = 0; j < command.length; j++) {
+            if (uniques[i] == command[j]) {
+                frequencies[i] += 1;
+            }
+        }
+        
+        temp = pairs[uniques[i]];
+        
+        if (temp !== undefined) {
+            found[i] = temp;
+        }
+    }
+    
+    for (i = 0; i < uniques.length; i++) {
+        if (found[i] != "") {
+            if (frequencies[uniques.indexOf(found[i])] === undefined) {
+                return("+");
+            }
+            else if (frequencies[i] > frequencies[uniques.indexOf(found[i])]) {
+                return("+");
+            }
+        }
+        else if (uniques[i] == '"' || uniques[i] == "'") {
+            if (frequencies[i] % 2) {
+                return("+");
+            }
+        }
+    }
+    
+    return("ok");
+    
+}
 
-
-
-
+function caretPosition(jqueryItem) {
+    var input = jqueryItem.get(0);
+    if (!input) return; 
+    if ('selectionStart' in input) {
+        
+        return input.selectionStart;
+    } else if (document.selection) {
+        
+        input.focus();
+        var sel = document.selection.createRange();
+        var selLen = document.selection.createRange().text.length;
+        sel.moveStart('character', -input.value.length);
+        $("#sel").html(sel);
+        $("#selLen").html(selLen);
+        return sel.text.length - selLen;
+    }
+}
 

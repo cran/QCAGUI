@@ -2,6 +2,10 @@
 function(mydata, outcome = "", conditions = c(""), relation = "", incl.cut = 1, cov.cut = 0,
          index = 1, neg.out = FALSE, use.tilde = FALSE) {
     
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
     if (all(conditions == c(""))) {
         conditions <- names(mydata)[-which(names(mydata) == outcome)]
     }
@@ -91,7 +95,7 @@ function(mydata, outcome = "", conditions = c(""), relation = "", incl.cut = 1, 
             colnames(row3k) <- conditions
             
             incov <- getInclusion(closest[i], relation, connector, fuzzy.cc)
-            term <- writePrimeimp(row3k, uplow=uplow, use.tilde=use.tilde)
+            term <- QCA::writePrimeimp(row3k, uplow=uplow, use.tilde=use.tilde)
             if (relation == "necessity" & connector == "or") {
                 term <- gsub("\\*", "+", term)
             }

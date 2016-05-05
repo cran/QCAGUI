@@ -3,6 +3,8 @@ function(x, file = "", ...) {
     
     export.args <- list(...)
     Call <- match.call(expand.dots = TRUE)
+    # Callist <- as.list(Call)
+    # as.list(Call) e acelasi lucru cu list(...)
     
     caseid <- "cases"
     if (any(names(export.args) == "caseid")) {

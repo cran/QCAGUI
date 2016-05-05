@@ -1,5 +1,9 @@
 `findSupersets` <-
-function (noflevels3k, input.combs) {
+function (noflevels, input.combs) {
+    
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
     
     if (!is.matrix(input.combs)) {
         if (!is.vector(input.combs)) {
@@ -8,18 +12,18 @@ function (noflevels3k, input.combs) {
                  call. = FALSE)
         }
         else {
-            if (any(input.combs > prod(noflevels3k))) {
+            if (any(input.combs > prod(noflevels))) {
                 cat("\n")
                 stop(paste("Some line numbers do not belong in the solution-space for",
-                           length(noflevels3k), "causal conditions.\n\n"), call. = FALSE)
+                           length(noflevels), "causal conditions.\n\n"), call. = FALSE)
             }
-            input.combs <- getRow(noflevels3k, input.combs)
+            input.combs <- getRow(noflevels, input.combs)
         }
     }
     
-    mbase <- rev(c(1, cumprod(rev(noflevels3k))))[-1]
-    allcombn <- t(createMatrix(rep(2, length(noflevels3k)))[-1, ])
-    primes <- sort(unique(as.vector(apply(input.combs, 1, function(x) (x*mbase) %*% allcombn + 1))))
+    mbase <- rev(c(1, cumprod(rev(noflevels))))[-1]
+    allcombn <- t(createMatrix(rep(2, length(noflevels)))[-1, ])
+    primes <- sort.int(unique(as.vector(apply(input.combs, 1, function(x) (x*mbase) %*% allcombn + 1))))
     if (primes[1] == 1) {
         return(primes[-1])
     }

@@ -2,10 +2,11 @@
 
 \alias{factorize}
 
-\title{Factorize Set-Theoretic Expressions}
+\title{Factorize Boolean expressions}
 
 \description{
-This function finds all possibilities for factorizing a set-theoretic expression.
+This function finds all combinations of common factors in a Boolean expression
+written in DNF - disjunctive normal form.
 }
 
 \usage{
@@ -13,44 +14,52 @@ factorize(expression, snames = "", pos = FALSE, tilde, ...)
 }
 
 \arguments{
-  \item{expression}{A string representing a set-theoretic expression or a solution 
-        object of class \dQuote{qca}.}
-  \item{snames}{The set names}
+  \item{expression}{A string containing the DNF expression, or an object of
+        class \code{"qca"}.}
+  \item{snames}{A string containing the sets' names, separated by commas.}
   \item{pos}{Logical, if possible factorize using product(s) of sums.}
-  \item{tilde}{Logical, use a tilde for a negation.}
-  \item{...}{Other arguments (mainly for backward compatibility).}
+  \item{tilde}{Logical, use a tilde to negate the expression.}
+  \item{...}{Other arguments (mainly for backwards compatibility).}
 }
 
 \details{
-In set theory, the intersection operator \dQuote{*} is distributive over the union 
-operator \dQuote{+} such that for any three sets \eqn{a}, \eqn{b} and \eqn{c}, the 
-following law holds: \eqn{(a*b) + (a*c) = a*(b + c)}{(a*b) + (a*c) = a*(b + c)} 
-(Hohn 1966, pp.78-80; South 1974, p.12). The \code{factorize()} function finds 
-all possible sets \eqn{a}{a} for any set-theoretic expression. Factorized 
-versions of the initial expression(s) can be sorted in decreasing order by the 
-number of factorizing sets or in decreasing order by the number of factorized sets.
+
+Factorization is a process of finding common factors in a Boolean expression,
+written in DNF - disjunctive normal form, or in a sum of products (SOP) form.
+The factorization is also possible using products of sums (POS) form.
 
 Starting with version 2.1 of the package, a number of arguments have been deprecated.
-For example, \code{prod.split}, because intersections are usually indicated by a star
-\dQuote{*} sign, and sometimes products are not indicated by anything (for example
-when the set names are single letters.
+For example, \bold{\code{prod.split}}, because intersections (products) are
+indicated by the standard \bold{\code{*}} sign, and sometimes products are not
+indicated by anything (for example when the set names are single letters.
 
-The argument \code{snames} is only needed when products are not indicated by any
-sign at all, and the set names have more than one letter each (see function
-\code{translate()} for more details).
+The argument \bold{\code{snames}} is only needed when products are not indicated by
+any sign at all, and the set names have more than one letter each (see function
+\bold{\code{translate()}} for more details).
+
+If \bold{\code{expression}} is an object of class \code{"qca"} (the result of the
+\bold{\code{eqmcc()}} minimization function), this function performs a factorization
+for each of the minimized solutions.
 
 }
 
-\value{A list with the following components:\cr
-  \item{initial}{The initial expression.}
-  \item{factored}{The factorizations of the initial expression.}
+\value{
+A list with two components:
+
+\tabular{rl}{
+  \bold{initial} \tab {The input expression.}\cr
+  \bold{factored} \tab {All possible factorizations of the input expression.}\cr
+}
+
+}
+
+\author{
+Adrian Dusa
 }
 
 \references{
-Hohn, Franz E. 1966. \emph{Applied Boolean Algebra: An Elementary Introduction}. 
-2nd ed. New York: Macmillan.
-
-South, G. F. 1974. \emph{Boolean Algebra and Its Uses}. New York: Van Nostrand Reinhold.
+Ragin, C.C. (1987) \emph{The Comparative Method. Moving beyond qualitative
+and quantitative strategies}, Berkeley: University of California Press
 }
 
 \seealso{\code{\link{translate}}}
@@ -67,20 +76,20 @@ factorize("one*TWO*four + one*THREE + THREE*four",
 factorize("~ONE*TWO*~FOUR + ~ONE*THREE + THREE*~FOUR",
           snames = "ONE, TWO, THREE, FOUR")
 
-
-# factorize solution objects directly
-data(d.partybans)
-HK.sol <- eqmcc(d.partybans, outcome = "PB", conditions = "C, F, T, V", 
-  include = "?")
-factorize(HK.sol)
-
-data(d.jobsecurity)
-Emm.sol <- eqmcc(d.jobsecurity, outcome = "JSR", incl.cut1 = 0.9)
-factorize(Emm.sol)
-
 # using pos - products of sums
 factorize("a*c + a*D + b*c + b*D", pos = TRUE)
 
+
+# using an object of class "qca" produced with eqmcc()
+data(CVF)
+pCVF <- eqmcc(CVF, outcome = "PROTEST", incl.cut = 0.8,
+              include = "?", use.letters = TRUE)
+
+factorize(pCVF)
+
+
+# using an object of class "deMorgan" produced with deMorgan()
+factorize(deMorgan(pCVF))
 }
 
 \keyword{functions}

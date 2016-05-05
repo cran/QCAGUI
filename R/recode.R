@@ -1,14 +1,21 @@
 `recode` <-
 function(x, rules, ...) {
     
+    # TO DO: detect usage of both ; and , as rules separator, and generate error
+    
+    
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
     if (!is.vector(x) & !is.factor(x)) {
         cat("\n")
-        stop("x is not a vector.\n\n", call. = FALSE)
+        stop(simpleError("x is not a vector.\n\n"))
     }
     
     if (all(is.na(x))) {
         cat("\n")
-        stop("All values are missing in x.\n\n", call. = FALSE)
+        stop(simpleError("All values are missing in x.\n\n"))
     }
     
     other.args <- list(...)
@@ -28,12 +35,12 @@ function(x, rules, ...) {
         
         if (length(seqfrom) == 0 & !xisnumeric) {
             cat("\n")
-            stop(paste("x is not numeric and \"", a, "\" is not found.\n\n", sep=""), call. = FALSE)
+            stop(simpleError(paste("x is not numeric and \"", a, "\" is not found.\n\n", sep="")))
         }
         
         if (length(seqto) == 0 & !xisnumeric) {
             cat("\n")
-            stop(paste("x is not numeric and \"", b, "\" is not found.\n\n", sep=""), call. = FALSE)
+            stop(simpleError(paste("x is not numeric and \"", b, "\" is not found.\n\n", sep="")))
         }
         
         temp2 <- sort(unique(c(uniques, a, b)))
@@ -56,8 +63,8 @@ function(x, rules, ...) {
     }
     
     rulsplit <- strsplit(rules, split="=")
-    oldval <- unlist(lapply(lapply(rulsplit, trimst), "[", 1))
-    newval <- unlist(lapply(lapply(rulsplit, trimst), "[", 2))
+    oldval <- unlist(lapply(lapply(rulsplit, QCA::trimst), "[", 1))
+    newval <- unlist(lapply(lapply(rulsplit, QCA::trimst), "[", 2))
     
     temp <- rep(NA, length(x))
     
@@ -73,7 +80,7 @@ function(x, rules, ...) {
     if (any(oldval == "else")) {
         if (sum(oldval == "else") > 1) {
             cat("\n")
-            stop("Too many \"else\" statements.\n\n", call. = FALSE)
+            stop(simpleError("Too many \"else\" statements.\n\n"))
         }
         
         # place the "else" statement as the last one, very important
@@ -83,15 +90,15 @@ function(x, rules, ...) {
     }
     
     oldval <- lapply(lapply(lapply(oldval, strsplit, split=","), "[[", 1), function(y) {
-        lapply(strsplit(y, split=":"), trimst)
+        lapply(strsplit(y, split=":"), QCA::trimst)
     })
     
-    newval <- trimst(rep(newval, unlist(lapply(oldval, length))))
+    newval <- QCA::trimst(rep(newval, unlist(lapply(oldval, length))))
     
     
     if (any(unlist(lapply(oldval, function(y) lapply(y, length))) > 2)) {
         cat("\n")
-        stop("Too many : sequence operators.\n\n", call. = FALSE)
+        stop(simpleError("Too many : sequence operators.\n\n"))
     }
     
     
@@ -101,7 +108,7 @@ function(x, rules, ...) {
     uniques <- if(is.factor(x)) levels(x) else sort(unique(x[!is.na(x)]))
     
     recoded <- NULL
-    xisnumeric <- possibleNumeric(uniques)
+    xisnumeric <- QCA::possibleNumeric(uniques)
     
     if (xisnumeric) {
         x <- as.numeric(x) # to be safe
@@ -129,7 +136,7 @@ function(x, rules, ...) {
                 # if (!any(x == from[i])) {
                 #     cat("\n")
                 #     val <- ifelse(is.na(suppressWarnings(as.numeric(from[i]))), paste("\"", from[i], "\"", sep = ""), from[i])
-                #     stop(paste("The value", val, "was not found.\n\n", sep=""), call. = FALSE)
+                #     stop(simpleError(paste("The value", val, "was not found.\n\n", sep="")))
                 # }
                 temp[x == from[i]] <- newval[i]
             }
@@ -150,8 +157,8 @@ function(x, rules, ...) {
 		temp <- factor(temp, levels=factor.levels, labels=factor.labels, ordered=factor.ordered)
 	}
 	else if (as.numeric.result) {
-        if (possibleNumeric(temp)) {
-            temp <- as.numeric(temp)
+        if (QCA::possibleNumeric(temp)) {
+            temp <- QCA::asNumeric(temp)
         }
     }
     

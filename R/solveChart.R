@@ -1,9 +1,13 @@
 `solveChart` <-
 function(chart, row.dom = FALSE, all.sol = FALSE, ...) {
     
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
     if (!is.logical(chart)) {
         cat("\n")
-        stop("Use a T/F matrix. See demoChart's output.\n\n", call. = FALSE)
+        stop(simpleError("Use a T/F matrix. See makeChart's output.\n\n"))
     }
     
     other.args <- list(...)
@@ -21,7 +25,7 @@ function(chart, row.dom = FALSE, all.sol = FALSE, ...) {
     row.numbers <- seq(nrow(chart))
     
     if (row.dom) {
-        row.numbers <- rowDominance(chart)
+        row.numbers <- QCA::rowDominance(chart)
         chart <- chart[row.numbers, ]
     }
     
@@ -60,8 +64,8 @@ function(chart, row.dom = FALSE, all.sol = FALSE, ...) {
                 stop(paste(strwrap("The PI chart is too large to identify all models.\n\n", exdent = 7), collapse = "\n", sep=""))
             }
             
-            output <- .Call("allSol", k, chart*1, PACKAGE="QCAGUI")
-            
+            # output <- .Call("allSol", k, chart*1, PACKAGE="QCAGUI")
+            output <- QCA::callAllSol(k, chart*1)
             output[output == 0] <- NA
             
         }
@@ -71,7 +75,8 @@ function(chart, row.dom = FALSE, all.sol = FALSE, ...) {
             combos <- combn(nrow(chart), k)
             
              # sol.matrix will be a subset of the chart matrix with all minimum solutions
-            output <- combos[, as.logical(.Call("solveChart", t(combos) - 1, chart*1, PACKAGE="QCAGUI")[[1]]), drop=FALSE]
+            # output <- combos[, as.logical(.Call("solveChart", t(combos) - 1, chart*1, PACKAGE="QCAGUI")[[1]]), drop=FALSE]
+            output <- combos[, as.logical(QCA::callSolveChart(t(combos) - 1, chart*1)[[1]]), drop=FALSE]
         }
     }
     else {

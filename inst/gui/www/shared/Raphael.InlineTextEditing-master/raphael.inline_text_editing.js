@@ -218,7 +218,7 @@
 				// Remove text input
 				this.input.parentNode.removeChild(this.input);
 			},
-
+			
 			_handleKeyDown: function(e){
 				var tmp               = document.createElement("span");
 				var text              = this.input.value;
@@ -229,7 +229,6 @@
 				//tmp.innerHTML         = text.split('\n').join('<br />');
 
 				this.input.parentNode.appendChild(tmp);
-				
 				
 				var textwidth = getTextWidth(text);
 				/*
@@ -285,6 +284,95 @@
 
 })( jQuery );
 
+
+
+/*
+(function( $ ) {
+	$.fn.Rcommand = function(subject, options, callback) {
+	    console.log(subject.selector);
+	    subject.Rcommand = {
+            
+            input: null,
+            
+            startEditing: function(position) {
+                var container = this.parentNode;
+                var oStyles = {
+                    position: 'absolute',
+                    background: 'none',
+                    left: (position.left + 15) + 'px',
+                    top: position.top + 'px',
+                    width: ($("#" + divid).width() - 15) + 'px',
+                    height: $("#" + divid).height() + 'px',
+                    zIndex: '9000',
+                    padding: '1 0 0 4',
+                    border: '1', // 'none'
+                    resize: 'none',
+                    outline: 'none',
+                    'font-size': '14px',
+                    'font-family': "Monaco,Menlo,Consolas,'Courier New',monospace"
+                }
+                
+                
+                var sStyles = '';
+                for (var z in oStyles){
+                    sStyles += z + ':' + oStyles[z] + ';';
+                }
+                
+                this.input = document.createElement("textarea");
+                this.input.value = "";
+                
+                this.input.setAttribute("style", sStyles);
+                this.input.addEventListener('keyup', this._handleKeyDown.bind(this));
+                
+                this.input.id = "txtarea";
+                
+                container.appendChild(this.input);
+                
+                
+				$("#txtarea").click(function(event) {
+                    event.stopPropagation();
+				});
+				
+				this.input.focus();
+				
+				return this.input;
+            },
+            stopEditing: function(key) {
+                
+                // Set the new value
+                if (key == "enter") {
+                    subject.attr("text", this.input.value);
+                }
+                
+                // Remove text input
+                this.input.parentNode.removeChild(this.input);
+            },
+            _handleKeyDown: function(e) {
+                var tmp               = document.createElement("span");
+                var text              = this.input.value;
+                tmp.setAttribute('style', this.input.style.cssText);
+                tmp.style.height      = null;
+                tmp.style.width       = null;
+                tmp.style.visibility  = 'hidden';
+                //tmp.innerHTML         = text.split('\n').join('<br />');
+    
+                this.input.parentNode.appendChild(tmp);
+                
+                
+                var textwidth = getTextWidth(text);
+                if (this.input.scrollTop != 0) {
+                    this.input.style.height = this.input.scrollHeight + "px";
+                }
+    
+                tmp.parentNode.removeChild(tmp);
+            }
+	    }
+	    
+	    return subject.editText;
+	};
+
+})( jQuery );
+*/
 
 
 function getTextWidth(string) {

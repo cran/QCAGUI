@@ -1,5 +1,9 @@
 `createMatrix` <-
-function(noflevels, logical = FALSE) {
+function(noflevels) {
+    
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
     
     conds <- length(noflevels)
     pwr <- unique(noflevels)
@@ -21,10 +25,6 @@ function(noflevels, logical = FALSE) {
         retmat <- sapply(seq_len(conds), function(x) {
            rep.int(rep.int(seq_len(noflevels[x]) - 1, rep.int(mbase[x], noflevels[x])), orep[x])
         })
-    }
-    
-    if (logical) {
-        retmat <- matrix(as.logical(retmat), nrow=nrow(retmat), ncol=ncol(retmat))
     }
     
     if (is.vector(retmat)) {

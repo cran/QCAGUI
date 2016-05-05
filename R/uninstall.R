@@ -1,7 +1,6 @@
 `uninstall` <- function(x) {
-    if (isNamespaceLoaded("x")) {
-        detach(paste0("package:", x), unload=TRUE)
-        library.dynam.unload(x, system.file(package = x)) 
+    if (isNamespaceLoaded(deparse(substitute(x)))) {
+        detach(paste("package", deparse(substitute(x)), sep=":"), unload=TRUE, character.only = TRUE)
     }
     remove.packages(x)
 }

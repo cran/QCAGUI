@@ -1,6 +1,10 @@
 `compute` <-
 function(expression = "", data) {
     
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
     verify.qca(data)
     
     pp <- translate(expression, colnames(data))
@@ -19,16 +23,16 @@ function(expression = "", data) {
         
         for (j in seq(length(val))) {
             
-            if (!is.numeric(temp[, j]) & possibleNumeric(temp[, j])) {
-                temp[, j] <- asNumeric(temp[, j])
+            if (!is.numeric(temp[, j]) & QCA::possibleNumeric(temp[, j])) {
+                temp[, j] <- QCA::asNumeric(temp[, j])
             }
             
-            if (any(abs(temp[, j] - round(temp[, j])) >= .Machine$double.eps^0.5)) {
+            if (any(abs(temp[, j] - round(temp[, j])) >= .Machine$double.eps^0.5)) { # fuzzy
                 
                 if (!is.null(mv)) {
-                    if (length(splitstr(gsub("~", "", mval[j]))) > 1) {
+                    if (length(QCA::splitstr(gsub("~", "", mval[j]))) > 1) {
                         cat("\n")
-                        stop("Multiple values specified for fuzzy data.\n\n", call. = FALSE)
+                        stop(simpleError("Multiple values specified for fuzzy data.\n\n"))
                     }
                 }
                 
@@ -36,27 +40,36 @@ function(expression = "", data) {
                     temp[, j] <- 1 - temp[, j]
                 }
             }
-            else {
-                if (max(temp[, j]) <= 1) {
+            else { # cs or mv
+                if (max(temp[, j]) <= 1) { # cs
                     temp[, j] <- as.numeric(temp[, j] == val[j])
                 }
-                else {
+                else { # mv
                     if (is.null(mv)) {
+                        
+                        ### should I just throw an error that we have presence/absence
+                        ### for mv data...?
+                        
+                        ### but the following seems logical:
+                        
                         if (val[j] == 0) {
+                            # absence of a mv means that 0 becomes 1 and everything else becomes 0
                             temp[, j] <- as.numeric(temp[, j] == val[j])
                         }
                         else {
+                            # presence of a mv means that 0 is absence and everything else is 1
                             temp[, j] <- as.numeric(temp[, j] != 0)
                         }
                     }
                     else {
-                        temp[, j] <- temp[, j] %in% splitstr(gsub("~", "", mval[j]))
+                        temp[, j] <- temp[, j] %in% QCA::splitstr(gsub("~", "", mval[j]))
                         if (grepl("~", mval[j])) {
                             temp[, j] <- 1 - temp[, j]
                         }
                     }
                 }
             }
+            
         }
         
         if (ncol(temp) > 1) {

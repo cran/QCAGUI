@@ -3,11 +3,10 @@
 \alias{deMorgan}
 \alias{is.deMorgan}
 
-\title{Negate Set-Theoretic Expressions using DeMorgan's Laws}
+\title{Negate Boolean expressions}
 
 \description{
-This function negates simple or complex set-theoretic expressions using the two 
-DeMorgan laws.
+This function negates an boolean expression written in Disjunctive Normal Form.
 }
 
 \usage{
@@ -17,36 +16,55 @@ is.deMorgan(x)
 }
 
 \arguments{
-  \item{expression}{A string representing a set-theoretic expression or a solution 
-                    object of class "qca".}
+  \item{expression}{A string representing an expression written in DNF,
+        or an object of class \code{"qca"}.}
   \item{prod.split}{The intersection (product) operator (if any).}
   \item{use.tilde}{Logical, use tilde for negation with bivalent variables.}
   \item{complete}{Logical, present the result broken down to individual pieces.}
-  \item{x}{An object of class "deMorgan".}
+  \item{x}{An object of class \code{"deMorgan"}.}
 }
 
 \details{
-DeMorgan's two laws posit that the complement of a union is the intersection of 
-its separate complements, and the complement of an intersection is the union of 
-its separate complements (Hohn 1966, p.80).
 
-The argument \code{expression} can be any complex string representing a 
-set-theoretic expression of unions and intersections, or a solution object of 
-class "qca" (objects returned by \code{eqmcc()}). Expressions must not contain
-values from multivalent variables.
+In Boolean algebra, there are two transformation rules named after the British
+mathematician Augustus De Morgan. These rules state that:
+
+1. The complement of the union of two sets is the intersection of their complements.
+
+2. The complement of the intersection of two sets is the union of their complements.
+
+In "normal" language, these would be written as:
+
+1. \code{"not (A and B)" = "(not A) or (not B)"}
+
+2. \code{"not (A or B)" = "(not A) and (not B)"}
+
+Based on these two laws, any Boolean expression written in disjunctive normal form
+can be transformed into its negation.
+
+It is also possible to negate all models and solutions from the result of a
+Boolean minimization from function \bold{\code{eqmcc()}}. The resulting object, of
+class \code{"qca"}, is automatically recognised by this function (provided the
+minimization is Boolean).
+
 }
 
-\value{A list of solutions with their negations as components if \code{expression} 
-       is an object of class "qca", or simply a list with the following components 
-       if \code{expression} is a string:\cr
-  \item{initial}{The initial expression.}
-  \item{negated}{The negation of the initial expression.}
+\value{
+A list with the following two components:
+
+\tabular{rl}{
+  \bold{initial} \tab {The initial expression.}\cr
+  \bold{negated} \tab {The negation of the initial expression.}\cr
+}
+
+If \bold{\code{x}} is an object of type \code{"qca"}, the result is a list of solutions.
+}
+
+\author{
+Adrian Dusa
 }
 
 \references{
-Hohn, Franz E. 1966. \emph{Applied Boolean Algebra: An Elementary Introduction}. 
-2nd ed. New York: Macmillan.
-
 Ragin, Charles C. 1987. \emph{The Comparative Method: Moving beyond Qualitative 
 and Quantitative Strategies}. Berkeley: University of California Press.
 }
@@ -58,14 +76,20 @@ and Quantitative Strategies}. Berkeley: University of California Press.
 deMorgan("AC + B~C")
 
 # with different intersection operators
-deMorgan("A*C + B*~C", prod.split = "*")
-deMorgan("A&C + B&~C", prod.split = "&")
+deMorgan("AB*EF + ~CD*EF")
 
-# use solution object of class "qca" returned by eqmcc() function; 
-# even with multiple models
-data(d.represent)
-Kro.sol <- eqmcc(d.represent, outcome = "WNP", include = "?")
-deMorgan(Kro.sol)
+
+# using an object of class "qca" produced with eqmcc()
+data(LC)
+cLC <- eqmcc(LC, "SURV", include = "?")
+
+deMorgan(cLC)
+
+
+# parsimonious solution
+pLC <- eqmcc(LC, "SURV", include = "?")
+
+deMorgan(pLC)
 }
 
 \keyword{functions}

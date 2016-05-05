@@ -6,7 +6,8 @@
 
 \description{
 Recodes a vector (numeric, character or factor) according to a set of rules.
-Similar to the \code{recode} function in package \code{car}, but more flexible.
+Similar to the \bold{\code{recode()}} function in package \bold{\pkg{car}},
+but more flexible.
 }
 
 \usage{
@@ -14,54 +15,62 @@ recode(x, rules, ...)
 }
 
 \arguments{
-    \item{x}{any kind of vector, numeric, character or factor.}
-    \item{rules}{character string or a vector of character strings
+    \item{x}{Any kind of vector, numeric, character or factor.}
+    \item{rules}{Character string or a vector of character strings
                  for recoding specifications}
-    \item{...}{other parameters, for compatibility with other functions such as
-               \code{recode} in package \code{car} but also \code{factor} in package \code{base}}
+    \item{...}{Other parameters, for compatibility with other functions such as
+               \bold{\code{recode()}} in package \bold{\pkg{car}} but also
+               \bold{\code{factor()}} in package \bold{\pkg{base}}}
 }
 
 \details{
-Similar to the \code{recode} function in package \code{car}, the recoding rules are 
-separated by semicolons, of the form \code{input=output}, and allow for:
+Similar to the \bold{\code{recode}} function in package \bold{\pkg{car}}, the
+recoding rules are separated by semicolons, of the form \bold{\code{input=output}},
+and allow for:
 
 \describe{
 \item{a single value}{\code{1=0}}
 \item{a range of values}{\code{2:5=1}}
 \item{a set of values}{\code{c(6,7,10)=2}}
-\item{\code{else}}{everything that is not covered by the previously specified rules} 
+\item{\bold{\code{else}}}{everything that is not covered by the previously specified rules} 
 }
 
-Contrary to the \code{recode} function in package {car}, this function
-allows the \code{:} sequence operator (even for factors), so that a rule such as
-\code{c(1,3,5:7)}, or \code{c(a,d,f:h)} would be valid.
+Contrary to the \bold{\code{recode()}} function in package \bold{\pkg{car}}, this function
+allows the \bold{\code{:}} sequence operator (even for factors), so that a rule such as
+\bold{\code{c(1,3,5:7)}}, or \bold{\code{c(a,d,f:h)}} would be valid.
 
 Actually, since all rules are specified in a string, it really doesn't matter
-if the \code{c()} function is used or not. For compatibility reasons it accepts it, but
-a more simple way to specify a set of rules is \code{"1,3,5:7=A; else=B"}
+if the \bold{\code{c()}} function is used or not. For compatibility reasons it accepts it, but
+a more simple way to specify a set of rules is \bold{\code{"1,3,5:7=A; else=B"}}
 
-Special values \code{lo} and \code{hi} may also appear in the range of values.
+Special values \bold{\code{lo}} and \bold{\code{hi}} may also appear in the range of values.
 
-In the package \code{car}, a character \code{output} would have to be quoted, like \code{"1:2='A'"}
-but that is not mandatory is this function, \code{"1:2=A"} would do just as well.
-Output values such as \code{"NA"} or \code{"missing"} are converted to \code{NA}.
+In the package \pkg{car}, a character \bold{\code{output}} would have to be quoted,
+like \bold{\code{"1:2='A'"}} but that is not mandatory is this function, \bold{\code{"1:2=A"}}
+would do just as well. Output values such as \bold{\code{"NA"}} or \bold{\code{"missing"}}
+are converted to \bold{\code{NA}}.
 
-Another difference from the \code{car} package: the output is <not> automatically converted to a factor even if the original variable
-is a factor. That option is left to the user's decision to specify \code{as.factor.result}, defaulted
-to \code{FALSE}.
+Another difference from the \bold{\pkg{car}} package: the output is \bold{not} automatically
+converted to a factor even if the original variable is a factor. That option is left to the
+user's decision to specify \bold{\code{as.factor.result}}, defaulted to \bold{\code{FALSE}}.
 
 Since the two functions have the same name, it is possible that users loading both
 packages to use one instead of the other (depending which package is loaded first).
 In order to preserve functionality, special efforts have been made to ensure this
 function performs exactly as the other one (plus more).
 
-In order to minimize possible namespace collisions with package \code{car}, special efforts
-have been done to ensure perfect compatibility with the other \code{recode()} function. The
-argument \code{...} allows for more arguments specific to the \code{car} package,
-such as \code{as.factor.result}, \code{as.numeric.result} and \code{levels}. In addition, it also
-accepts \code{labels} and \code{ordered} specific to function \code{factor} in package \code{base}.
+In order to minimize possible namespace collisions with package \bold{\pkg{car}}, special efforts
+have been done to ensure perfect compatibility with the other \bold{\code{recode()}} function. The
+argument \bold{\code{...}} allows for more arguments specific to the \pkg{car} package,
+such as \bold{\code{as.factor.result}}, \bold{\code{as.numeric.result}} and \bold{\code{levels}}.
+In addition, it also accepts \bold{\code{labels}} and \bold{\code{ordered}} specific to function
+\bold{\code{factor}} in package \bold{\pkg{base}}.
 
 Blank spaces outside category labels are ignored, see the last example.
+}
+
+\author{
+Adrian Dusa
 }
 
 \examples{

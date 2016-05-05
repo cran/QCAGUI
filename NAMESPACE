@@ -1,42 +1,28 @@
-useDynLib(QCAGUI)
 export(.onAttach,
     allExpressions,
-    asNumeric,
-    base3rows,
     calibrate,
     compute,
-    createChart,
     createMatrix,
-    createString,
-    demoChart,
     deMorgan,
     deMorganLoop,
     eqmcc,
     eqmccLoop,
     export,
-    factor.function,
     factorize,
     findSubsets,
     findSupersets,
     findTh,
     fuzzyand,
     fuzzyor,
-    getBigList,
-    getNonChars,
     getRow,
-    getSolution,
     intersection,
-    insideBrackets,
     is.deMorgan,
     is.pof,
     is.qca,
     is.tt,
     is.sS,
-    negateValues,
-    outsideBrackets,
+    makeChart,
     pof,
-    possibleNumeric,
-    prettyString,
     prettyTable,
     print.aE,
     print.deMorgan,
@@ -48,25 +34,11 @@ export(.onAttach,
     print.sS,
     print.tt,
     recode,
-    removeDuplicates,
-    removeSingleStars,
     retention,
-    rowDominance,
     runGUI,
-    simplifyList,
-    solveBrackets,
     solveChart,
-    sortMatrix,
-    sortVector,
-    splitstr,
-    splitBrackets,
-    splitMainComponents,
-    splitPluses,
-    splitStars,
-    splitTildas,
     superSubset,
     translate,
-    trimst,
     truthTable,
     uninstall,
     verify.data,
@@ -76,13 +48,14 @@ export(.onAttach,
     verify.qca,
     verify.mqca,
     verify.tt,
-    writePrimeimp,
-    writeSolution)
+    XYplot)
 import(lpSolve)
 import(shiny)
 import(venn)
-importFrom("utils", "combn", "packageDescription", "remove.packages")
+importFrom("utils", "combn", "packageDescription", "remove.packages", "capture.output")
 importFrom("stats", "binom.test", "cutree", "dist", "hclust", "na.omit", "dbinom")
+importFrom("grDevices", "dev.cur", "dev.new")
+importFrom("graphics", "abline", "axis", "box", "mtext", "par")
 S3method(print, "aE")
 S3method(print, "deMorgan")
 S3method(print, "fctr")
@@ -94,4 +67,3 @@ S3method(print, "qca")
 S3method(print, "sS")
 S3method(print, "translate")
 S3method(print, "tt")
-

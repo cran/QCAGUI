@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+<title>translate. QCAGUI 2.2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="
+Adrian Dusa
+">
+
+<link href="css/bootstrap.css" rel="stylesheet">
+<link href="css/bootstrap-responsive.css" rel="stylesheet">
+<link href="css/highlight.css" rel="stylesheet">
+<link href="css/staticdocs.css" rel="stylesheet">
+
+<!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {
+      inlineMath: [ ['$','$'], ["\\(","\\)"] ],
+      processEscapes: true
+    }
+  });
+</script>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  </head>
+
+  <body>
+    <div class="navbar">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">QCAGUI 2.2</a>
+      <div class="nav">
+        <ul class="nav">
+          <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <div class="container">
+      <header>
+        
+      </header>
+      
+      <h1>Functions to interpret a QCA expression</h1>
+
+<div class="row">
+  <div class="span8">
+    <h2>Usage</h2>
+    <pre><div>translate(expression&nbsp;=&nbsp;"", snames&nbsp;=&nbsp;"")</div>
+<div>compute(expression&nbsp;=&nbsp;"", data)</div></pre>
+    
+    <h2>Arguments</h2>
+    <dl>
+      <dt>expression</dt>
+      <dd>String: a QCA expression written in disjunctive normal form.</dd>
+      <dt>snames</dt>
+      <dd>A string containing the sets' names, separated by commas.</dd>
+      <dt>data</dt>
+      <dd>A dataset with binary cs, mv and fs data.</dd>
+    </dl>
+    
+    <div class="Description">
+      <h2>Description</h2>
+
+      <p>These two functions interpret an expression written in a SOP (sum of products) form, for both
+crisp and multivalue QCA. The first translates the expression into a standard (canonical) 
+SOP form using a matrix of implicants, while the second uses the first to compute the
+scores based on a particular dataset.</p>
+  
+      <p>For crisp sets notation, upper case letters are considered the presence of that causal
+condition, and lower case letters are considered the absence of the respective causal
+condition. Tilde is recognized as a negation, even in combination with upper/lower letters.</p>
+  
+      <p>The functions are suggested by Jirka Lewandowski (2015) but the actual code in these functions
+has been completely re-written to integrate it with the package QCAGUI, and expanded with
+more extensive functionality (see details and examples below).</p>
+  
+    </div>
+
+    <div class="Details">
+      <h2>Details</h2>
+
+      <p>A SOP ("sum of products") is also known as a DNF ("disjunctive normal form"), or in other
+words a "union of intersections", for example <b><code>A*D + B*c</code></b>.</p>
+  
+      <p>The same expression can be written in multivalue notation: <b><code>A{1}*D{1} + B{1}*C{0}</code></b>.
+Both types of expressions are valid, and yield the same result on the same dataset.</p>
+  
+      <p>For multivalue notation, expressions can contain multiple values to translate, separated
+by a comma. If B was a multivalue causal condition, an expression could be:
+<b><code>A{1} + B{1,2}*C{0}</code></b>.</p>
+  
+      <p>In this example, all values in B equal to either 1 or 2 will be translated to 1, and the
+rest of the (multi)values will be translated to 0.</p>
+  
+      <p>In multivalue notation, causal snames are expected as upper case letters, and they will be
+converted to upper case by default.</p>
+  
+      <p>The function automatically detects the use of tilde "~" as a negation for a particular
+causal condition. <b><code>~A</code></b> does two things: it identifies the presence of causal
+condition <b><code>A</code></b> (because it was specified as upper case) and it recognizes that it
+must be negated, because of the  tilde. It works even combined with lower case names:
+<b><code>~a</code></b>, which is interpreted as <b><code>A</code></b>.</p>
+  
+      <p>For multivalue notation, a pseudo-standard is applied. For a binary causal condition,
+<b><code>A{0}</code></b> is the negation of <b><code>A</code></b>, and <b><code>~A{0}</code></b> can be interpreted
+as the presence of <b><code>A</code></b>. Starting from these two agreed statements, when multiple
+values are supplied, the pseudo-standard interprets anything that contains a value of 0 as the
+absence of causal condition: <b><code>A{0,2}</code></b> will be translated as 0, and upon recoding in
+the real data, values 0 and 2 will be recoded to 0 and the rest of the values to 1.</p>
+  
+      <p>Similarly, negations work with multivalue snames: <b><code>~A{1,2}</code></b> is be interpreted as
+"all values except 1 and 2 should be translated as 0", whereas <b><code>~A{0,2}</code></b> will be
+translated as 1, and all other values except 0 and 2 will be recoded to 0.</p>
+  
+      <p>The use of the product operator <b><code>*</code></b> is redundant when causal snames' names are single
+letters (for example <b><code>AD + Bc</code></b>), and is also redundant for multivalue data, where 
+product terms can be separated by using the curly brackets notation.</p>
+  
+      <p>When causal snames are binary and their names have multiple letters (for example
+<b><code>AA + CC*bb</code></b>), the use of the product operator <b><code>*</code></b> is preferable but the
+function manages to translate an expression even without it (<b><code>AA + CCbb</code></b>) by searching
+deep in the space of the conditions' names, at the cost of slowing down for a high number of causal
+conditions. For this reason, an arbitrary limit of 7 causal <b><code>snames</code></b> is imposed, to write an
+expression with.</p>
+  
+    </div>
+
+    <div class="Value">
+      <h2>Value</h2>
+
+      <p><dl>
+A standard of implicants, with the following codes:
+    <table><tr><td>
+         0 </td>
+</tr><tr><td> absence of a causal condition</td>
+</tr><tr><td>
+         1 </td>
+</tr><tr><td> presence of a causal condition</td>
+</tr><tr><td>
+        -1 </td>
+</tr><tr><td> causal condition was eliminated</td>
+</tr></table>
+The matrix was also assigned a class "translate", to eliminate the -1 codes when printed.
+</dl></p>
+  
+    </div>
+
+    <div class="References">
+      <h2>References</h2>
+
+      <p>Jirka Lewandowski (2015) QCAtools: Helper functions for QCA in R. R package version 0.1</p>
+  
+    </div>
+    
+    <h2 id="examples">Examples</h2>
+    <pre class="examples"><div class='input'>
+translate(&quot;A + B*C&quot;)
+</div>
+<div class='output'>
+      A  B  C 
+A     1       
+B*C      1  1 
+
+</div>
+<div class='input'>
+# same thing in multivalue notation
+translate(&quot;A{1} + B{1}*C{1}&quot;)
+</div>
+<div class='output'>
+           A  B  C 
+A{1}       1       
+B{1}C{1}      1  1 
+
+</div>
+<div class='input'>
+# using upper/lower letters
+translate(&quot;A + b*C&quot;)
+</div>
+<div class='output'>
+      A  B  C 
+A     1       
+b*C      0  1 
+
+</div>
+<div class='input'>
+# the negation with tilde is recognised
+translate(&quot;~A + b*C&quot;)
+</div>
+<div class='output'>
+      A  B  C 
+~A    0       
+b*C      0  1 
+
+</div>
+<div class='input'>
+# even in combination of upper/lower letters
+translate(&quot;~A + ~b*C&quot;)
+</div>
+<div class='output'>
+       A  B  C 
+~A     0       
+~b*C      1  1 
+
+</div>
+<div class='input'>
+# and even for multivalue variables
+translate(&quot;~A{1} + ~B{0}*C{1}&quot;)
+</div>
+<div class='output'>
+            A  B  C 
+~A{1}       0       
+~B{0}C{1}      1  1 
+
+</div>
+<div class='input'>
+# in multivalue notation, the product sign * is redundant
+translate(&quot;C{1} + T{2} + T{1}V{0} + C{0}&quot;)
+</div>
+<div class='output'>
+           C  T  V 
+C{1}       1       
+T{2}          1    
+T{1}V{0}      1  0 
+C{0}       0       
+
+</div>
+<div class='input'>
+# multiple values can be specified
+translate(&quot;C{1} + T{1,2} + T{1}V{0} + C{0}&quot;)
+</div>
+<div class='output'>
+           C  T  V 
+C{1}       1       
+T{1,2}        1    
+T{1}V{0}      1  0 
+C{0}       0       
+
+</div>
+<div class='input'>
+# or even negated
+translate(&quot;C{1} + ~T{1,2} + T{1}V{0} + C{0}&quot;)
+</div>
+<div class='output'>
+           C  T  V 
+C{1}       1       
+~T{1,2}       0    
+T{1}V{0}      1  0 
+C{0}       0       
+
+</div>
+<div class='input'>
+
+
+# if the expression does not contain the product sign *
+# snames are required to complete the translation 
+translate(&quot;AB + cD&quot;, &quot;A, B, C, D&quot;)
+</div>
+<div class='output'>
+     A  B  C  D 
+AB   1  1       
+cD         0  1 
+
+</div>
+<div class='input'>
+
+
+# snames are not required
+translate(&quot;PER*FECT + str*ing&quot;)
+</div>
+<div class='output'>
+           FECT ING PER STR
+PER*FECT    1        1     
+str*ing          0       0 
+
+</div>
+<div class='input'>
+# snames are required
+translate(&quot;PERFECT + string&quot;, &quot;PER, FECT, STR, ING&quot;)
+</div>
+<div class='output'>
+          PER FECT STR ING
+PERFECT    1   1          
+string              0   0 
+
+</div>
+<div class='input'>
+# it works even with overlapping columns
+# SU overlaps with SUB in SUBER, but the result is still correct
+translate(&quot;SUBER + subset&quot;, &quot;SU, BER, SUB, SET&quot;)
+</div>
+<div class='output'>
+         SU BER SUB SET
+SUBER    1   1         
+subset           0   0 
+
+</div>
+<div class='input'>
+
+# error because combinations of condition names clash (not run)
+# translate(&quot;SUPER + subset&quot;, &quot;SUP, ER, SU, PER, SUB, SET&quot;)
+
+
+
+# example of compute
+data(CVF)
+compute(&quot;natpride + GEOCON&quot;, data = CVF)
+</div>
+<div class='output'>   natpride GEOCON expression
+1      0.23   0.95       0.95
+2      0.12   0.35       0.35
+3      0.09   0.35       0.35
+4      0.20   0.78       0.78
+5      0.40   0.35       0.40
+6      0.34   0.78       0.78
+7      0.04   0.78       0.78
+8      0.13   0.78       0.78
+9      0.30   0.78       0.78
+10     0.17   0.05       0.17
+11     0.46   0.78       0.78
+12     0.07   0.35       0.35
+13     0.14   0.95       0.95
+14     0.25   0.95       0.95
+15     0.71   0.35       0.71
+16     0.75   0.95       0.95
+17     0.13   0.78       0.78
+18     0.05   0.35       0.35
+19     0.40   0.95       0.95
+20     0.49   0.35       0.49
+21     0.38   0.95       0.95
+22     0.62   0.95       0.95
+23     0.14   0.95       0.95
+24     0.25   0.95       0.95
+25     0.12   0.95       0.95
+26     0.94   0.95       0.95
+27     0.66   0.95       0.95
+28     0.57   0.95       0.95
+29     0.59   0.95       0.95
+</div>
+<div class='input'>
+
+# to print _all_ codes from the standard output matrix
+(obj &lt;- translate(&quot;A + b*C&quot;))
+</div>
+<div class='output'>
+      A  B  C 
+A     1       
+b*C      0  1 
+
+</div>
+<div class='input'>print(obj, original = TRUE) # also prints the -1 code
+</div>
+<div class='output'>
+       A  B  C
+A      1 -1 -1
+b*C   -1  0  1
+
+</div>
+<div class='input'></div></pre>
+  </div>
+  <div class="span4">
+    <!-- <ul>
+      <li>translate</li><li>compute</li>
+    </ul>
+    <ul>
+      <li>functions</li>
+    </ul> -->
+      
+    
+    <h2>Author</h2>
+    
+Adrian Dusa
+
+    
+  </div>
+</div>
+      
+      <footer>
+      <p class="pull-right"><a href="#">Back to top</a></p>
+<p>Built by <a href="https://github.com/hadley/staticdocs">staticdocs</a>. Styled with <a href="https://getbootstrap.com/2.0.4/">bootstrap</a>.</p>
+      </footer>
+    </div>
+  </body>
+</html>

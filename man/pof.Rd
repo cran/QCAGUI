@@ -3,104 +3,135 @@
 \alias{pof}
 \alias{is.pof}
 
-\title{Compute Set-Relational Parameters of Fit}
+\title{Calculate parameters of fit}
 
 \description{
-This function computes inclusion (consistency) and coverage scores.
+This function returns inclusion (consistency), coverage, PRI and optionally
+the relevance of necessity scores.
 }
 
 \usage{
 pof(setms, outcome, data, relation = "nec", inf.test = "",
-    incl.cut1 = 0.75, incl.cut0 = 0.5, add = "", ...)
+    incl.cut = c(0.75, 0.5), add = "", ...)
 
 is.pof(x)
 }
 
 \arguments{
-  \item{setms}{A data frame of set membership scores, or a matrix of implicants, 
-        or a vector of implicant matrix line numbers, or a string expression}
-  \item{outcome}{The name of the outcome, or a numerical vector containing the
-        outcome values from a particular dataset.}
-  \item{data}{The working data set.}
-  \item{relation}{The set relation to \code{outcome}, either \code{"nec"} or
-        \code{"suf"}}
-  \item{inf.test}{The inference-statistical test to be performed (currently only
-        \code{"binom"} for bivalent and multivalent crisp-set variables).}
-  \item{incl.cut1}{The upper inclusion cut-off against which the
-        empirical inclusion score is tested if \code{inf.test = "binom"}.}
-  \item{incl.cut0}{The lower inclusion cut-off against which the
-        empirical inclusion score is tested if \code{inf.test = "binom"}.}
+  \item{setms}{A data frame of (calibrated) set memberships, or a matrix of implicants, 
+        or a vector of row numbers from the implicant matrix, or a string expression}
+  \item{outcome}{The name of the outcome column from a calibrated data frame, or
+        the actual numerical column from the data frame, representing the outcome.}
+  \item{data}{The calibrated data frame, in case the \bold{\code{outcome}} is a name.}
+  \item{relation}{The set relation to \bold{\code{outcome}}, either necessity
+        (\bold{\code{"nec"}}) or sufficiency (\bold{\code{"suf"}})}
+  \item{inf.test}{Specifies the statistical inference test to be performed (currently 
+       only \bold{\code{"binom"}}) and the critical significance level. It can be either
+       a vector of length 2, or a single string containing both, separated by a comma.}
+  \item{incl.cut}{The inclusion cutoff(s): either a single value for the presence of the
+        output, or a vector of length 2, the second for the absence of the output.}
   \item{add}{Additional measures to complement the default ones.}
-  \item{...}{Other arguments (not used in this function).}
-  \item{x}{An object of class "pof".}
+  \item{...}{Other arguments (mainly for backward compatibility).}
+  \item{x}{An object of class \code{"pof"}.}
 }
 
 \details{
-The argument \code{setms} specifies a data frame of \emph{set} membership scores, 
-where \emph{set} refers to any kind of set, including simple sets, combinations 
-returned by \code{superSubset()} (\code{coms}), prime implicants returned by 
-\code{eqmcc()} (\code{pims}) or any other compound set. \code{setms} can also be
-a string expression, written in disjunctive normal form.
+This is one of the most flexible functions in the \pkg{QCA} package. Depending on particular
+situations, its arguments can be provided in various formats which are automatically
+recognized and treated accordingly.
 
-The function also accepts a matrix of implicants with the value representation 
-of \code{createMatrix()}, or even a corresponding vector of implicant matrix line 
-numbers.
+When specified as a data frame, the argument \bold{\code{setms}} contains any kind of set
+membership scores:
 
-Starting with version 2.0-1, the function also accepts a text string containing a
-formula, in conjunction with the data where the column names in the formula are found.
+- calibrated causal conditions from the original data,
 
-If a string, the argument \code{outcome} specifies the outcome to be explained, and
-for standard reasons it should be provided as upper case letters (it will nevertheless
-be converted to upper case letters, by default).
-Outcomes from multivalent variables require curly-bracket notation (\code{O{value}}).
-Multivalue notation is allowed, values between the curly brackets being separated by
-a comma (for example \code{O{1,2}}). Negation of the outcome can also be performed
-using the tilde \code{~} operator, for example \code{~O{1,2}}, which is interpreted
-as: "all values in X except 1 and 2" and it becomes the new outcome to be explained.
+- membership scores from the resulting combinations (component \bold{\code{coms}}) of
+function \bold{\code{superSubset()}},
 
-The argument \code{inf.test} provides functionality for adjudicating between
-rival hypotheses on the basis of inference-statistical tests. Currently, only an
-exact binomial test (\code{"binom"}) is available, which requires the data to
-contain only bivalent or multivalent crisp set variables. Two one-tailed tests
-are performed. The null hypothesis with respect to \code{incl.cut1} is that the
-empirical inclusion score of each element in \code{setms} is not lower than the
-upper critical inclusion cut-off provided in \code{incl.cut1}. The null hypothesis
-with respect to \code{incl.cut0} is that the empirical inclusion score of each
-element in \code{setms} is not higher than the lower critical inclusion cut-off
-provided in \code{incl.cut0}.
+- prime implicant membership scores (component \bold{\code{pims}}) from function
+\bold{\code{eqmcc()}},
 
-The argument \code{add} complements the standard measures of inclusion, coverage and
+- any other, custom created combinations of set memberships.
+
+When specified as a matrix, \bold{\code{setms}} contains the crisp causal combinations
+similar to those found in the truth table. If some of the causal conditions have
+been minimized, they can be replaced by the numerical value \bold{\code{-1}} (see examples
+section). The number of columns in the matrix should be equal to the number of causal
+conditions in the original \bold{\code{data}}.
+
+More generally, \bold{\code{setms}} can be a numerical vector of line numbers from the
+implicant matrix (see function \bold{\code{createMatrix()}}), which are automatically
+transformed into their corresponding set membership scores. 
+
+Starting with version 2.1, \bold{\code{setms}} can also be a string expression, written
+in disjunctive normal form.
+
+For all situation when \bold{\code{setms}} is something else than a data frame, it requires
+the original \bold{\code{data}} to generate the set memberships.
+
+If a string, the argument \bold{\code{outcome}} is the name of the column from the original
+\bold{\code{data}}, to be explained (it is a good practice advice to provide using upper
+case letters, although it will nevertheless be converted to upper case letters, by default).
+
+If the outcome column is multi-value, the argument \bold{\code{outcome}} should use the standard
+curly-bracket notation \bold{\code{X{value}}}. Multiple values are allowed, separated by a comma
+(for example \bold{\code{X{1,2}}}). Negation of the outcome can also be performed using the tilde
+\bold{\code{~}} operator, for example \bold{\code{~X{1,2}}}, which is interpreted as:
+"all values in X except 1 and 2" and it becomes the new outcome to be explained.
+
+The argument \bold{\code{outcome}} can also be a numerical vector of set membership values,
+either directly from the original data frame, or a recoded version (if originally multi-value).
+
+The argument \bold{\code{inf.test}} provides the possibility to perform statistical inference
+tests, comparing the calculated inclusion score with a pair of thresholds (\bold{\code{ic1}} and
+\bold{\code{ic0}}) specified in the argument \bold{\code{incl.cut}}. Currently, it can only
+perform binomial tests (\bold{\code{"binom"}}), which means that data should only be provided
+as binary crisp (not multivalue, not fuzzy).
+
+If the critical significance level is not provided, the default level of \bold{\code{0.05}}
+is taken.
+
+The resulting object will contain the calculated p-values (pval1 and pval0) from two separate,
+one-tailed tests with the alternative hypothesis that the true inclusion score is:\cr
+- greater than \bold{\code{ic1}} (the inclusion cutoff for an output value of 1)\cr
+- greater than \bold{\code{ic0}} (the inclusion cutoff for an output value of 0)
+
+It should be noted that statistical tests are performing well only when the number
+of cases is large, otherwise they are usually not significant.
+
+The argument \bold{\code{add}} complements the standard measures of inclusion, coverage and
 PRI with other, established measures that are under testing implementation, or
 candidate measures that await their recognition as standard.
 
-One such example of an established measure is \code{ron}, suggested by
+One such example of an established measure is \bold{\code{ron}}, suggested by
 Schneider & Wagemann's (2012) relevance of necessity formula.
 
-Starting with version 2.0-0, this function also accepts and recognize negation of both
-\code{setms} and \code{outcome} using the boolean subtraction from 1. If the names of
-the conditions are provided via an optional (undocumented) argument \code{conditions},
-the colnames of the \code{setms} object are negated using \code{deMorgan()}.
+Starting with version 2.0, this function also accepts and recognize negation of both
+\bold{\code{setms}} and \bold{\code{outcome}} using the Boolean subtraction from 1. If the names of
+the conditions are provided via an optional (undocumented) argument \bold{\code{conditions}},
+the colnames of the \bold{\code{setms}} object are negated using \bold{\code{deMorgan()}}.
 
-Starting with version 2.0-1, the logical argument \code{neg.out} is deprecated, but
-backwards compatible. \code{neg.out = TRUE} and a tilde \code{~} in the outcome name 
-don't cancel each other out, either one (or even both) signaling if the \code{outcome}
+Starting with version 2.1, the logical argument \bold{\code{neg.out}} is deprecated, but
+backwards compatible. \bold{\code{neg.out = TRUE}} and a tilde \bold{\code{~}} in the outcome name 
+don't cancel each other out, either one (or even both) signaling if the \bold{\code{outcome}}
 should be negated.
 
-When argument \code{setms} is a DNF expression, it is the only place where the
-everything (including the \code{outcome}) can be negated using lower case letters, with
+When argument \bold{\code{setms}} is a DNF expression, it is the only place where the
+everything (including the \bold{\code{outcome}}) can be negated using lower case letters, with
 or without a tilde. Lower case letters and a tilde does cancel each other out, for
-example \code{~X} is interpreted as \code{x}, while \code{~x} is interpreted as \code{X}.
+example \bold{\code{~X}} is interpreted as \bold{\code{x}}, while \bold{\code{~x}} is interpreted
+as \bold{\code{X}}.
 
 }
 
-\references{
-Emmenegger, Patrick. 2011. \dQuote{Job Security Regulations in Western Democracies: 
-A Fuzzy Set Analysis.} \emph{European Journal of Political Research} 50 (3):336-64.
-DOI: \href{http://dx.doi.org/10.1111/j.1475-6765.2010.01933.x}{10.1111/j.1475-6765.2010.01933.x}.
+\author{
+Adrian Dusa
+}
 
-Krook, Mona Lena. 2010. \dQuote{Women's Representation in Parliament: A Qualitative 
-Comparative Analysis.} \emph{Political Studies} 58 (5):886-908.
-DOI: \href{http://dx.doi.org/10.1111/j.1467-9248.2010.00833.x}{10.1111/j.1467-9248.2010.00833.x}.
+\references{
+Cebotari, V.; Vink, M.P. (2013) \dQuote{A Configurational Analysis of Ethnic
+Protest in Europe}. \emph{International Journal of Comparative Sociology}
+vol.54, no.4, pp.298-324.
 
 Schneider, C. and Wagemann, C. (2012) \emph{Set-Theoretic Metods for the Social Sciences.
 A Guide to Qualitative Comparative Analysis}. Cambridge: Cambridge University Press.
@@ -109,100 +140,70 @@ A Guide to Qualitative Comparative Analysis}. Cambridge: Cambridge University Pr
 \seealso{\code{\link{eqmcc}}, \code{\link{superSubset}}, \code{\link{translate}}}
 
 \examples{
-# csQCA using Krook (2010)
-#-------------------------
-data(d.represent)
-head(d.represent)
+# -----
+# Cebotari & Vink (2013) fuzzy data
+data(CVF) 
 
-# first also compute negations
-x <- d.represent[, 1:5]
-WNP <- d.represent$WNP
- 
-# necessity parameters of fit for all conditions
-pof(x, WNP)
+conds <- CVF[, 1:5]
+PROTEST <- CVF$PROTEST
 
-# necessity parameters of fit for their negations
-pof(1 - x, WNP)
+# parameters of fit (default is necessity)
+pof(conds, PROTEST)
 
-# using the deMorgan() function to negate
-pof(1 - x, WNP, conditions = names(x))
-
-# for the negated outcome
-pof(x, 1 - WNP)
+# parameters of fit negating the conditions
+pof(1 - conds, PROTEST)
 
 # same thing with
-pof(x, "~WNP", d.represent)
+pof(~conds, PROTEST)
 
-# negated conditions and negated outcome
-pof(1 - x, 1 - WNP)
+# negating the outcome
+pof(conds, 1 - PROTEST)
 
-# sufficiency parameters of fit
-pof(x, WNP, relation = "suf") 
+# same thing as:
+pof(conds, ~PROTEST)
 
-# for the negated outcome
-pof(x, 1 - WNP, relation = "suf")
+# parameters of fit for sufficiency
+pof(conds, PROTEST, relation = "suf")
 
-# exact binomial tests of sufficiency and necessity inclusion
-pof(x, WNP, inf.test = "binom", relation = "suf",
-    incl.cut1 = 0.75, incl.cut0 = 0.5)
+# also negating the outcome
+pof(conds, 1 - PROTEST, relation = "suf")
 
-pof(x, WNP, inf.test = "binom", 
-    incl.cut1 = 0.75, incl.cut0 = 0.5)
 
-# fsQCA using Emmenegger (2011)
-#------------------------------
-data(d.jobsecurity)
+# -----
+# standard analysis of necessity
+# using the "coms" component from superSubset()
+nCVF <- superSubset(CVF, outcome = "PROTEST", incl.cut = 0.90, cov.cut = 0.6)
 
-# first test for minimally necessary combinations with superSubset(), 
-# then check whether these combinations are also necessary for the 
-# negation of the outcome
-Emm.nr <- superSubset(d.jobsecurity, outcome = "JSR", incl.cut = 0.965, 
-    cov.cut = 0.6)
-Emm.nr
+# also checking their necessity inclusion score in the negated outcome
+pof(nCVF$coms, 1 - PROTEST)
 
-pof(Emm.nr$coms, 1 - d.jobsecurity$JSR) 
 
-# first derive the conservative solution, then check whether the 
-# negations of the prime implicants are also sufficient for the outcome 
-Emm.sc <- eqmcc(d.jobsecurity, outcome = "JSR", incl.cut1 = 0.9, details = TRUE)
-Emm.sc
+# -----
+# standard analysis of sufficiency
+# using the "pims" component from eqmcc()
 
-# notice the negation of the pims' names
-pof(1 - Emm.sc$pims, d.jobsecurity$JSR, relation = "suf")
+# conservative solution
+cCVF <- eqmcc(CVF, "PROTEST", incl.cut = 0.8, details = TRUE)
 
-# parameters of fit for matrix of implicants;
-# "-1" is the placeholder for an eliminated variable;
-# e.g.: R*p*V and S*c*L*P*v
-#      "S"  "C"  "L"  "R"  "P"  "V"
-#     [,1] [,2] [,3] [,4] [,5] [,6]
-#[1,]   -1   -1   -1    1    0    1
-#[2,]    1    0    1   -1    1    0
-confs <- matrix(c(-1,-1,-1, 1, 0, 1, 
-                   1, 0, 1,-1, 1, 0), nrow = 2, byrow = TRUE)
+# verify if their negations are also sufficient for the outcome
+pof(1 - cCVF$pims, PROTEST)
 
-pof(confs, outcome = "JSR", d.jobsecurity, relation = "suf")
 
-# or even vectors of line numbers from the implicant matrix
-pof(c(43, 57), "JSR", d.jobsecurity, relation = "suf")
+# -----
+# using a DNF expression, translated using the function translate()
 
-# parameters of fit for a data frame
-x <- data.frame(A = c(1,1,1,0,1), B = c(1,1,1,0,1),
-                C = c(0,1,0,0,1), D = c(0,0,1,0,1),
-                O = c(1,1,1,0,1))
+# notice that lower case letters means absence a causal condition
+pof("natpride + GEOCON => PROTEST", data = CVF)
 
-pof(x[, -5], x$O)
+# same for the negation of the outcome
+pof("natpride + GEOCON => ~PROTEST", data = CVF)
 
-# for a single column from that data frame
-pof(x$A, x$O)
+# same using lower letters for the negation
+pof("natpride + GEOCON => protest", data = CVF)
 
-# for multiple columns from that data frame
-pof(x[, 1:2], x$O)
+# necessity is indicated by the reverse arrow
+pof("natpride + GEOCON <= PROTEST", data = CVF)
 
-# using an expression, translated using the function translate()
-data(d.urban)
-pof("MLC + FRB => CP", data=d.urban)
-
-pof("SRv + CLPv + SCRP + SLRP => ~JSR", data=d.jobsecurity)
 
 }
 

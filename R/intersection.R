@@ -1,14 +1,18 @@
 `intersection` <-
 function(e1 = "", e2 = "", snames = "") {
     
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
     if (grepl("\\{", e1) | grepl("\\{", e2)) {
         cat("\n")
-        stop("This function accepts only bivalent crisp expressions.\n\n", call. = FALSE)
+        stop(simpleError("This function accepts only bivalent crisp expressions.\n\n"))
     }
     
     if (identical(e1, "") | identical(e2, "")) {
         cat("\n")
-        stop("Two expressions are needed to intersect.\n\n", call. = FALSE)
+        stop(simpleError("Two expressions are needed to intersect.\n\n"))
     }
     
     collapse <- ifelse(any(grepl("\\*", c(e1, e2))), "*", "")
@@ -27,7 +31,7 @@ function(e1 = "", e2 = "", snames = "") {
     result <- list()
     
     if (!identical(snames, "")) {
-        snames <- splitstr(snames)
+        snames <- QCA::splitstr(snames)
     }
     
     for (i in seq(nrow(e1))) {

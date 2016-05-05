@@ -58,6 +58,7 @@ body {
     white-space: pre;
     font-size: 14px;
     font-family: Monaco,Menlo,Consolas,'Courier New',monospace;
+    //font-family: courier,fixed,swiss,sans-serif;
     padding: 7 7 7 7;
     box-sizing: border-box;
 }
@@ -69,11 +70,21 @@ body {
     white-space: pre;
     font-size: 14px;
     font-family: Monaco,Menlo,Consolas,'Courier New',monospace;
+    //font-family: courier,fixed,swiss,sans-serif;
     padding: 7 7 7 7;
     box-sizing: border-box;
 }
 
 #about_main {
+    font-family: "Arial";
+    font-size: 14px;
+    padding: 7 7 7 7;
+    box-sizing: border-box;
+}
+
+#changes_main {
+    overflow-x: hidden;
+    overflow-y: auto;
     font-family: "Arial";
     font-size: 14px;
     padding: 7 7 7 7;

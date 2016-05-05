@@ -1,21 +1,27 @@
 `eqmcc` <-
 function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
-    incl.cut1 = 1, incl.cut0 = 1, explain = "1", include = "", row.dom = FALSE,
-    all.sol = FALSE, omit = NULL, dir.exp = "", details = FALSE, show.cases = FALSE, 
+    incl.cut = 1, explain = "1", include = "", row.dom = FALSE, all.sol = FALSE,
+    omit = NULL, dir.exp = "", details = FALSE, show.cases = FALSE, 
     inf.test = "", use.tilde = FALSE, use.letters = FALSE, ...) {
     
-    m2 <- FALSE
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
     
-    metacall <- match.call()
-    
+    metacall <- match.call(expand.dots = TRUE)
     other.args <- list(...)
     
-    ### backwards compatibility 
+    ### 
+    ### ### backwards compatibility 
+    ### 
         neg.out <- FALSE
         if ("neg.out" %in% names(other.args)) {
             neg.out <- other.args$neg.out
         }
     ### 
+    ### ### backwards compatibility 
+    ### 
+    
     
     if ("rowdom" %in% names(other.args)) {
         row.dom <- other.args$rowdom
@@ -42,12 +48,12 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     
     if (missing(data)) {
         cat("\n")
-        stop("Data is missing.\n\n", call. = FALSE)
+        stop(simpleError("Data is missing.\n\n"))
     }
     
     if (identical(outcome, "") & !is.tt(data)) {
         cat("\n")
-        stop("You haven't specified the outcome set.\n\n", call. = FALSE)
+        stop(simpleError("You haven't specified the outcome set.\n\n"))
     }
     
     print.truth.table <- details & !is.tt(data)
@@ -55,7 +61,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     if (identical(include, "")) {
         if (!identical(dir.exp, "")) {
             cat("\n")
-            stop("Directional expectations were specified, without including the remainders.\n\n", call. = FALSE)
+            stop(simpleError("Directional expectations were specified, without including the remainders.\n\n"))
         }
         else {
             include <- explain
@@ -63,19 +69,19 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     }
     
     if (is.character(explain) & !identical(explain, "1")) {
-        explain <- splitstr(explain)
+        explain <- QCA::splitstr(explain)
     }
     
     if (is.character(include) & !identical(include, "")) {
-        include <- splitstr(include)
+        include <- QCA::splitstr(include)
     }
     
     if (is.character(outcome) & !identical(outcome, "")) {
-        outcome <- splitstr(outcome)
+        outcome <- QCA::splitstr(outcome)
     }
     
     if (is.character(dir.exp) & !identical(dir.exp, "")) {
-        dir.exp <- splitstr(dir.exp)
+        dir.exp <- QCA::splitstr(dir.exp)
     }
     
     if (!is.tt(data)) {
@@ -83,12 +89,12 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         if (length(outcome) > 1) {
             
             return(eqmccLoop(data=data, outcome=outcome, conditions=conditions, n.cut=n.cut,
-                      incl.cut1=incl.cut1, incl.cut0 = incl.cut0, explain=explain, include=include, row.dom=row.dom,
+                      incl.cut=incl.cut, explain=explain, include=include, row.dom=row.dom,
                       all.sol = all.sol, omit=omit, dir.exp = dir.exp, details=details, show.cases=show.cases,
                       use.tilde=use.tilde, use.letters=use.letters, inf.test=inf.test, relation=relation, ...=...))
         }
         
-        names(data) <- toupper(names(data))
+        colnames(data) <- toupper(colnames(data))
         conditions <- toupper(conditions)
         outcome <- toupper(outcome)
         
@@ -102,16 +108,16 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         
         # for the moment, toupper(outcome) is redundant but if in the future
         # the negation will be treated with lower case letters, it will prove important
-        if (! toupper(curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
+        if (! toupper(QCA::curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
             cat("\n")
-            stop("Inexisting outcome name.\n\n", call. = FALSE)
+            stop(simpleError("Inexisting outcome name.\n\n"))
         }
         
         if (grepl("\\{|\\}", outcome)) {
-            outcome.value <- curlyBrackets(outcome)
-            outcome <- curlyBrackets(outcome, outside=TRUE)
+            outcome.value <- QCA::curlyBrackets(outcome)
+            outcome <- QCA::curlyBrackets(outcome, outside=TRUE)
             
-            data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% splitstr(outcome.value))
+            data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% QCA::splitstr(outcome.value))
         }
         ### this was supposed to treat the negation using lower case letters
         # else if (! outcome %in% colnames(data)) {
@@ -126,7 +132,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
             conditions <- names(data)[-which(names(data) == outcome)]
         }
         else {
-            conditions <- splitstr(conditions)
+            conditions <- QCA::splitstr(conditions)
         }
         
         data <- data[, c(conditions, outcome)]
@@ -138,9 +144,8 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
             complete <- other.args$complete
         }
         
-        tt <- truthTable(data=data, outcome=outcome, conditions=conditions, show.cases=show.cases, n.cut=n.cut, incl.cut1=incl.cut1,
-                         incl.cut0=incl.cut0, use.letters=use.letters, inf.test=inf.test, neg.out=neg.out, complete=complete)
-        
+        tt <- truthTable(data=data, outcome=outcome, conditions=conditions, show.cases=show.cases, n.cut=n.cut,
+                         incl.cut=incl.cut, use.letters=use.letters, inf.test=inf.test, neg.out=neg.out, complete=complete, ... = ...)
         
         tt$initial.data <- indata
         indata <- data # data is already altered in outcome value, if initially multi-value
@@ -158,14 +163,14 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
             if (any(chinclude != chexplain)) {
                 chinclude <- chinclude[which(chinclude != chexplain)]
                 cat("\n")
-                stop(paste("You cannot include ", chinclude, " since you want to explain ", chexplain, ".\n\n", sep=""), call. = FALSE)
+                stop(simpleError(paste("You cannot include ", chinclude, " since you want to explain ", chexplain, ".\n\n", sep="")))
             }
         }
     
          # check if explain has both 1 and 0
         if (length(chexplain) == 2) {
             cat("\n")
-            stop("You cannot explain both 0 and 1.\n\n", call. = FALSE)
+            stop(simpleError("You cannot explain both 0 and 1.\n\n"))
         }
         
         tt <- data
@@ -177,10 +182,10 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         neg.out <- tt$options$neg.out
     }
     
+    
     output <- list()
     output$tt <- tt
     output$options$print.truth.table <- print.truth.table
-    
     
     rowsNotMissing <- which(tt$tt$OUT != "?")
     if (any(tt$tt$OUT == "?")) {
@@ -197,7 +202,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     noflevels <- tt$noflevels
      # check if the column names are not already letters
     alreadyletters <- sum(nchar(colnames(recdata)[-ncol(recdata)])) == ncol(recdata) - 1
-    
     
     tt$tt[, seq(length(conditions))] <- as.data.frame(lapply(tt$tt[, seq(length(conditions))], function(x) {
         x[x %in% c("-", "dc")] <- -1
@@ -218,7 +222,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     
     if (all(!subset.tt)) {
         cat("\n")
-        stop(paste("None of the values in OUT is explained. Please check the truth table.\n\n", sep=""), call. = FALSE)
+        stop(simpleError("None of the values in OUT is explained. Please check the truth table.\n\n"))
     }
     
     inputt <- as.matrix(tt$tt[subset.tt, seq(length(noflevels))])
@@ -226,16 +230,21 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     inputt <- matrix(as.numeric(inputt), ncol=length(noflevels)) + 1
     
     
-    inputcases <- tt$cases[rowsNotMissing][subset.tt]
+    if (nrow(tt$tt) == prod(tt$noflevels)) {
+        inputcases <- tt$cases[rowsNotMissing][subset.tt]
+    }
+    else {
+        inputcases <- tt$cases[subset.tt]
+    }
     
     nofcases1 <- sum(tt$tt$n[tt$tt$OUT == 1])
     nofcases0 <- sum(tt$tt$n[tt$tt$OUT == 0])
     nofcasesC <- sum(tt$tt$n[tt$tt$OUT == "C"])
     
     
-    ######## TO CHECK AGAIN
     tomit <- logical(nrow(expl.matrix))
     tomitinputt <- logical(nrow(inputt))
+    
     if (is.matrix(omit)) {
         cnoflevels <- noflevels
         for (i in seq(ncol(omit))) {
@@ -259,19 +268,18 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     expl.matrix <- expl.matrix[!tomit, , drop=FALSE]
     inputt <- inputt[!tomitinputt, , drop=FALSE]
     inputcases <- inputcases[!tomitinputt]
-    ########
-    
-    
+    rownms <- rownms[!tomitinputt]
+     
     if (nrow(expl.matrix) == 0) {
         cat("\n")
-        stop("Nothing to explain. Please check the truth table.\n\n", call. = FALSE)
+        stop(simpleError("Nothing to explain. Please check the truth table.\n\n"))
     }
     
     incl.rem <- "?" %in% include
     if (nrow(excl.matrix) == 0 & incl.rem) {
         cat("\n")
-        stop(paste("All combinations have been included into analysis. The solution is 1.\n",
-                   "Please check the truth table.", "\n\n", sep=""), call. = FALSE)
+        stop(simpleError(paste("All combinations have been included into analysis. The solution is 1.\n",
+                   "Please check the truth table.", "\n\n", sep="")))
     }
     
      # expl.matrix needs to be unaltered for the incl.rem argument
@@ -308,8 +316,8 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         }
     }
     
-    output$initials <- writePrimeimp(inputt, collapse=collapse, uplow=uplow, use.tilde=use.tilde)
-    initial <- drop(rev(c(1, cumprod(rev(noflevels))))[-1] %*% t(inputt - 1)) + 1
+    output$initials <- QCA::writePrimeimp(inputt, collapse=collapse, uplow=uplow, use.tilde=use.tilde)
+    # initial <- drop(rev(c(1, cumprod(rev(noflevels))))[-1] %*% t(inputt - 1)) + 1
     
     minExpressions <- function(expressions) {
         minimized <- TRUE
@@ -345,28 +353,29 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     
     expressions <- minExpressions(expressions)
     
-    #                 return(list(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=initial, all.sol=all.sol, ...=...))
-    c.sol <- p.sol <- getSolution(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=initial, all.sol=all.sol, ...=...)
+    #                 return(list(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=rownms, all.sol=all.sol, ...=...))
+    c.sol <- p.sol <- QCA::getSolution(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=rownms, all.sol=all.sol, ...=...)
     
     mbase <- rev(c(1, cumprod(rev(noflevels + 1))))[-1]
     
     if (incl.rem) {
-        expressions <- sort(setdiff(findSupersets(noflevels + 1, expl.matrix), findSupersets(noflevels + 1, excl.matrix)))
-        expressions <- .Call("removeRedundants", expressions, noflevels, mbase, PACKAGE="QCAGUI")
-        
+        expressions <- sort.int(setdiff(findSupersets(noflevels + 1, expl.matrix), findSupersets(noflevels + 1, excl.matrix)))
+        # expressions <- .Call("removeRedundants", expressions, noflevels, mbase, PACKAGE="QCAGUI")
+        expressions <- QCA::callRemoveRedundants(expressions, noflevels, mbase)
         expressions <- getRow(noflevels + 1, expressions)
         
         colnames(expressions) <- colnames(inputt)
         
         #        return(list(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=initial, all.sol=all.sol, ...=...))
         
-        p.sol <- getSolution(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=initial, all.sol=all.sol, ...=...)
+        p.sol <- QCA::getSolution(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=rownms, all.sol=all.sol, ...=...)
         
     }
     
     
     output$PIs <- p.sol$all.PIs
     output$PIchart <- structure(list(p.sol$mtrx), class="pic")
+    attr(output$PIchart, "PI") <- expressions
     output$primes <- p.sol$reduced$expressions
     output$solution <- p.sol$solution.list[[1]]
     output$essential <- p.sol$solution.list[[2]]
@@ -376,9 +385,20 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
             
     expr.cases <- rep(NA, nrow(p.sol$reduced$expressions))
     
-    tt.rows <- createString(inputt - 1, collapse=collapse, uplow, use.tilde)
+    tt.rows <- QCA::createString(inputt - 1, collapse=collapse, uplow, use.tilde)
     
-    mtrxlines <- demoChart(rownames(p.sol$reduced$expressions), tt.rows, ifelse((use.letters & uplow) | (alreadyletters & uplow), "", "*"))
+    
+    if (any(grepl("[*]", rownames(p.sol$reduced$expressions)))) {
+        mtrxlines <- makeChart(rownames(p.sol$reduced$expressions), tt.rows)
+    }
+    else {
+        if (use.letters) {
+            mtrxlines <- makeChart(rownames(p.sol$reduced$expressions), tt.rows, LETTERS[seq(length(conditions))])
+        }
+        else {
+            mtrxlines <- makeChart(rownames(p.sol$reduced$expressions), tt.rows, conditions)
+        }
+    }
     
     
     for (l in seq(length(expr.cases))) {
@@ -588,7 +608,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                     
                     expressions <- minExpressions(expl.matrix.i.sol)
                     
-                    i.sol.index <- getSolution(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=initial, all.sol=all.sol, ...=...)
+                    i.sol.index <- QCA::getSolution(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=rownms, all.sol=all.sol, ...=...)
                     
                     i.sol.index$expressions <- i.sol.index$expressions[rowSums(i.sol.index$mtrx) > 0, , drop=FALSE]
                     
@@ -629,9 +649,20 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                 
                 expr.cases <- rep(NA, nrow(i.sol.index$reduced$expressions))
                 
-                tt.rows <- createString(inputt - 1, collapse=collapse, uplow, use.tilde)
+                tt.rows <- QCA::createString(inputt - 1, collapse=collapse, uplow, use.tilde)
                 
-                mtrxlines <- demoChart(rownames(i.sol.index$reduced$expressions), tt.rows, ifelse((use.letters & uplow) | (alreadyletters & uplow), "", "*"))
+                if (any(grepl("[*]", rownames(i.sol.index$reduced$expressions)))) {
+                    mtrxlines <- makeChart(rownames(i.sol.index$reduced$expressions), tt.rows)
+                }
+                else {
+                    if (use.letters) {
+                        mtrxlines <- makeChart(rownames(i.sol.index$reduced$expressions), tt.rows, LETTERS[seq(length(conditions))])
+                    }
+                    else {
+                        mtrxlines <- makeChart(rownames(i.sol.index$reduced$expressions), tt.rows, conditions)
+                    }
+                }
+                
                 
                 for (l in seq(length(expr.cases))) {
                     expr.cases[l] <- paste(inputcases[mtrxlines[l, ]], collapse="; ")

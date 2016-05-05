@@ -1,22 +1,48 @@
 `truthTable` <-
 function(data, outcome = "", conditions = "", n.cut = 1,
-         incl.cut1 = 1, incl.cut0 = 1, complete = FALSE, show.cases = FALSE,
-         sort.by = c(""), use.letters = FALSE, inf.test = "", ...) {
+         incl.cut = 1, complete = FALSE, show.cases = FALSE,
+         sort.by = "", use.letters = FALSE, inf.test = "", ...) {
     
-    memcare <- FALSE # to be updated with a future version
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
+    metacall <- match.call(expand.dots = TRUE)
     other.args <- list(...)
     via.pof <- "via.pof" %in% names(other.args)
     
-    ### backwards compatibility 
+    ica <- 1
+    
+    if (is.character(incl.cut) & length(incl.cut) == 1) {
+        incl.cut <- QCA::splitstr(incl.cut)
+    }
+    
+    icp <- incl.cut[1]
+    if (length(incl.cut) > 1) {
+        ica <- incl.cut[2]
+    }
+    
+    
+    ### 
+    ### ### backwards compatibility 
+    ### 
         neg.out <- FALSE
         if ("neg.out" %in% names(other.args)) {
             neg.out <- other.args$neg.out
         }
+        
+        if ("incl.cut1" %in% names(other.args) & identical(icp, 1)) {
+            icp <- other.args$incl.cut1
+            incl.cut[1] <- icp
+        }
+        
+        if ("incl.cut0" %in% names(other.args) & identical(ica, 1)) {
+            ica <- other.args$incl.cut0
+            incl.cut[2] <- ica
+        }
     ### 
-    
-    if (memcare) {
-        complete <- FALSE
-    }
+    ### ### backwards compatibility 
+    ### 
     
     names(data) <- toupper(names(data))
     conditions <- toupper(conditions)
@@ -24,7 +50,7 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     
     if (length(outcome) > 1) {
         cat("\n")
-        stop("Only one outcome is allowed.\n\n", call. = FALSE)
+        stop(simpleError("Only one outcome is allowed.\n\n"))
     }
     
     outcome.copy <- outcome
@@ -38,17 +64,17 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     # for the moment, toupper(outcome) is redundant but should the negation be 
     # treated with lower case letters in the future, it will prove important
     if (!identical(outcome, "")) {
-        if (! toupper(curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
+        if (! toupper(QCA::curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
             cat("\n")
-            stop("Inexisting outcome name.\n\n", call. = FALSE)
+            stop(simpleError("Inexisting outcome name.\n\n"))
         }
     }
     
     if (grepl("\\{|\\}", outcome)) {
-        outcome.value <- curlyBrackets(outcome)
-        outcome <- curlyBrackets(outcome, outside=TRUE)
+        outcome.value <- QCA::curlyBrackets(outcome)
+        outcome <- QCA::curlyBrackets(outcome, outside=TRUE)
         
-        data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% splitstr(outcome.value))
+        data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% QCA::splitstr(outcome.value))
     }
     ### this was supposed to treat the negation using lower case letters
     # else if (! outcome %in% colnames(data)) {
@@ -64,12 +90,12 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     }
     else {
         if (is.character(conditions) & length(conditions) == 1) {
-            conditions <- splitstr(conditions)
+            conditions <- QCA::splitstr(conditions)
         }
     }
     
     if (is.character(sort.by) & length(sort.by) == 1 & !identical(sort.by, "")) {
-        sort.by <- splitstr(sort.by)
+        sort.by <- QCA::splitstr(sort.by)
     }
     
     decreasing <- TRUE # just to set a default value
@@ -78,22 +104,22 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     }
     
     if (is.character(decreasing) & length(decreasing) == 1) {
-        decreasing <- splitstr(decreasing)
+        decreasing <- QCA::splitstr(decreasing)
     }
     
     
     if (!identical(inf.test, "")) {
-        inf.test <- splitstr(inf.test)
+        inf.test <- QCA::splitstr(inf.test)
     }
     
     if (!via.pof) {
-        verify.tt(data, outcome, conditions, complete, show.cases, incl.cut1, incl.cut0, inf.test)
+        verify.tt(data, outcome, conditions, complete, show.cases, icp, ica, inf.test)
     }
     
     data <- data[, c(conditions, outcome)]
     
-    if (incl.cut0 > incl.cut1) {
-        incl.cut0 <- incl.cut1
+    if (ica > icp) {
+        ica <- icp
     }
     
     colnames(data) <- toupper(colnames(data))
@@ -122,7 +148,7 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     }
     else if (length(dc.code) > 1) {
         cat("\n")
-        stop("Multiple \"Don't care\" codes found.\n\n", call. = FALSE)
+        stop(simpleError("Multiple \"Don't care\" codes found.\n\n"))
     }
     
     data <- as.data.frame(lapply(data, function(x) {
@@ -132,7 +158,7 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         # otherwise replacement was not possible
         x[x == dc.code] <- -1
         
-        return(asNumeric(x))
+        return(QCA::asNumeric(x))
     }))
     
     names(data) <- c(conditions, outcome)
@@ -141,7 +167,7 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     rownames(data) <- rownames(initial.data)
     
     nofconditions <- length(conditions)
-    fuzzy.cc <- apply(data[, conditions, drop=FALSE], 2, function(x) any(abs(x - round(x)) >= .Machine$double.eps^0.5))
+    # fuzzy.cc <- apply(data[, conditions, drop=FALSE], 2, function(x) any(abs(x - round(x)) >= .Machine$double.eps^0.5))
     
     fuzzy.cc <- apply(data[, conditions, drop=FALSE], 2, function(x) any(x %% 1 > 0))
     
@@ -168,60 +194,59 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         return(as.vector(noflevels))
     }
     
-    if (memcare) {
-        mbase <- c(rev(cumprod(rev(noflevels))), 1)[-1]
-        inclpri <- .Call("truthTableMem", as.matrix(data[, conditions]), noflevels, mbase, as.numeric(fuzzy.cc), data[, outcome], package="QCAGUI")
-    }
-    else {
-        tt <- createMatrix(noflevels)
-        inclpri <- .Call("truthTable", as.matrix(data[, conditions]), tt, as.numeric(fuzzy.cc), data[, outcome], package="QCAGUI")
-    }
     
-    colnames(inclpri[[1]]) <- seq_len(ncol(inclpri[[1]]))
-    
-    if ("SCTT" %in% names(other.args)) {
-        copyinclpri <- inclpri
+    condata <- data[, conditions]
+    if (any(fuzzy.cc)) {
+        condata[, fuzzy.cc] <- lapply(condata[, fuzzy.cc], function(x) {
+            (x > 0.5)*1
+        })
     }
     
-    line.data <- inclpri[[2]]
+    line.data <- as.vector(as.matrix(condata) %*% c(rev(cumprod(rev(noflevels))), 1)[-1])
+    condata <- condata[order(line.data), ]
+    uniq <- which(!duplicated(condata))
+    tt <- condata[uniq, ]
     
-    inclpri  <- inclpri[[1]][1:3, ]
-    inclpri[is.na(inclpri)] <- NA
+    rownstt <- sort(line.data)[uniq] + 1
+    rownames(tt) <- rownstt
     
-    preserve <- inclpri[3, ] >= n.cut
+    # ipc <- .Call("truthTable", as.matrix(data[, conditions]), as.matrix(tt), as.numeric(fuzzy.cc), data[, outcome], PACKAGE="QCAGUI")
+    ipc <- QCA::callTruthTable(as.matrix(data[, conditions]), as.matrix(tt), as.numeric(fuzzy.cc), data[, outcome])
+    colnames(ipc) <- rownstt
     
-    outvalues <- as.numeric(inclpri[1, ] >= (incl.cut1 - .Machine$double.eps ^ 0.5))
-    outvalues[inclpri[1, ] < incl.cut1 & inclpri[1, ] >= (incl.cut0 - .Machine$double.eps ^ 0.5)] <- "C"
-    outvalues[inclpri[3, ] < n.cut] <- "?"
+    exclude <- ipc[1, ] < n.cut
     
-    tt <- as.data.frame(tt)
-    colnames(tt) <- conditions
-    tt$OUT <- outvalues
-    tt$n <- inclpri[3, ]
-    tt$incl <- inclpri[1, ]
-    tt$PRI <- inclpri[2, ]
+    if (sum(!exclude) == 0) {
+        cat("\n")
+        stop(simpleError("There are no combinations at this frequency cutoff.\n\n"))
+    }
     
+    tt$OUT <- "?"
+    tt$OUT[!exclude] <- as.numeric(ipc[2, ] >= (icp - .Machine$double.eps ^ 0.5))[!exclude]
+    tt$OUT[!exclude & ipc[2, ] < icp & ipc[2, ] >= (ica - .Machine$double.eps ^ 0.5)] <- "C"
+    tt <- cbind(tt, t(ipc))
     
-    cases <- rep("", nrow(tt))
-    
-    cases[outvalues != "?"] <- sapply(rownames(tt)[outvalues != "?"], function(x) {
+    cases <- sapply(line.data[order(line.data)][uniq], function(x) {
         paste(rownames(data)[which(line.data == x)], collapse=",")
     })
     
-    line.data[!line.data %in% colnames(inclpri)[preserve]] <- 0
-    excluded <- line.data == 0
+    excluded <- tt[exclude, , drop = FALSE]
     
-    
-    if (memcare) {
-        data[!excluded, conditions] <- getRow(noflevels, line.data[line.data > 0])
-    }
-    else {
-        data[!excluded, conditions] <- tt[line.data[line.data > 0], conditions]
-    }
-    
-    
-    if (any(excluded)) {
-        excluded.cases <- data[excluded, ]
+    if (length(conditions) < 8) {
+        
+        ttc <- as.data.frame(matrix(nrow = prod(noflevels), ncol = ncol(tt)))
+        colnames(ttc) <- colnames(tt)
+        ttc[, seq(length(conditions))] <- createMatrix(noflevels)
+        ttc$OUT   <- "?"
+        ttc$n     <-  0
+        ttc$incl  <- "-"
+        
+        # sometimes a causal condition may be named PRI (see Porter data)
+        whichpri <- which(colnames(ttc) == "PRI")
+        
+        ttc[, whichpri[length(whichpri)]] <- "-"  
+        ttc[rownames(tt), ] <- tt
+        tt <- ttc
     }
     
     
@@ -269,10 +294,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     }
     
     
-    tt$incl[is.na(tt$incl)] <- "-"
-    tt$PRI[is.na(tt$PRI)] <- "-"
-    
-    
     
     for (i in seq(length(conditions))) {
         if (!fuzzy.cc[i]) {
@@ -298,19 +319,26 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         observed <- which(tt$OUT != "?")
         success <- round(tt[observed, "n"] * as.numeric(tt[observed, "incl"]))
         
-        tt <- cbind(tt, pval1 = "-", pval0 = "-")
-        tt[, "pval1"] <- tt[, "pval0"] <- as.character(tt[, "pval1"])
+        tt$pval1 <- "-"
+        if (length(incl.cut) > 1) {
+            tt$pval0 <- "-"
+        }
         tt[observed, "OUT"] <- 0
         
         for (i in seq(length(observed))) {
             
-            pval1 <- tt[observed[i], "pval1"] <- binom.test(success[i], tt[observed[i], "n"], p = incl.cut1, alternative = "less")$p.value
-            pval0 <- tt[observed[i], "pval0"] <- binom.test(success[i], tt[observed[i], "n"], p = incl.cut0, alternative = "greater")$p.value
-            if (pval1 > alpha) {
+            pval1 <- tt[observed[i], "pval1"] <- binom.test(success[i], tt[observed[i], "n"], p = icp, alternative = "greater")$p.value
+            if (length(incl.cut) > 1) {
+                pval0 <- tt[observed[i], "pval0"] <- binom.test(success[i], tt[observed[i], "n"], p = ica, alternative = "greater")$p.value
+            }
+            
+            if (pval1 < alpha) {
                 tt[observed[i], "OUT"] <- 1
             }
-            else if (pval1 < alpha & pval0 < alpha) {
-                tt[observed[i], "OUT"] <- "C"
+            else if (length(incl.cut) > 1) {
+                if (pval0 < alpha) {
+                    tt[observed[i], "OUT"] <- "C"
+                }
             }
         }
     }
@@ -318,21 +346,36 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     
     # deal with the show.cases in the print function
     # if (show.cases) {
-        tt <- cbind(tt, cases)
+    
+        # apparently this is necessary, otherwise the new column cases will be a factor
+        tt$cases <- ""
+        
+        if (length(conditions) < 8) {
+            tt$cases[rownstt] <- cases
+        }
+        else {
+            tt$cases <- cases[!exclude]
+        }
+        
     # }
     
-    x <- list(tt = tt, indexes = sort(unique(line.data[line.data > 0])), noflevels = as.vector(noflevels),
+    
+    x <- list(tt = tt, indexes = rownstt, noflevels = as.vector(noflevels),
               initial.data = initial.data, recoded.data = data, cases = cases, 
               options = list(outcome = outcome.copy, conditions = conditions, neg.out = neg.out, n.cut = n.cut,
-                             incl.cut1 = incl.cut1, incl.cut0 = incl.cut0, complete = complete,
-                             show.cases = show.cases, use.letters = use.letters, inf.test = statistical.testing))
+                             incl.cut = incl.cut, complete = complete, show.cases = show.cases,
+                             use.letters = use.letters, inf.test = statistical.testing,
+                             incl.cut1 = incl.cut[1], incl.cut0 = ifelse(length(incl.cut) == 2, incl.cut[2], incl.cut)))
     
-    if (any(excluded)) {
-       x$excluded <- excluded.cases
+    if (any(exclude)) {
+        excluded$cases <- ""
+        excluded$cases <- cases[exclude]
+        x$excluded <- structure(list(tt = excluded,
+                                    options = list(show.cases = TRUE, complete = FALSE, excluded = TRUE)), class="tt")
     }
     
-    
-    if (use.letters & sum(nchar(colnames(data)[-ncol(data)])) != (ncol(data) - 1)) { # also verify if not already letters
+    # also verify if not already letters
+    if (use.letters & any(nchar(conditions) > 1)) { 
         colnames(x$tt)[seq(nofconditions)] <- LETTERS[seq(nofconditions)]
     }
     
@@ -350,6 +393,7 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     }
     
     x$origin <- "QCAGUI"
+    x$call <- metacall
     return(structure(x, class="tt"))
 }
 

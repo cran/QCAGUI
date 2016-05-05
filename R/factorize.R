@@ -1,13 +1,17 @@
 `factorize` <- 
 function(expression, snames = "", pos = FALSE, tilde, ...) {
     
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
     # if a string, expression should be DNF
     # no "()" brakets should be allowed
     
     # TO TEST: relation between mv and tilde
     
     if (!identical(snames, "")) {
-        snames <- splitstr(snames)
+        snames <- QCA::splitstr(snames)
     }
     
     pasteit <- function(mat, comrows, cols, comvals) {
@@ -18,8 +22,9 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
             if (mv) {
                 cf <- paste(colnames(mat)[cols], "{", comvals, "}", sep = "")
                 rowsf <- lapply(seq(nrow(temp)), function(x) {
+                    fname <- colnames(temp)
                     x <- temp[x, ]
-                    return(paste(names(x), "{", x, "}", sep = "")[x >= 0])
+                    return(paste(fname, "{", x, "}", sep = "")[x >= 0])
                 })
             }
             else if (tilde) {
@@ -67,7 +72,7 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
             rowsf <- paste(rowsf, collapse = " + ")
             
             cf <- paste(cf[order(match(toupper(gsub("[^A-Za-z]", "", cf)), snames))], collapse = collapse)
-            pasted <- paste(cf, rowsf, sep="#")
+            pasted <- paste(cf, rowsf, sep="@")
             
         }
         else {
@@ -153,7 +158,7 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
     getSol <- function(sol, collapse, pos) {
         pospos <- FALSE
         sol <- lapply(unique(lapply(sol, sort)), function(x) {
-            x <- strsplit(x, split = "#")
+            x <- strsplit(x, split = "@")
             if (pos) {
                 tbl <- table(unlist(x))
                 if (any(tbl > 1)) {
@@ -219,7 +224,12 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
         collapse <- expression$options$collapse
         
         if (identical(snames, "")) {
-            snames <- expression$tt$options$conditions
+            if (expression$options$use.letters) {
+                snames <- LETTERS[seq(length(expression$tt$options$conditions))]
+            }
+            else {
+                snames <- expression$tt$options$conditions
+            }
         }
         
         if ("i.sol" %in% names(expression)) {
@@ -235,7 +245,7 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
         else {
             
             result[[1]] <- list(lapply(expression$solution, paste, collapse=" + "))
-
+            
         }
     }
     else if (is.deMorgan(expression)) {
@@ -311,10 +321,10 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
     }
     
     
-    
     result[[1]] <- lapply(result[[1]], function(x) {
         
         y <- lapply(x, function(x) {
+            
             trnlt <- translate(x, snames)
             
             if (mv) {
@@ -335,7 +345,6 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
         return(y)
         
     })
-    
     
     if (is.null(names(result))) {
         result <- result[[1]][[1]]

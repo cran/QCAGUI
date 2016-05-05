@@ -1,10 +1,20 @@
 `deMorgan` <-
 function(expression, prod.split = "", use.tilde = FALSE, complete = TRUE) {
     
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
+    # TO DO: capture and error the usage of both "cD" and "D*E" in the same expression 
+    
+    
+    
+        
     if (class(expression) == "deMorgan") {
         expression <- paste(expression[[1]][[2]], collapse = " + ")
     }
     
+        
     if (is.qca(expression)) {
         result <- deMorganLoop(expression)
         
@@ -15,28 +25,60 @@ function(expression, prod.split = "", use.tilde = FALSE, complete = TRUE) {
         
         initial <- expression
         
+        
+        # STRUCTURE of the big.list
+        
+        # level 1: split by separate components
+            # "A + B(C + D*~E)" has two components "A" and "B(C + D*~E)"
+        
+        # level 2: split by brackets
+            # "B(C + D*~E)" has "B" and "C + D*~E"
+        
+        # level 3: split by "+"
+            # "C + D*~E" has "C" and "D*~E"
+        
+        # level 4: split by "*"
+            # "D*~E" has "D" and "~E"
+        
+        # level 5: split by "~" (the result is only a vector, not a list)
+            # "~E" has "~" and "E"
+        
+        
+        
+        
         if (grepl("\\{|\\}", expression)) {
             if (grepl("~", expression)) {
                 cat("\n")
-                stop("Impossible combination of both \"~\" and \"{}\" multi-value notation.\n\n", call. = FALSE)
+                stop(simpleError("Impossible combination of both \"~\" and \"{}\" multi-value notation.\n\n"))
             }
             use.tilde <- FALSE
         }
         
         if (prod.split == "" & grepl("\\*", expression)) {
             # cat("\n")
-            # stop("The \"*\" symbol was found: consider using the argument prod.split = \"*\".\n\n", call. = FALSE)
+            # stop(simpleError("The \"*\" symbol was found: consider using the argument prod.split = \"*\".\n\n"))
             prod.split <- "*"
         }
         
         if (prod.split != "" & prod.split != "*") {
             if (!grepl(prod.split, expression)) {
                 cat("\n")
-                stop("The product operator \"", prod.split, "\" was not found.\n\n", call. = FALSE)
+                stop(simpleError(paste("The product operator \"", prod.split, "\" was not found.\n\n", sep="")))
             }
         }
         
-        big.list <- getBigList(expression, prod.split)
+        
+        # big.list <- QCA::splitMainComponents(expression)
+        # big.list <- QCA::splitBrackets(big.list)
+        # big.list <- QCA::removeSingleStars(big.list)
+        # big.list <- QCA::splitPluses(big.list)
+        # big.list <- QCA::splitStars(big.list, prod.split)
+        # big.list <- QCA::splitTildas(big.list)
+        # big.list <- QCA::solveBrackets(big.list)
+        # big.list <- QCA::simplifyList(big.list)
+        
+        # big.list <- QCA::simplifyList(QCA::solveBrackets(QCA::splitTildas(QCA::splitStars(QCA::splitPluses(QCA::removeSingleStars(QCA::splitBrackets(QCA::splitMainComponents(expression)))), prod.split))))
+        big.list <- QCA::getBigList(expression, prod.split)
         
         flat.vector <- unlist(big.list)
         unique.values <- unique(flat.vector)
@@ -51,10 +93,10 @@ function(expression, prod.split = "", use.tilde = FALSE, complete = TRUE) {
         
         if (tilda & prod.split == "" & any(toupper(flat.vector) != flat.vector)) {
             cat("\n")
-            stop("Unusual usage of both \"~\" sign and lower letters.\n\n", call. = FALSE)
+            stop(simpleError("Unusual usage of both \"~\" sign and lower letters.\n\n"))
         }
         
-        negated.string <- paste(unlist(lapply(negateValues(big.list, tilda, use.tilde), function(x) {
+        negated.string <- paste(unlist(lapply(QCA::negateValues(big.list, tilda, use.tilde), function(x) {
             paste(unlist(lapply(x, paste, collapse = "")), collapse = " + ")
         })), collapse = ")(")
         
@@ -70,9 +112,18 @@ function(expression, prod.split = "", use.tilde = FALSE, complete = TRUE) {
             }
             else {
             
-                big.list <- getBigList(negated.string, prod.split)
+                big.list <- QCA::getBigList(negated.string, prod.split)
                 
-                negated <- unlist(lapply(removeDuplicates(big.list), function(x) {
+                # big.list <- QCA::splitMainComponents(negated.string)
+                # big.list <- QCA::splitBrackets(big.list)
+                # big.list <- QCA::removeSingleStars(big.list)
+                # big.list <- QCA::splitPluses(big.list)
+                # big.list <- QCA::splitStars(big.list)
+                # big.list <- QCA::splitTildas(big.list)
+                # big.list <- QCA::solveBrackets(big.list)
+                # big.list <- QCA::simplifyList(big.list)
+                
+                negated <- unlist(lapply(QCA::removeDuplicates(big.list), function(x) {
                     copyx <- unlist(lapply(x, function(y) {
                         y <- y[y != "~"]
                     }))

@@ -1,24 +1,8 @@
 \name{QCAGUI-internal}
 
 \alias{.onAttach}
-\alias{asNumeric}
-\alias{base3rows}
-\alias{createChart}
-\alias{createString}
 \alias{deMorganLoop}
-\alias{drawVenn}
 \alias{eqmccLoop}
-\alias{factor.function}
-\alias{fuzzyand}
-\alias{fuzzyor}
-\alias{getBigList}
-\alias{getNonChars}
-\alias{getSolution}
-\alias{insideBrackets}
-\alias{negateValues}
-\alias{outsideBrackets}
-\alias{possibleNumeric}
-\alias{prettyString}
 \alias{prettyTable}
 \alias{print.aE}
 \alias{print.deMorgan}
@@ -29,20 +13,6 @@
 \alias{print.mqca}
 \alias{print.sS}
 \alias{print.tt}
-\alias{removeDuplicates}
-\alias{removeSingleStars}
-\alias{rowDominance}
-\alias{simplifyList}
-\alias{solveBrackets}
-\alias{sortVector}
-\alias{sortMatrix}
-\alias{splitstr}
-\alias{splitBrackets}
-\alias{splitMainComponents}
-\alias{splitPluses}
-\alias{splitStars}
-\alias{splitTildas}
-\alias{trimst}
 \alias{uninstall}
 \alias{verify.data}
 \alias{verify.dir.exp}
@@ -51,11 +21,43 @@
 \alias{verify.qca}
 \alias{verify.mqca}
 \alias{verify.tt}
-\alias{writePrimeimp}
-\alias{writeSolution}
 
 
-\alias{ib}
+
+
+\alias{d.AS}
+\alias{d.Bas}
+\alias{d.biodiversity}
+\alias{d.BWB}
+\alias{d.CS}
+\alias{d.CZH}
+\alias{d.education}
+\alias{d.Emm}
+\alias{d.graduate}
+\alias{d.health}
+\alias{d.HK}
+\alias{d.HMN}
+\alias{d.homeless}
+\alias{d.jobsecurity}
+\alias{d.Kil}
+\alias{d.Kro}
+\alias{d.napoleon}
+\alias{d.partybans}
+\alias{d.represent}
+\alias{d.RS}
+\alias{d.SA}
+\alias{d.socialsecurity}
+\alias{d.SS}
+\alias{d.stakeholder}
+\alias{d.transport}
+\alias{d.urban}
+\alias{Emme}
+\alias{HarKem}
+\alias{Krook}
+\alias{RagStr}
+\alias{Rokkan}
+
+
 
 \title{Internal Functions}
 

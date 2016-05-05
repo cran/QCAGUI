@@ -2,6 +2,10 @@
 function(data, outcome = "", conditions = "", type = "corruption", 
          dep = TRUE, n.cut = 1, incl.cut = 1, p.pert = 0.5, n.pert = 1) {
     
+    if (!isNamespaceLoaded("QCA")) {
+        requireNamespace("QCA", quietly = TRUE)
+    }
+    
     names(data) <- toupper(names(data))
     conditions <- toupper(conditions)
     outcome <- toupper(outcome)
@@ -10,7 +14,7 @@ function(data, outcome = "", conditions = "", type = "corruption",
         conditions <- names(data)[-which(names(data) == outcome)]
     }
     else {
-        conditions <- splitstr(conditions)
+        conditions <- QCA::splitstr(conditions)
     }
     
     data <- data[, c(conditions, outcome)]

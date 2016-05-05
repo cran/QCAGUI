@@ -34,13 +34,14 @@ compute(expression = "", data)
 
 \details{
 A SOP ("sum of products") is also known as a DNF ("disjunctive normal form"), or in other
-words a "union of intersections", for example \code{A*D + B*c}.
+words a "union of intersections", for example \bold{\code{A*D + B*c}}.
 
-The same expression can be written in multivalue notation: \code{A{1}*D{1} + B{1}*C{0}}.
+The same expression can be written in multivalue notation: \bold{\code{A{1}*D{1} + B{1}*C{0}}}.
 Both types of expressions are valid, and yield the same result on the same dataset.
 
 For multivalue notation, expressions can contain multiple values to translate, separated
-by a comma. If B was a multivalue causal condition, an expression could be: \code{A{1} + B{1,2}*C{0}}.
+by a comma. If B was a multivalue causal condition, an expression could be:
+\bold{\code{A{1} + B{1,2}*C{0}}}.
 
 In this example, all values in B equal to either 1 or 2 will be translated to 1, and the
 rest of the (multi)values will be translated to 0.
@@ -49,41 +50,47 @@ In multivalue notation, causal snames are expected as upper case letters, and th
 converted to upper case by default.
 
 The function automatically detects the use of tilde "~" as a negation for a particular
-causal condition. \code{~A} does two things: it identifies the presence of causal condition A
-(because it was specified as upper case) and it recognizes that it must be negated, because of the 
-tilde. It works even combined with lower case names: \code{~a}, which is interpreted as \code{A}.
+causal condition. \bold{\code{~A}} does two things: it identifies the presence of causal
+condition \bold{\code{A}} (because it was specified as upper case) and it recognizes that it
+must be negated, because of the  tilde. It works even combined with lower case names:
+\bold{\code{~a}}, which is interpreted as \bold{\code{A}}.
 
-For multivalue notation, a pseudo-standard is applied. For a binary causal condition, A{0} is the
-negation of \code{A}, and \code{~A{0}} can be interpreted as the presence of \code{A}. Starting from
-these two agreed statements, when multiple values are supplied, the pseudo-standard interprets 
-anything that contains a value of 0 as the absence of causal condition:
-\code{A{0,2}} will be translated as 0, and upon recoding in the real data, values 0 and 2 will
-be recoded to 0 and the rest of the values to 1. 
+For multivalue notation, a pseudo-standard is applied. For a binary causal condition,
+\bold{\code{A{0}}} is the negation of \bold{\code{A}}, and \bold{\code{~A{0}}} can be interpreted
+as the presence of \bold{\code{A}}. Starting from these two agreed statements, when multiple
+values are supplied, the pseudo-standard interprets anything that contains a value of 0 as the
+absence of causal condition: \bold{\code{A{0,2}}} will be translated as 0, and upon recoding in
+the real data, values 0 and 2 will be recoded to 0 and the rest of the values to 1. 
 
-Similarly, negations work with multivalue snames: \code{~A{1,2}} is be interpreted as
-"all values except 1 and 2 should be translated as 0", whereas \code{~A{0,2}} will be
+Similarly, negations work with multivalue snames: \bold{\code{~A{1,2}}} is be interpreted as
+"all values except 1 and 2 should be translated as 0", whereas \bold{\code{~A{0,2}}} will be
 translated as 1, and all other values except 0 and 2 will be recoded to 0.
 
-The use of the product operator \code{*} is redundant when causal snames' names are single
-letters (for example \code{AD + Bc}), and is also redundant for multivalue data, where 
-product terms can be separated by using the curly brackets \code{{}}.
+The use of the product operator \bold{\code{*}} is redundant when causal snames' names are single
+letters (for example \bold{\code{AD + Bc}}), and is also redundant for multivalue data, where 
+product terms can be separated by using the curly brackets notation.
 
-When causal snames are binary and their names have multiple letters (for example \code{AA + CC*bb}),
-the use of the product operator \code{*} is preferable but the function manages to translate an expression
-even without it (\code{AA + CCbb}) by searching deep in the space of the snames' names, at the cost
-of slowing down for a high number of causal snames. For this reason, an arbitrary limit of 7 causal
-snames is imposed, to write an expression with.
+When causal snames are binary and their names have multiple letters (for example
+\bold{\code{AA + CC*bb}}), the use of the product operator \bold{\code{*}} is preferable but the
+function manages to translate an expression even without it (\bold{\code{AA + CCbb}}) by searching
+deep in the space of the conditions' names, at the cost of slowing down for a high number of causal
+conditions. For this reason, an arbitrary limit of 7 causal \bold{\code{snames}} is imposed, to write an
+expression with.
 }
 
 
 \value{
 A standard of implicants, with the following codes:
-    \tabular{rll}{
-         0 \tab = \tab absence of a causal condition\cr
-         1 \tab = \tab presence of a causal condition\cr
-        -1 \tab = \tab causal condition was eliminated\cr
+    \tabular{rl}{
+         0 \tab absence of a causal condition\cr
+         1 \tab presence of a causal condition\cr
+        -1 \tab causal condition was eliminated\cr
     }
 The matrix was also assigned a class "translate", to eliminate the -1 codes when printed.
+}
+
+\author{
+Adrian Dusa
 }
 
 \references{
@@ -143,8 +150,8 @@ translate("SUBER + subset", "SU, BER, SUB, SET")
 
 
 # example of compute
-data(d.urban)
-compute("MLC + FRB", data = d.urban)
+data(CVF)
+compute("natpride + GEOCON", data = CVF)
 
 
 # to print _all_ codes from the standard output matrix
