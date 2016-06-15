@@ -66,8 +66,8 @@ great deal of impact from the previous versions.
     \tabular{ll}{
     Package: \tab QCAGUI\cr
     Type:    \tab Package\cr
-    Version: \tab 2.2\cr
-    Date:    \tab 2016-05-05\cr
+    Version: \tab 2.3\cr
+    Date:    \tab 2016-06-15\cr
     License: \tab GPL (>= 2)\cr
     }
 }

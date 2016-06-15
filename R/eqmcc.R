@@ -11,52 +11,36 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     metacall <- match.call(expand.dots = TRUE)
     other.args <- list(...)
     
-    ### 
-    ### ### backwards compatibility 
-    ### 
         neg.out <- FALSE
         if ("neg.out" %in% names(other.args)) {
             neg.out <- other.args$neg.out
         }
-    ### 
-    ### ### backwards compatibility 
-    ### 
-    
     
     if ("rowdom" %in% names(other.args)) {
         row.dom <- other.args$rowdom
     }
     
-    # backwards compatibility, phasing out
     if ("min.dis" %in% names(other.args)) {
         if (is.logical(other.args$min.dis)) {
             all.sol <- !other.args$min.dis
         }
     }
     
-    
     if ("direxp" %in% names(other.args)) {
         dir.exp <- other.args$direxp
     }
-    
-    # PRI <- FALSE
-    # if ("PRI" %in% names(other.args)) {
-    #     if (is.logical(other.args$PRI)) {
-    #         PRI <- other.args$PRI[1] # [1] just to make sure only the first value is taken, should someone incorrectly provide a vector
-    #     }
-    # }
     
     if (missing(data)) {
         cat("\n")
         stop(simpleError("Data is missing.\n\n"))
     }
     
-    if (identical(outcome, "") & !is.tt(data)) {
+    if (identical(outcome, "") & !is(data, "tt")) {
         cat("\n")
         stop(simpleError("You haven't specified the outcome set.\n\n"))
     }
     
-    print.truth.table <- details & !is.tt(data)
+    print.truth.table <- details & !is(data, "tt")
     
     if (identical(include, "")) {
         if (!identical(dir.exp, "")) {
@@ -84,7 +68,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         dir.exp <- QCA::splitstr(dir.exp)
     }
     
-    if (!is.tt(data)) {
+    if (!is(data, "tt")) {
         
         if (length(outcome) > 1) {
             
@@ -99,15 +83,13 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         outcome <- toupper(outcome)
         
         outcome.copy <- outcome
-        indata <- data # important before altering the outcome, if multi-value
+        indata <- data 
         
         if (substring(outcome, 1, 1) == "~") {
             neg.out <- TRUE
             outcome <- substring(outcome, 2)
         }
         
-        # for the moment, toupper(outcome) is redundant but if in the future
-        # the negation will be treated with lower case letters, it will prove important
         if (! toupper(QCA::curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
             cat("\n")
             stop(simpleError("Inexisting outcome name.\n\n"))
@@ -119,14 +101,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
             
             data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% QCA::splitstr(outcome.value))
         }
-        ### this was supposed to treat the negation using lower case letters
-        # else if (! outcome %in% colnames(data)) {
-        #     data[, toupper(outcome)] <- 1 - data[, toupper(outcome)]
-        # }
-        
-        # already on line 93
-        # outcome <- toupper(outcome)
-        ### 
         
         if (identical(conditions, "")) {
             conditions <- names(data)[-which(names(data) == outcome)]
@@ -148,14 +122,14 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                          incl.cut=incl.cut, use.letters=use.letters, inf.test=inf.test, neg.out=neg.out, complete=complete, ... = ...)
         
         tt$initial.data <- indata
-        indata <- data # data is already altered in outcome value, if initially multi-value
+        indata <- data 
         
         recdata <- tt$recoded.data
         conditions <- toupper(conditions)
         outcome <- toupper(outcome)
         names(indata) <- c(conditions, outcome)
     }
-    else { # data already is a tt
+    else { 
         
         chexplain <- c(0, 1)[which(0:1 %in% explain)]
         chinclude <- c(0, 1)[which(0:1 %in% include)]
@@ -167,7 +141,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
             }
         }
     
-         # check if explain has both 1 and 0
         if (length(chexplain) == 2) {
             cat("\n")
             stop(simpleError("You cannot explain both 0 and 1.\n\n"))
@@ -181,7 +154,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         use.letters <- tt$options$use.letters
         neg.out <- tt$options$neg.out
     }
-    
     
     output <- list()
     output$tt <- tt
@@ -200,7 +172,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     
     uplow <- TRUE
     noflevels <- tt$noflevels
-     # check if the column names are not already letters
+     
     alreadyletters <- sum(nchar(colnames(recdata)[-ncol(recdata)])) == ncol(recdata) - 1
     
     tt$tt[, seq(length(conditions))] <- as.data.frame(lapply(tt$tt[, seq(length(conditions))], function(x) {
@@ -208,11 +180,12 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         return(as.numeric(x))
     }))
     
-    expl.incl <- unique(c(explain, include)) # here "include" may contain contradictions; missings are irrelevant as they were already erased
+    expl.incl <- unique(c(explain, include)) 
     subset.tt <- tt$tt[, "OUT"] %in% expl.incl
     expl.matrix <- as.matrix(tt$tt[subset.tt, seq(length(noflevels))])
     expl.matrix <- matrix(as.numeric(expl.matrix), ncol=length(noflevels)) + 1
-    rownames(expl.matrix) <- tt$indexes[subset.tt]
+    
+    rownames(expl.matrix) <- drop(rev(c(1, cumprod(rev(noflevels))))[-1] %*% t(expl.matrix - 1)) + 1
     
     subset.tt <- !tt$tt[, "OUT"] %in% expl.incl
     excl.matrix <- as.matrix(tt$tt[subset.tt, seq(length(noflevels))])
@@ -229,7 +202,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     rownms <- rownames(inputt)
     inputt <- matrix(as.numeric(inputt), ncol=length(noflevels)) + 1
     
-    
     if (nrow(tt$tt) == prod(tt$noflevels)) {
         inputcases <- tt$cases[rowsNotMissing][subset.tt]
     }
@@ -240,7 +212,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     nofcases1 <- sum(tt$tt$n[tt$tt$OUT == 1])
     nofcases0 <- sum(tt$tt$n[tt$tt$OUT == 0])
     nofcasesC <- sum(tt$tt$n[tt$tt$OUT == "C"])
-    
     
     tomit <- logical(nrow(expl.matrix))
     tomitinputt <- logical(nrow(inputt))
@@ -259,9 +230,16 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         excl.matrix <- rbind(excl.matrix, omit + 1)
     }
     else if (is.vector(omit)) {
+        if (is.character(omit)) {
+            
+            omit <- findRows(omit, conditions, noflevels)
+            
+        }
+        
         tomit <- rownames(expl.matrix) %in% omit
         tomitinputt <- rownms %in% omit
         excl.matrix <- unique(rbind(excl.matrix, getRow(noflevels, as.numeric(omit)) + 1))
+        
     }
     
     output$excluded <- sort(drop(rev(c(1, cumprod(rev(noflevels))))[-1] %*% t(excl.matrix - 1)) + 1)
@@ -269,7 +247,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     inputt <- inputt[!tomitinputt, , drop=FALSE]
     inputcases <- inputcases[!tomitinputt]
     rownms <- rownms[!tomitinputt]
-     
+    
     if (nrow(expl.matrix) == 0) {
         cat("\n")
         stop(simpleError("Nothing to explain. Please check the truth table.\n\n"))
@@ -282,15 +260,13 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                    "Please check the truth table.", "\n\n", sep="")))
     }
     
-     # expl.matrix needs to be unaltered for the incl.rem argument
     expressions <- expl.matrix
     
-    recdata[, conditions] <- as.data.frame(lapply(recdata[, conditions], function(x) {
+    recdata[, conditions] <- as.data.frame(lapply(recdata[, conditions, drop = FALSE], function(x) {
         x[x %in% c("-", "?", "dc")] <- -1
         return(as.numeric(x))
     }))
     
-     # check if the data has multiple values
     if (any(recdata[, seq(ncol(recdata) - 1)] > 1)) {
         uplow <- FALSE
         use.tilde <- FALSE
@@ -300,24 +276,23 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         uplow <- FALSE
     }
     
-    collapse <- ifelse(alreadyletters & uplow | use.tilde, "", "*")
+    collapse <- "*"
+    
     changed <- FALSE
     
-     # if not already letters and user specifies using letters for conditions, change it
     if (use.letters & !alreadyletters) {
-        colnames(expressions) <- colnames(inputt) <- colnames(expl.matrix) <- LETTERS[seq(ncol(inputt))]
+        colnames(expressions) <- colnames(inputt) <- colnames(expl.matrix) <- colnames(excl.matrix) <- LETTERS[seq(ncol(inputt))]
         changed <- TRUE
-        collapse <- ifelse(!uplow | use.tilde, "*", "")
+        
     }
     else {
-        colnames(expressions) <- colnames(inputt) <- colnames(expl.matrix) <- colnames(recdata[, seq(ncol(inputt))])
-        if (use.tilde) {
-            collapse <- "*"
-        }
+        colnames(expressions) <- colnames(inputt) <- colnames(expl.matrix) <- colnames(excl.matrix) <- colnames(recdata[, seq(ncol(inputt))])
+        
     }
     
+    rownames(excl.matrix) <- drop(rev(c(1, cumprod(rev(noflevels))))[-1] %*% t(excl.matrix - 1)) + 1
+    
     output$initials <- QCA::writePrimeimp(inputt, collapse=collapse, uplow=uplow, use.tilde=use.tilde)
-    # initial <- drop(rev(c(1, cumprod(rev(noflevels))))[-1] %*% t(inputt - 1)) + 1
     
     minExpressions <- function(expressions) {
         minimized <- TRUE
@@ -326,7 +301,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
             distance <- dist(expressions, method="manhattan")
             distance <- as.matrix(distance)
             distance[!upper.tri(distance)] <- NA
-             # tbc means "to be compared"
+             
             tbc <- as.matrix(which(distance == 1, arr.ind=TRUE))
             
             if (nrow(tbc) > 0) {
@@ -353,25 +328,23 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     
     expressions <- minExpressions(expressions)
     
-    #                 return(list(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=rownms, all.sol=all.sol, ...=...))
     c.sol <- p.sol <- QCA::getSolution(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=rownms, all.sol=all.sol, ...=...)
     
     mbase <- rev(c(1, cumprod(rev(noflevels + 1))))[-1]
     
     if (incl.rem) {
+        
         expressions <- sort.int(setdiff(findSupersets(noflevels + 1, expl.matrix), findSupersets(noflevels + 1, excl.matrix)))
-        # expressions <- .Call("removeRedundants", expressions, noflevels, mbase, PACKAGE="QCAGUI")
+        
         expressions <- QCA::callRemoveRedundants(expressions, noflevels, mbase)
+        
         expressions <- getRow(noflevels + 1, expressions)
         
         colnames(expressions) <- colnames(inputt)
         
-        #        return(list(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=initial, all.sol=all.sol, ...=...))
-        
         p.sol <- QCA::getSolution(expressions=expressions, collapse=collapse, uplow=uplow, use.tilde=use.tilde, inputt=inputt, row.dom=row.dom, initial=rownms, all.sol=all.sol, ...=...)
         
     }
-    
     
     output$PIs <- p.sol$all.PIs
     output$PIchart <- structure(list(p.sol$mtrx), class="pic")
@@ -380,13 +353,9 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     output$solution <- p.sol$solution.list[[1]]
     output$essential <- p.sol$solution.list[[2]]
     
-    # produce inclusion and coverage even if not specifically required, the printing function will deal with it
-    # same with show cases
-            
     expr.cases <- rep(NA, nrow(p.sol$reduced$expressions))
     
     tt.rows <- QCA::createString(inputt - 1, collapse=collapse, uplow, use.tilde)
-    
     
     if (any(grepl("[*]", rownames(p.sol$reduced$expressions)))) {
         mtrxlines <- makeChart(rownames(p.sol$reduced$expressions), tt.rows)
@@ -399,7 +368,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
             mtrxlines <- makeChart(rownames(p.sol$reduced$expressions), tt.rows, conditions)
         }
     }
-    
     
     for (l in seq(length(expr.cases))) {
         expr.cases[l] <- paste(inputcases[mtrxlines[l, ]], collapse="; ")
@@ -424,10 +392,8 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     listIC$pims <- NULL
     output$IC <- listIC
     
-    
     output$numbers <- c(OUT1=nofcases1, OUT0=nofcases0, OUTC=nofcasesC, Total=nofcases1 + nofcases0 + nofcasesC)
     
-    # output$options$warn1conf <- ifelse(nrow(expl.matrix) == 1 & !incl.rem, TRUE, FALSE)
     mtrx <- p.sol$mtrx[p.sol$all.PIs, , drop=FALSE]
     
     output$inputcases <- inputcases
@@ -440,11 +406,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     output$options$use.letters <- use.letters
     output$options$use.tilde <- use.tilde
     output$options$collapse <- collapse
-    
-    # if (PRI) {
-    #     output$options$PRI <- other.args$PRI[1]
-    # }
-    
     
     output$SA <- lapply(p.sol$solution.list[[1]], function(x) {
         p.expressions <- p.sol$reduced$expressions[x, , drop=FALSE]
@@ -484,7 +445,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         }
     })
     
-    
     prettyNums <- formatC(seq(length(p.sol$solution.list[[1]])), digits = nchar(length(p.sol$solution.list[[1]])) - 1, flag = 0)
     names(output$SA) <- paste("M", prettyNums, sep="")
     
@@ -493,20 +453,13 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         i.sol <- vector("list", length(c.sol$solution.list[[1]])*length(p.sol$solution.list[[1]]))
         index <- 1
         
-        # cat(paste("c.s total:", length(c.sol$solution.list[[1]]), "\n"))
-        # cat(paste("p.s total:", length(p.sol$solution.list[[1]]), "\n"))
-        
         for (c.s in seq(length(c.sol$solution.list[[1]]))) {
             
             c.expressions <- c.sol$reduced$expressions[c.sol$solution.list[[1]][[c.s]], , drop=FALSE]
             
             for (p.s in seq(length(p.sol$solution.list[[1]]))) {
                 
-                # print(p.s)
-                
                 p.expressions <- p.sol$reduced$expressions[p.sol$solution.list[[1]][[p.s]], , drop=FALSE]
-                
-                # return(list(c.expressions=c.expressions, p.expressions=p.expressions, noflevels=noflevels, dir.exp=dir.exp, conditions=conditions))
                 
                 dir.exp.matrix <- matrix(matrix(ncol=length(conditions), nrow=0))
                 
@@ -531,10 +484,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                             if (length(notequals) > 0) {
                                 for (k in notequals) {
                                     
-                                    ###### !!!!!!!!!!!!!!!!!!
                                     dir.exp.k <- unique(c(names(dir.exp[[conditions[k]]])[dir.exp[[conditions[k]]] == 1], c.expressions[i, k] - 1))
-                                    ###### !!!!!!!!!!!!!!!!!!
-                                    
                                     
                                     if (length(dir.exp.k) != noflevels[k]) {
                                         equals <- sort(c(equals, k))
@@ -547,13 +497,10 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                             
                         }
                         else {
-                            #if (p.s == 2) {
-                            #    print("not a subset!")
-                            #}
+                            
                         } 
                     }
                 }
-                
                 
                 constraint <- p.sol$reduced$expressions[p.sol$solution.list[[1]][[p.s]], , drop=FALSE]
                 
@@ -566,7 +513,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                     dir.exp.x <- dir.exp.matrix[dir.exp.i, ]
                     subset.columns <- dir.exp.x >= 0
                     
-                    if (!is.null(output$SA[[p.s]])) { # bug fix 06.08.2013 Ljubljana
+                    if (!is.null(output$SA[[p.s]])) { 
                         SArows <- apply(output$SA[[p.s]], 1, function(x) {
                             return(all(x[dir.exp.x >= 0] == dir.exp.x[dir.exp.x >= 0]))
                         })
@@ -580,7 +527,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                 i.sol[[index]]$DC <- output$SA[[p.s]][setdiff(rownames(output$SA[[p.s]]), rownames(EC)), , drop=FALSE]
                 i.sol[[index]]$NSEC <- matrix(ncol = ncol(EC), nrow = 0)
                 colnames(i.sol[[index]]$NSEC) <- colnames(EC)
-                
                 
                 nsecs <- TRUE
                 
@@ -663,9 +609,8 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                     }
                 }
                 
-                
                 for (l in seq(length(expr.cases))) {
-                    expr.cases[l] <- paste(inputcases[mtrxlines[l, ]], collapse="; ")
+                    expr.cases[l] <- paste(inputcases[which(mtrxlines[l, ])], collapse="; ")
                 }
                 
                 if (length(i.sol.index$solution.list[[1]]) == 1) {
@@ -689,8 +634,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         output$i.sol <- i.sol
     }
     
-    # transform the SAs and the easy counterfactuals in data frames
-    
     output$SA <- lapply(output$SA, as.data.frame)
     
     if (any(names(output) == "i.sol")) {
@@ -699,7 +642,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
         }
     }
     
-    if (!is.tt(data)) {
+    if (!is(data, "tt")) {
         output$tt$options$outcome <- outcome.copy
     }
     

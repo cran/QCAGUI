@@ -113,6 +113,7 @@ Chicago Press.
 }
 
 \examples{
+require("QCA")
 
 # three binary causal conditions, having two levels each: 0 and 1=
 noflevels <- c(2, 2, 2)

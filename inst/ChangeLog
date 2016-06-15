@@ -1,3 +1,31 @@
+Version 2.3
+    o New: the user interface gained the possibility to plot graphics from the
+      command line
+    o New: plots produced in the command line can be saved in various formats
+    o New: the menu dialogs and the command line in the interface work with the
+      same objects from the workspace
+    o New: function findRows(), to find patterns of rows in a truth table, usually to
+      be served as the "omit" argument in the function eqmcc()
+      (thanks to Eva Thomann for the suggestion)
+    o New: argument "clabels" to function XYplot() to add case labels to the plot
+    o Changed: function compute() now returns the scores for the entire expression
+      while for individual paths it has gained an argument called "separate"
+    o Changed: deprecated functions is.tt(x), is.qca(x), is.sS(x), is.deMorgan(x) and
+      is.pof(x), in favor of the more consistent, for example, is(x, "tt")
+    o Changed: reverted value of argument "hclustm" to "complete", and default
+      value of argument "distm" to "euclidean", in the function findTh()
+    o Improved: for argument sort.by in function truthTable(), it is now possible to
+      use "+" and "-" to signal "increasing" or "decreasing"
+    o Fixed: an outstanding bug assigning cases from truth table rows to solution,
+      when subsetting based on the frequency threshold (thanks to Nena Oana and
+      Carsten Schneider for the report)
+    o Fixed: diagonal and middle guides in XYplot were drawing outside of the plot
+      region when using multiple plots in the same graphics device
+    o Fixed: bug in the GUI version of calibrate(), when switching from fuzzy to
+      crisp it preserved the names of the thresholds and triggered an error
+    o Fixed: bug in assigning rownames to a matrix, when selecting rows from the
+      truth table based on the frequency cut-off (thanks to Ben Gibson for the report)
+    
 Version 2.2
     o New: first attempt of an R console in the web GUI
     o New: function XYplot()

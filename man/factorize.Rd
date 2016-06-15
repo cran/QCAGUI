@@ -65,6 +65,7 @@ and quantitative strategies}, Berkeley: University of California Press
 \seealso{\code{\link{translate}}}
 
 \examples{
+require("QCA")
 
 # results presented in alphabetical order
 factorize("one*TWO*four + one*THREE + THREE*four")

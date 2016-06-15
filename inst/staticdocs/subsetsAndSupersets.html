@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-<title>superSubset, findSubsets, findSupersets. QCAGUI 2.2</title>
+<title>superSubset, findSubsets, findSupersets. QCAGUI 2.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="
 Adrian Dusa
@@ -34,7 +34,7 @@ Adrian Dusa
     <div class="navbar">
   <div class="navbar-inner">
     <div class="container">
-      <a class="brand" href="#">QCAGUI 2.2</a>
+      <a class="brand" href="#">QCAGUI 2.3</a>
       <div class="nav">
         <ul class="nav">
           <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
@@ -57,7 +57,7 @@ Adrian Dusa
     <pre><div>superSubset(data, outcome&nbsp;=&nbsp;"", conditions&nbsp;=&nbsp;"", relation&nbsp;=&nbsp;"nec", incl.cut&nbsp;=&nbsp;1, cov.cut&nbsp;=&nbsp;0, use.tilde&nbsp;=&nbsp;FALSE, use.letters&nbsp;=&nbsp;FALSE, ...)</div>
 <div>findSubsets(noflevels, row.no, maximum)</div>
 <div>findSupersets(noflevels, input.combs)</div>
-<div>is.sS(x)</div></pre>
+</pre>
     
     <h2>Arguments</h2>
     <dl>
@@ -93,8 +93,6 @@ Adrian Dusa
        in the implicant matrix.</dd>
       <dt>...</dt>
       <dd>Other arguments for backward compatibility.</dd>
-      <dt>x</dt>
-      <dd>An object of class <code>"sS"</code>.</dd>
     </dl>
     
     <div class="Description">
@@ -234,9 +232,9 @@ require(venn)
 x = list(&quot;SURV&quot; = which(LC$SURV == 1),
          &quot;STB&quot; = which(ssLC$coms[, 1] == 1),
          &quot;LIT&quot; = which(ssLC$coms[, 2] == 1))
-venn(x)
+venn(x, cexil = 0.7)
 </div>
-<p><img src='subsetsAndSupersets-2.png' alt='' /></p>
+<p><img src='subsetsAndSupersets-2.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 # Lipset multi-value sets
@@ -416,7 +414,7 @@ getRow(noflevels + 1, sup)
   </div>
   <div class="span4">
     <!-- <ul>
-      <li>superSubset</li><li>findSubsets</li><li>findSupersets</li><li>is.sS</li>
+      <li>superSubset</li><li>findSubsets</li><li>findSupersets</li>
     </ul>
     <ul>
       <li>functions</li>

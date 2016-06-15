@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-<title>pof. QCAGUI 2.2</title>
+<title>pof. QCAGUI 2.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="
 Adrian Dusa
@@ -34,7 +34,7 @@ Adrian Dusa
     <div class="navbar">
   <div class="navbar-inner">
     <div class="container">
-      <a class="brand" href="#">QCAGUI 2.2</a>
+      <a class="brand" href="#">QCAGUI 2.3</a>
       <div class="nav">
         <ul class="nav">
           <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
@@ -55,7 +55,7 @@ Adrian Dusa
   <div class="span8">
     <h2>Usage</h2>
     <pre><div>pof(setms, outcome, data, relation&nbsp;=&nbsp;"nec", inf.test&nbsp;=&nbsp;"", incl.cut&nbsp;=&nbsp;c(0.75, 0.5), add&nbsp;=&nbsp;"", ...)</div>
-<div>is.pof(x)</div></pre>
+</pre>
     
     <h2>Arguments</h2>
     <dl>
@@ -81,8 +81,6 @@ Adrian Dusa
       <dd>Additional measures to complement the default ones.</dd>
       <dt>...</dt>
       <dd>Other arguments (mainly for backward compatibility).</dd>
-      <dt>x</dt>
-      <dd>An object of class <code>"pof"</code>.</dd>
     </dl>
     
     <div class="Description">
@@ -176,7 +174,7 @@ backwards compatible. <b><code>neg.out = TRUE</code></b> and a tilde <b><code>~<
 don't cancel each other out, either one (or even both) signaling if the <b><code>outcome</code></b>
 should be negated.</p>
   
-      <p>When argument <b><code>setms</code></b> is a DNF expression, it is the only place where the
+      <p>When argument <b><code>setms</code></b> is a SOP expression, it is the only place where the
 everything (including the <b><code>outcome</code></b>) can be negated using lower case letters, with
 or without a tilde. Lower case letters and a tilde does cancel each other out, for
 example <b><code>~X</code></b> is interpreted as <b><code>x</code></b>, while <b><code>~x</code></b> is interpreted
@@ -236,20 +234,6 @@ pof(1 - conds, PROTEST)
 
 </div>
 <div class='input'>
-# same thing with
-pof(~conds, PROTEST)
-</div>
-<div class='output'>
-               incl   RoN    cov.r 
----------------------------------- 
-1  ~ DEMOC     0.564  0.736  0.601 
-2  ~ ETHFRACT  0.661  0.684  0.614 
-3  ~ GEOCON    0.317  0.873  0.601 
-4  ~ POLDIS    0.631  0.517  0.493 
-5  ~ NATPRIDE  0.597  0.952  0.899 
----------------------------------- 
-</div>
-<div class='input'>
 # negating the outcome
 pof(conds, 1 - PROTEST)
 </div>
@@ -263,20 +247,6 @@ pof(conds, 1 - PROTEST)
 5  NATPRIDE  0.932  0.622  0.693 
 -------------------------------- 
 
-</div>
-<div class='input'>
-# same thing as:
-pof(conds, ~PROTEST)
-</div>
-<div class='output'>
-               incl   RoN    cov.r 
----------------------------------- 
-1  ~ DEMOC     0.618  0.682  0.580 
-2  ~ ETHFRACT  0.574  0.760  0.623 
-3  ~ GEOCON    0.784  0.436  0.529 
-4  ~ POLDIS    0.335  0.776  0.470 
-5  ~ NATPRIDE  0.932  0.622  0.693 
-----------------------------------
 </div>
 <div class='input'>
 # parameters of fit for sufficiency
@@ -419,7 +389,7 @@ pof(&quot;natpride + GEOCON &lt;= PROTEST&quot;, data = CVF)
   </div>
   <div class="span4">
     <!-- <ul>
-      <li>pof</li><li>is.pof</li>
+      <li>pof</li>
     </ul>
     <ul>
       <li>functions</li>

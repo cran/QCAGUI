@@ -33,13 +33,27 @@ var canvas_height;
 var tempdatainfo = {ncols: 0, nrows: 0, colnames: [], rownames: []};
 var datainfo = {ncols: 0, nrows: 0, colnames: [], rownames: []};
 var ovBox, input; 
+
 var tastaRcommand = "";
 var tasta = "enter";
+
 var import_open = "";
     import_open.obj = ["dir", ""];
+
 var outres = new Array(); 
-var Rcommand = [0, ""];
+
+var Rcommand = {
+    "counter": 0,
+    "command": "",
+    "brackets": [],
+    "thinfo": {}
+}
+
+var closeplot = 0;
+var plotopen = false;
+var plotsize = [6, 6]; 
 var tempcommand = "";
+var escapeopen = false;
 
 var changes = 0; 
 
@@ -61,7 +75,7 @@ var colclicks = new Array();
 var current_command = "";
 var objname = "";
 
-var dataModif = new Array(3);
+var dataModif = {};
 
 var testX = 80, testY = 33;
 
@@ -79,17 +93,21 @@ var dirfilist = {
     value: 0
 }
 
-var thinfo = [1, "", 0];
+var thinfo = {
+    "counter": 0,
+    "condition": "",
+    "th": false,
+    "nth": 1
+};
 
-var thvalsfromR = new Array();
 var ths = new Array(6);
 
-var thsetter2R = {
-    counter: 0,
-    cond: ""
+var thsetter_content; 
+var poinths = {
+    "message": "noresponse",
+    "vals": [],
+    "thvals": []
 }
-var thsetter_content;
-var thsetter_vals = new Array();
 var thsetter_jitter = new Array();
 var lastvals = new Array();
 
@@ -102,7 +120,7 @@ var ttfromR = new Array();
 
 var papers = {}; 
 
-var read_table, importobj, exportobj, eqmcc, tt, calibrate, recode, xyplot;
+var read_table, importobj, exportobj, saveRplot, eqmcc, tt, calibrate, recode, xyplot;
 
 function reset_read_table() {
     var rtcounter = (read_table == void 0)?0:read_table.counter;
@@ -134,6 +152,7 @@ function reset_eqmcc() {
     var eqcounter = (eqmcc == void 0)?0:eqmcc.counter;
     eqmcc = {
         "counter": eqcounter,
+        "eqmcname": "",
         "outcome": new Array(),
         "neg_out": false,
         "conditions": new Array(),
@@ -160,6 +179,7 @@ function reset_tt() {
     var ttcounter = (tt == void 0)?0:tt.counter;
     tt = {
         "counter": ttcounter,
+        "ttname": "tt", 
         "outcome": new Array(1),
         "neg_out": false,
         "conditions": new Array(),
@@ -238,6 +258,15 @@ function reset_xyplot() {
     
 };
 
+function reset_saveRplot() {
+    var savecounter = (saveRplot == void 0)?0:saveRplot.counter;
+    saveRplot = {
+        "counter": savecounter,
+        "filename": "",
+        "type": "png"
+    };
+};
+
 reset_read_table(); 
 reset_export(); 
 reset_eqmcc();
@@ -245,6 +274,16 @@ reset_tt();
 reset_calibrate();
 reset_recode();
 reset_xyplot();
+reset_saveRplot();
+
+var pingobj = 0;
+var pingstarted = false;
+
+Shiny.addCustomMessageHandler("ping",
+    function(object) {
+        
+    }
+);
 
 Shiny.addCustomMessageHandler("tempdirfile",
     function(object) {
@@ -273,7 +312,7 @@ Shiny.addCustomMessageHandler("datainfo",
     }
 );
 
-Shiny.addCustomMessageHandler("theData",
+Shiny.addCustomMessageHandler("theData", 
     function(object) {
         theData = object[0];
         dataCoords = object[1];
@@ -319,15 +358,9 @@ Shiny.addCustomMessageHandler("recode",
     }
 );
 
-Shiny.addCustomMessageHandler("thvalsfromR",
-    function(object) {
-        thvalsfromR = object;
-    }
-);
-
 Shiny.addCustomMessageHandler("dataPoints",
     function(object) {
-        thsetter_vals = object;
+        poinths = object;
     }
 );
 
@@ -344,6 +377,12 @@ Shiny.addCustomMessageHandler("Rcommand",
 );
 
 Shiny.addCustomMessageHandler("getChanges",
+    function(object) {
+        outres = object;
+    }
+);
+
+Shiny.addCustomMessageHandler("resizePlot",
     function(object) {
         outres = object;
     }
@@ -399,7 +438,7 @@ function createCommandPromptInRconsole(prompt) {
             border: 'none', 
             resize: 'none',
             outline: 'none',
-            'font-size': '13px',
+            'font-size': '14px',
             
             'font-family': "Monaco,Menlo,Consolas,'Courier New',monospace",
             color: 'blue',
@@ -476,16 +515,40 @@ function createCommandPromptInRconsole(prompt) {
                 var test = parseCommand(tempcommand + input.value);
                 
                 if (test == "ok") {
-                    
                     if (input.value.slice(0, 1) == "\n") {
                         input.value = input.value.slice(1);
                     }
                     
-                    Rcommand[0] = 1 - Rcommand[0];
-                    Rcommand[1] = tempcommand + input.value;
+                    var sequence = input.value.split("\n");
+                    var fromto = [[0, 0]]; 
+                    if (sequence.length > 1) {
+                        var fromtoline = 0;
+                        var check = rep(false, sequence.length)
+                        
+                        while (!all(check, " == true")) {
+                            for (var i = fromto[fromtoline][0]; i < sequence.length; i++) {
+                                check[i] = true;
+                                test = parseCommand(paste(sequence, fromto[fromtoline][0], i, ";"), brackets = false)
+                                if (test == "ok") {
+                                    fromto[fromtoline][1] = i;
+                                    fromtoline += 1;
+                                    if (!all(check, " == true")) {
+                                        fromto[fromtoline] = new Array(2);
+                                        fromto[fromtoline][0] = i + 1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Rcommand.counter = 1 - Rcommand.counter;
+                    Rcommand.command = tempcommand + input.value;
+                    Rcommand.brackets = fromto;
+                    Rcommand.thinfo = thinfo; 
                     
                     string_command = input.value;
-                    outres[0] = "listen2R";
+                    outres = new Array();
+                    outres.result = "listen2R";
                     Shiny.onInputChange("Rcommand", Rcommand);
                     
                     updatecounter = 0;
@@ -773,8 +836,8 @@ function console_command(type) {
                     string_command += ", sort.by = \"";
                     
                     for (var i = 0; i < sorts.length; i++) {
-                        string_command += sorts[i] + "=" +
-                                          ((tt.sort_by[sorts[i]])?"TRUE":"FALSE") +
+                        string_command += sorts[i] +
+                                          ((tt.sort_by[sorts[i]])?"":"+") +
                                           ((i == sorts.length - 1)?"\"":", ");
                     }
                 }
@@ -1087,37 +1150,18 @@ function print_cols(paper, options) {
                                     if (dialog == "calibrate") {
                                         
                                         calibrate.x[0] = this.name;
-                                        thinfo[1] = this.name;
+                                        thinfo.condition = this.name;
                                         
                                         for (var i = 0; i < calibrate.thresholds.length; i++) {
                                             ths[i].attr({"text": ""});
                                             calibrate.thresholds[i] = "";
                                         }
                                         
-                                        if (calibrate.findth) {
-                                            updatecounter = 0;
-                                            thvalsfromR[0] = "noresponse";
-                                            thinfo[2] = 1 - thinfo[2];
-                                            Shiny.onInputChange("thinfo", thinfo);
-                                            updateWhenThsChanged();
-                                            
-                                        }
-                                        else if (calibrate.type == "crisp") {
-                                            
-                                            updatecounter = 0;
-                                            thsetter2R.counter += 1;
-                                            thsetter2R.cond = this.name;
-                                            
-                                            if (lastvals == thsetter_vals) {
-                                                drawPointsAndThresholds();
-                                            }
-                                            else {
-                                            
-                                                Shiny.onInputChange("thsetter2R", thsetter2R);
-                                                
-                                                doWhenDataPointsAreReturned();
-                                            }
-                                        }
+                                        updatecounter = 0;
+                                        poinths.message = "noresponse";
+                                        thinfo.counter = 1 - thinfo.counter; 
+                                        Shiny.onInputChange("thinfo", thinfo);
+                                        doWhenDataPointsAreReturned();
                                         
                                     }
                                     else if (dialog == "xyplot") {
@@ -1271,330 +1315,381 @@ function print_data() {
 
 function update_data() {
     
-    papers["data_colnames"].clear();
-    papers["data_rownames"].clear();
-    papers["data_body"].clear();
-    
-    var Xshift = Math.floor($("#data_body").scrollLeft()/70);
-    var Yshift = Math.floor($("#data_body").scrollTop()/20);
-    
-    var temp, tocompare, textToPrint, tobe, temprect;
-    
-    var bodyrect = papers["data_body"].rect(-100, 0, 70, 20);
-    var colsrect = papers["data_body"].rect(-100, 0, 70, 20);
-    var rowsrect = papers["data_body"].rect(-100, 0, 70, 20);
-    
-    var bodygridtext = "", colgridtext = "", rowgridtext = "";
-    
-    papers["data_colnames"].rect(70*(Xshift - 25), 0, 70*(Xshift + 60), 20)
-    .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
-    
-    papers["data_rownames"].rect(0, 20*(Yshift - 50), 70, 20*(Yshift + 120))
-    .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
-    
-    for (var i = Xshift - 25; i < Xshift + 60; i++) { 
-        
-        bodygridtext += "M" + 70*i + "," + 20*(Yshift - 50) + "L" + 70*i + "," + 20*(Yshift + 120);
-        colgridtext += "M" + 70*i + ",0 L" + 70*i + ",20";
-        
-    }
-    
-    for (var i = Yshift - 50; i < Yshift + 120; i++) { 
-        
-        bodygridtext += "M" + 70*(Xshift - 25) + "," + 20*i + "L" + 70*(Xshift + 60) + "," + 20*i;
-        papers["data_rownames"].path("M" + 0 + "," + 20*i + "L 70" + "," + 20*i).attr({stroke: "#d7d7d7"});
-    }
-    
-    gridset = papers["data_body"].path(bodygridtext).attr({stroke: "#d7d7d7"});
-    papers["data_colnames"].path(colgridtext).attr({stroke: "#d7d7d7"});
-    
-    var getCoords = function(event) {
-        
-        var scrollX = $("#data_body").scrollLeft()%70;
-        var scrollY = $("#data_body").scrollTop()%20;
-        
-        var mouseX = Math.floor((event.clientX + $(window).scrollLeft() - testX - 70 + scrollX)/70);
-        var mouseY = Math.floor((event.clientY + $(window).scrollTop() - 3*(navigator.browserType == "Firefox") - testY - 40 + scrollY)/20);
+    if ($("#data_editor").length) {
+        papers["data_colnames"].clear();
+        papers["data_rownames"].clear();
+        papers["data_body"].clear();
         
         var Xshift = Math.floor($("#data_body").scrollLeft()/70);
         var Yshift = Math.floor($("#data_body").scrollTop()/20);
         
-        var mX = mouseX - Math.round(scrollX/70);
-        var mY = mouseY - Math.round(scrollY/20);
+        var temp, tocompare, textToPrint, tobe, temprect;
         
-        return({
-            "mX": mX,
-            "mY": mY,
-            "mouseX": mouseX,
-            "mouseY": mouseY,
-            "scrollX": scrollX,
-            "scrollY": scrollY,
-            "Xshift": Xshift,
-            "Yshift": Yshift
-        });
-    }
-    
-    if (theData != "" && datainfo.rownames != "error!") {
-        for (var i = 0; i < scrollvh[3] + 1; i++) {
-            sat(papers["data_colnames"].text(5 + 70*(i + scrollvh[1]), 10, datainfo.colnames[i + scrollvh[1]]),
-                {"clip": (70*(i + scrollvh[1])) + ", 0, 68, 20"});
+        var bodyrect = papers["data_body"].rect(-100, 0, 70, 20);
+        var colsrect = papers["data_body"].rect(-100, 0, 70, 20);
+        var rowsrect = papers["data_body"].rect(-100, 0, 70, 20);
+        
+        var bodygridtext = "", colgridtext = "", rowgridtext = "";
+        
+        papers["data_colnames"].rect(70*(Xshift - 25), 0, 70*(Xshift + 60), 20)
+        .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
+        
+        papers["data_rownames"].rect(0, 20*(Yshift - 50), 70, 20*(Yshift + 120))
+        .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
+        
+        for (var i = Xshift - 25; i < Xshift + 60; i++) { 
+            
+            bodygridtext += "M" + 70*i + "," + 20*(Yshift - 50) + "L" + 70*i + "," + 20*(Yshift + 120);
+            colgridtext += "M" + 70*i + ",0 L" + 70*i + ",20";
+            
         }
         
-        for (var j = 0; j < scrollvh[2] + 1; j++) { 
-             sat(papers["data_rownames"].text(5, 10 + 20*(j + scrollvh[0]), datainfo.rownames[j + scrollvh[0]]),
-                {"clip": "0, " + 20*(j + scrollvh[0]) + ", 68, 20"});
+        for (var i = Yshift - 50; i < Yshift + 120; i++) { 
+            
+            bodygridtext += "M" + 70*(Xshift - 25) + "," + 20*i + "L" + 70*(Xshift + 60) + "," + 20*i;
+            papers["data_rownames"].path("M" + 0 + "," + 20*i + "L 70" + "," + 20*i).attr({stroke: "#d7d7d7"});
         }
         
-        for (i = 0; i < theData.length; i++) {
-            for (j = 0; j < theData[0].length; j++) {
-                if (theData[i][j] != undefined) {
-                    sat(papers["data_body"].text(5 + 70*(i + scrollvh[1]), 10 + 20*(j + scrollvh[0]), ("" + theData[i][j])), 
-                        {"clip": 70*(i + scrollvh[1]) + ", " + 20*(j + scrollvh[0]) + ", 68, 20"});
-                }
-                else {
-                    papers["data_body"].text(5 + 70*(i + scrollvh[1]), 10 + 20*(j + scrollvh[0]), "");
-                }
-                
+        gridset = papers["data_body"].path(bodygridtext).attr({stroke: "#d7d7d7"});
+        papers["data_colnames"].path(colgridtext).attr({stroke: "#d7d7d7"});
+        
+        var getCoords = function(event) {
+            
+            var scrollX = $("#data_body").scrollLeft()%70;
+            var scrollY = $("#data_body").scrollTop()%20;
+            
+            var mouseX = Math.floor((event.clientX + $(window).scrollLeft() - testX - 70 + scrollX)/70);
+            var mouseY = Math.floor((event.clientY + $(window).scrollTop() - 3*(navigator.browserType == "Firefox") - testY - 40 + scrollY)/20);
+            
+            var Xshift = Math.floor($("#data_body").scrollLeft()/70);
+            var Yshift = Math.floor($("#data_body").scrollTop()/20);
+            
+            var mX = mouseX - Math.round(scrollX/70);
+            var mY = mouseY - Math.round(scrollY/20);
+            
+            return({
+                "mX": mX,
+                "mY": mY,
+                "mouseX": mouseX,
+                "mouseY": mouseY,
+                "scrollX": scrollX,
+                "scrollY": scrollY,
+                "Xshift": Xshift,
+                "Yshift": Yshift
+            });
+        }
+        
+        if (theData != "" && datainfo.rownames != "error!") {
+            for (var i = 0; i < scrollvh[3] + 1; i++) {
+                sat(papers["data_colnames"].text(5 + 70*(i + scrollvh[1]), 10, datainfo.colnames[i + scrollvh[1]]),
+                    {"clip": (70*(i + scrollvh[1])) + ", 0, 68, 20"});
             }
-        }
-    
-        var colnamescover = papers["data_colnames"].rect(0, 0, 70*datainfo.ncols, 20)
-        .attr({fill: "#ffffff", stroke: "none", "fill-opacity": 0})
-        .click(function(event) {
-            var coords = getCoords(event);
-            bodyrect.hide();
-            rowsrect.hide();
-            colsrect.remove();
-            papers["data_topleft"].bodyrect_show = false;
-            papers["data_topleft"].rowsrect_show = false;
-            papers["data_topleft"].colsrect_show = true;
             
-            colsrect = papers["data_colnames"].rect(70*(coords.mouseX + coords.Xshift) + 1, 1, 68, 18).attr({"stroke-width": 1.3});
-            papers["data_topleft"].colsrect = 70*(coords.mouseX + coords.Xshift) + 1;
-        })
-        .dblclick(function(event) {
+            for (var j = 0; j < scrollvh[2] + 1; j++) { 
+                 sat(papers["data_rownames"].text(5, 10 + 20*(j + scrollvh[0]), datainfo.rownames[j + scrollvh[0]]),
+                    {"clip": "0, " + 20*(j + scrollvh[0]) + ", 68, 20"});
+            }
             
-            var coords = getCoords(event);
-            colsrect.hide();
-            
-            temp = datainfo.colnames[coords.mouseX + coords.Xshift];
-            
-            tobe = sat(papers["data_colnames"].text(0, 0, temp));
-            
-            papers["data_colnames"].inlineTextEditing(tobe);
-            
-            input = tobe.inlineTextEditing.startEditing(
-                70*coords.mouseX - coords.scrollX + 70, 
-                20 - 1*(navigator.browserType == "Firefox"), 
-                70, 
-                20,
-                "from_data_editor",
-                "#f2f2f2");
-            
-            input.cover = this;
-            input.addEventListener("blur", function(e) {
-                
-                tobe.inlineTextEditing.stopEditing(tasta);
-                
-                tocompare = tobe.attr("text");
-                
-                if (temp != tocompare) {
-                    
-                    colclicks = changeCol(colclicks, temp, tocompare);
-                    datainfo.colnames[coords.mouseX + coords.Xshift] = tocompare;
-                    
-                    dataModif = ["c", coords.mouseX + coords.Xshift + 1, ((isNaN(tocompare*1))?tocompare:(tocompare*1))];
-                    Shiny.onInputChange("dataModif", dataModif);
-                    
-                    refresh_cols("exclude", "import");
-                    
-                    console_command(current_command);
-                    
-                    if ($("#xyplot").length) {
-                        
-                        if (xyplot.x == temp) {
-                            xyplot.x = tocompare;
-                        }
-                        
-                        if (xyplot.y == temp) {
-                            xyplot.y = tocompare;
-                        }
-                        
-                        draw_xyplot(papers["xyplot_main"]);
+            for (i = 0; i < theData.length; i++) {
+                for (j = 0; j < theData[0].length; j++) {
+                    if (theData[i][j] != undefined) {
+                        sat(papers["data_body"].text(5 + 70*(i + scrollvh[1]), 10 + 20*(j + scrollvh[0]), ("" + theData[i][j])), 
+                            {"clip": 70*(i + scrollvh[1]) + ", " + 20*(j + scrollvh[0]) + ", 68, 20"});
+                    }
+                    else {
+                        papers["data_body"].text(5 + 70*(i + scrollvh[1]), 10 + 20*(j + scrollvh[0]), "");
                     }
                     
-                    papers["data_colnames"].rect(70*(coords.mouseX + coords.Xshift), 0, 70, 20)
-                    .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
-                    
-                    sat(papers["data_colnames"].text(5 + 70*(coords.mouseX + coords.Xshift), 10, tocompare),
-                        {"clip": 70*(coords.mouseX + coords.Xshift) + ", 0, 68, 20"});
-                    
                 }
-                
-                tobe.remove();
-                input.cover.toFront();
-                tasta = "enter";
-                
-            });
-            
-            colsrect.show();
-            colsrect.toFront();
-        });
+            }
         
-        var rownamescover = papers["data_rownames"].rect(0, 0, 70, 20*datainfo.nrows)
-        .attr({fill: "#ffffff", stroke: "none", "fill-opacity": "0"})
-        .click(function(event) {
-            var coords = getCoords(event);
-            
-            bodyrect.hide();
-            rowsrect.remove();
-            colsrect.hide();
-            papers["data_topleft"].bodyrect_show = false;
-            papers["data_topleft"].rowsrect_show = true;
-            papers["data_topleft"].colsrect_show = false;
-            
-            rowsrect = papers["data_rownames"].rect(1, 20*(coords.mouseY + coords.Yshift) + 1, 68, 18).attr({"stroke-width": 1.3});  
-            papers["data_topleft"].rowsrect = 20*(coords.mouseY + coords.Yshift) + 1;
-        })
-        .dblclick(function(event) {
-            
-            var coords = getCoords(event);
-            rowsrect.hide();
-            
-            temp = datainfo.rownames[coords.mouseY + coords.Yshift];
-            
-            tobe = sat(papers["data_rownames"].text(0, 0, temp));
-            
-            papers["data_rownames"].inlineTextEditing(tobe);
-            
-            input = tobe.inlineTextEditing.startEditing(
-                0,
-                20*coords.mouseY - coords.scrollY + 20 + 20 - 1*(navigator.browserType == "Firefox"), 
-                70, 
-                20,
-                "whatever",
-                "#f2f2f2");
-            
-            input.cover = this;
-            input.addEventListener("blur", function(e) {
-                    
-                tobe.inlineTextEditing.stopEditing(tasta);
-                tocompare = tobe.attr("text");
+            var colnamescover = papers["data_colnames"].rect(0, 0, 70*datainfo.ncols, 20)
+            .attr({fill: "#ffffff", stroke: "none", "fill-opacity": 0})
+            .click(function(event) {
+                var coords = getCoords(event);
+                bodyrect.hide();
+                rowsrect.hide();
+                colsrect.remove();
+                papers["data_topleft"].bodyrect_show = false;
+                papers["data_topleft"].rowsrect_show = false;
+                papers["data_topleft"].colsrect_show = true;
                 
-                if (temp != tocompare) {
-                    datainfo.rownames[coords.mouseY + coords.Yshift] = tocompare;
+                colsrect = papers["data_colnames"].rect(70*(coords.mouseX + coords.Xshift) + 1, 1, 68, 18).attr({"stroke-width": 1.3});
+                papers["data_topleft"].colsrect = 70*(coords.mouseX + coords.Xshift) + 1;
+            })
+            .dblclick(function(event) {
+                
+                var coords = getCoords(event);
+                colsrect.hide();
+                
+                temp = datainfo.colnames[coords.mouseX + coords.Xshift];
+                
+                tobe = sat(papers["data_colnames"].text(0, 0, temp));
+                
+                papers["data_colnames"].inlineTextEditing(tobe);
+                
+                input = tobe.inlineTextEditing.startEditing(
+                    70*coords.mouseX - coords.scrollX + 70, 
+                    20 - 1*(navigator.browserType == "Firefox"), 
+                    70, 
+                    20,
+                    "from_data_editor",
+                    "#f2f2f2");
+                
+                input.cover = this;
+                input.addEventListener("blur", function(e) {
                     
-                    dataModif = ["r", coords.mouseY + coords.Yshift + 1, ((isNaN(tocompare*1))?tocompare:(tocompare*1))];
-                    Shiny.onInputChange("dataModif", dataModif);
+                    tobe.inlineTextEditing.stopEditing(tasta);
                     
-                    if ($("#xyplot").length) {
-                        if (xyplotdata.length > 0) {
-                            xyplotdata[0][xyplotdata[0].indexOf(temp)] = tocompare;
+                    tocompare = tobe.attr("text");
+                    
+                    if (temp != tocompare) {
+                        
+                        colclicks = changeCol(colclicks, temp, tocompare);
+                        datainfo.colnames[coords.mouseX + coords.Xshift] = tocompare;
+                        
+                        dataModif.row = null;
+                        dataModif.col = coords.mouseX + coords.Xshift + 1;
+                        dataModif.val = tocompare;
+                        
+                        Shiny.onInputChange("dataModif", dataModif);
+                        
+                        refresh_cols("exclude", "import");
+                        
+                        console_command(current_command);
+                        
+                        if ($("#xyplot").length) {
+                            
+                            if (xyplot.x == temp) {
+                                xyplot.x = tocompare;
+                            }
+                            
+                            if (xyplot.y == temp) {
+                                xyplot.y = tocompare;
+                            }
+                            
                             draw_xyplot(papers["xyplot_main"]);
                         }
+                        
+                        papers["data_colnames"].rect(70*(coords.mouseX + coords.Xshift), 0, 70, 20)
+                        .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
+                        
+                        sat(papers["data_colnames"].text(5 + 70*(coords.mouseX + coords.Xshift), 10, tocompare),
+                            {"clip": 70*(coords.mouseX + coords.Xshift) + ", 0, 68, 20"});
+                        
                     }
                     
-                    papers["data_rownames"].rect(0, 20*(coords.mouseY + coords.Yshift), 70, 20)
-                    .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
+                    tobe.remove();
+                    input.cover.toFront();
+                    tasta = "enter";
                     
-                    sat(papers["data_rownames"].text(5, 10 + 20*(coords.mouseY + coords.Yshift), tocompare).toFront(),
-                        {"clip": "0, " + 20*(coords.mouseY + coords.Yshift) + ", 68, 20"});
-                    
-                }
+                });
                 
-                tobe.remove();
-                input.cover.toFront();
-                tasta = "enter";
-            })
-            
-            rowsrect.show();
-            rowsrect.toFront();
-        })
-        
-        var datacover = papers["data_body"].rect(0, 0, 70*datainfo.ncols, 20*datainfo.nrows)
-        .attr({fill: "#aedaca", stroke: "none", "fill-opacity": 0})
-        .click(function(event) {
-            var coords = getCoords(event);
-            bodyrect.remove();
-            rowsrect.hide();
-            colsrect.hide();
-            papers["data_topleft"].bodyrect_show = true;
-            papers["data_topleft"].rowsrect_show = false;
-            papers["data_topleft"].colsrect_show = false;
-            
-            bodyrect = papers["data_body"].rect(70*(coords.mouseX + coords.Xshift) + 1, 20*(coords.mouseY + coords.Yshift) + 1, 68, 18)
-            .attr({"stroke-width": 1.3});
-            papers["data_topleft"].bodyrect[0] = 70*(coords.mouseX + coords.Xshift) + 1;
-            papers["data_topleft"].bodyrect[1] = 20*(coords.mouseY + coords.Yshift) + 1;
-        })  
-        .dblclick(function(event) {
-            var coords = getCoords(event);
-            
-            bodyrect.hide();
-            
-            temp = "" + theData[coords.mX][coords.mY];
-            temp = (temp == "null")?"":temp;
-            
-            tobe = sat(papers["data_body"].text(0, 0, temp));
-            
-            papers["data_body"].inlineTextEditing(tobe);
-            
-            input = tobe.inlineTextEditing.startEditing(
-                70*coords.mouseX - coords.scrollX + 70 + 1, 
-                20*coords.mouseY - coords.scrollY + 20 + 20 + 1 - 1*(navigator.browserType == "Firefox"), 
-                70, 
-                20 - 2);
-            
-            input.addEventListener("blur", function(e) {
-                tobe.inlineTextEditing.stopEditing(tasta);
-                tocompare = tobe.attr("text");
-                
-                if (temp != tocompare) {
-                    
-                    theData[coords.mX][coords.mY] = tocompare;
-                    
-                    if (!isNaN(tocompare)) {
-                        tocompare = 1*tocompare
-                    }
-                    
-                    dataModif = [coords.mouseY + coords.Yshift + 1, coords.mouseX + coords.Xshift + 1, tocompare];
-                    Shiny.onInputChange("dataModif", dataModif);
-                    
-                    papers["data_body"].rect(70*(coords.mouseX + coords.Xshift), 20*(coords.mouseY + coords.Yshift), 70, 20)
-                    .attr({fill: "#ffffff", stroke: "none"});
-                    
-                    sat(papers["data_body"].text(5 + 70*(coords.mouseX + coords.Xshift), 10 + 20*(coords.mouseY + coords.Yshift), tocompare));
-                    
-                }
-                
-                tobe.remove();
-                gridset.toFront();
-                bodyrect.show();
-                bodyrect.toFront();
-                datacover.toFront();
-                tasta = "enter";
-                
+                colsrect.show();
+                colsrect.toFront();
             });
             
-        });
+            var rownamescover = papers["data_rownames"].rect(0, 0, 70, 20*datainfo.nrows)
+            .attr({fill: "#ffffff", stroke: "none", "fill-opacity": "0"})
+            .click(function(event) {
+                var coords = getCoords(event);
+                
+                bodyrect.hide();
+                rowsrect.remove();
+                colsrect.hide();
+                papers["data_topleft"].bodyrect_show = false;
+                papers["data_topleft"].rowsrect_show = true;
+                papers["data_topleft"].colsrect_show = false;
+                
+                rowsrect = papers["data_rownames"].rect(1, 20*(coords.mouseY + coords.Yshift) + 1, 68, 18).attr({"stroke-width": 1.3});  
+                papers["data_topleft"].rowsrect = 20*(coords.mouseY + coords.Yshift) + 1;
+            })
+            .dblclick(function(event) {
+                
+                var coords = getCoords(event);
+                rowsrect.hide();
+                
+                temp = datainfo.rownames[coords.mouseY + coords.Yshift];
+                
+                tobe = sat(papers["data_rownames"].text(0, 0, temp));
+                
+                papers["data_rownames"].inlineTextEditing(tobe);
+                
+                input = tobe.inlineTextEditing.startEditing(
+                    0,
+                    20*coords.mouseY - coords.scrollY + 20 + 20 - 1*(navigator.browserType == "Firefox"), 
+                    70, 
+                    20,
+                    "whatever",
+                    "#f2f2f2");
+                
+                input.cover = this;
+                input.addEventListener("blur", function(e) {
+                        
+                    tobe.inlineTextEditing.stopEditing(tasta);
+                    tocompare = tobe.attr("text");
+                    
+                    if (temp != tocompare) {
+                        datainfo.rownames[coords.mouseY + coords.Yshift] = tocompare;
+                        
+                        dataModif.row = coords.mouseY + coords.Yshift + 1;
+                        dataModif.col = null;
+                        dataModif.val = tocompare;
+                        
+                        Shiny.onInputChange("dataModif", dataModif);
+                        
+                        if ($("#xyplot").length) {
+                            if (xyplotdata.length > 0) {
+                                xyplotdata[0][xyplotdata[0].indexOf(temp)] = tocompare;
+                                draw_xyplot(papers["xyplot_main"]);
+                            }
+                        }
+                        
+                        papers["data_rownames"].rect(0, 20*(coords.mouseY + coords.Yshift), 70, 20)
+                        .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
+                        
+                        sat(papers["data_rownames"].text(5, 10 + 20*(coords.mouseY + coords.Yshift), tocompare).toFront(),
+                            {"clip": "0, " + 20*(coords.mouseY + coords.Yshift) + ", 68, 20"});
+                        
+                    }
+                    
+                    tobe.remove();
+                    input.cover.toFront();
+                    tasta = "enter";
+                })
+                
+                rowsrect.show();
+                rowsrect.toFront();
+            })
+            
+            var datacover = papers["data_body"].rect(0, 0, 70*datainfo.ncols, 20*datainfo.nrows)
+            .attr({fill: "#aedaca", stroke: "none", "fill-opacity": 0})
+            .click(function(event) {
+                var coords = getCoords(event);
+                bodyrect.remove();
+                rowsrect.hide();
+                colsrect.hide();
+                papers["data_topleft"].bodyrect_show = true;
+                papers["data_topleft"].rowsrect_show = false;
+                papers["data_topleft"].colsrect_show = false;
+                
+                bodyrect = papers["data_body"].rect(70*(coords.mouseX + coords.Xshift) + 1, 20*(coords.mouseY + coords.Yshift) + 1, 68, 18)
+                .attr({"stroke-width": 1.3});
+                papers["data_topleft"].bodyrect[0] = 70*(coords.mouseX + coords.Xshift) + 1;
+                papers["data_topleft"].bodyrect[1] = 20*(coords.mouseY + coords.Yshift) + 1;
+            })  
+            .dblclick(function(event) {
+                var coords = getCoords(event);
+                
+                bodyrect.hide();
+                
+                temp = "" + theData[coords.mX][coords.mY];
+                temp = (temp == "null")?"":temp;
+                
+                tobe = sat(papers["data_body"].text(0, 0, temp));
+                
+                papers["data_body"].inlineTextEditing(tobe);
+                
+                input = tobe.inlineTextEditing.startEditing(
+                    70*coords.mouseX - coords.scrollX + 70 + 1, 
+                    20*coords.mouseY - coords.scrollY + 20 + 20 + 1 - 1*(navigator.browserType == "Firefox"), 
+                    70, 
+                    20 - 2);
+                
+                input.addEventListener("blur", function(e) {
+                    tobe.inlineTextEditing.stopEditing(tasta);
+                    tocompare = tobe.attr("text");
+                    
+                    if (temp != tocompare) {
+                        
+                        if (!isNaN(tocompare) && tocompare !== "") {
+                            tocompare = 1*tocompare;
+                        }
+                        
+                        theData[coords.mX][coords.mY] = tocompare;
+                        
+                        dataModif.row = coords.mouseY + coords.Yshift + 1;
+                        dataModif.col = coords.mouseX + coords.Xshift + 1;
+                        dataModif.val = tocompare;
+                        
+                        Shiny.onInputChange("dataModif", dataModif);
+                        
+                        papers["data_body"].rect(70*(coords.mouseX + coords.Xshift), 20*(coords.mouseY + coords.Yshift), 70, 20)
+                        .attr({fill: "#ffffff", stroke: "none"});
+                        
+                        sat(papers["data_body"].text(5 + 70*(coords.mouseX + coords.Xshift), 10 + 20*(coords.mouseY + coords.Yshift), tocompare));
+                        
+                        if ($("#calibrate").length) {
+                            
+                            updatecounter = 0;
+                            poinths.message = "noresponse";
+                            thinfo.counter = 1 - thinfo.counter; 
+                            Shiny.onInputChange("thinfo", thinfo);
+                            doWhenDataPointsAreReturned();
+                        }
+                        
+                        if ($("#xyplot").length) {
+                            
+                            updatecounter = 0;
+                            xyplot.counter += 1;
+                            lastvals = xyplotdata;
+                            
+                            Shiny.onInputChange("xyplot", xyplot);
+                            doWhenXYplotPointsAreReturned();
+                        }
+                    }
+                    
+                    tobe.remove();
+                    gridset.toFront();
+                    bodyrect.show();
+                    bodyrect.toFront();
+                    datacover.toFront();
+                    tasta = "enter";
+                    
+                });
+                
+            });
+        }
+        
+        gridset.toFront();
+        if (theData != "" && datainfo.rownames != "error!") {
+            datacover.toFront();
+        }
+        
+        if (papers["data_topleft"].rowsrect_show) {
+            rowsrect = papers["data_rownames"].rect(1, papers["data_topleft"].rowsrect, 68, 18).attr({"stroke-width": 1.3});
+        }
+        
+        if (papers["data_topleft"].colsrect_show) {
+            colsrect = papers["data_colnames"].rect(papers["data_topleft"].colsrect, 1, 68, 18).attr({"stroke-width": 1.3});
+        }
+        
+        if (papers["data_topleft"].bodyrect_show) {
+            bodyrect = papers["data_body"].rect(papers["data_topleft"].bodyrect[0], papers["data_topleft"].bodyrect[1], 68, 18).attr({"stroke-width": 1.3});
+        }
+    }
+}
+
+function refresh_dirs() {
+    
+    dirsfilescopy = "";
+            
+    if (dirfile.dirs != null) {
+        dirsfilescopy += dirfile.dirs.toString();
     }
     
-    gridset.toFront();
-    if (theData != "" && datainfo.rownames != "error!") {
-        datacover.toFront();
+    if (dirfile.files != null) {
+        dirsfilescopy += dirfile.files.toString();
     }
     
-    if (papers["data_topleft"].rowsrect_show) {
-        rowsrect = papers["data_rownames"].rect(1, papers["data_topleft"].rowsrect, 68, 18).attr({"stroke-width": 1.3});
-    }
+    dirfilevisit = true;
+    print_dirs();
     
-    if (papers["data_topleft"].colsrect_show) {
-        colsrect = papers["data_colnames"].rect(papers["data_topleft"].colsrect, 1, 68, 18).attr({"stroke-width": 1.3});
-    }
+    updatecounter = 0;
     
-    if (papers["data_topleft"].bodyrect_show) {
-        bodyrect = papers["data_body"].rect(papers["data_topleft"].bodyrect[0], papers["data_topleft"].bodyrect[1], 68, 18).attr({"stroke-width": 1.3});
-    }
+    dirfilist.value = 1 - dirfilist.value;
+    Shiny.onInputChange("dirfilist", dirfilist);
+    printIfDirsFilesChange();
     
 }
 
@@ -1604,7 +1699,7 @@ function draw_import(paper) {
     
     var stx = 13;
     var sty = 10;
-
+    
     sat(paper.text(stx + 5, sty + 15, "Separator:"));
     
     var radios = paper.radio(stx + 11, sty + 40, 0, ["comma", "space", "tab", "other, please specify:"]);
@@ -1841,7 +1936,7 @@ function draw_import(paper) {
                             refresh_cols("all");
                             filldirexp();
                             
-                            if (thsetter_vals.length > 0) {
+                            if (poinths.thvals.length > 0) {
                                 drawPointsAndThresholds();
                             }
                             
@@ -1854,9 +1949,9 @@ function draw_import(paper) {
                             
                             imported_filename = dirfile.filename;
                             
-                            $("#import").hide();
+                            $("#import").remove();
                             
-                            draw_export(papers["export_main"]);
+                            refresh_dirs();
                             
                             updatecounter = 0; 
                         }
@@ -1943,26 +2038,7 @@ function draw_import(paper) {
     fnameset.push(fnametext, fname_rect);
     fnameset.hide();
     
-    dirsfilescopy = "";
-            
-    if (dirfile.dirs != null) {
-        for (var i = 0; i < dirfile.dirs.length; i++) {
-            dirsfilescopy += dirfile.dirs[i];
-        }
-    }
-    
-    if (dirfile.files != null) {
-        for (var i = 0; i < dirfile.files.length; i++) {
-            dirsfilescopy += dirfile.files[i];
-        }
-    }
-    
-    dirfilevisit = true;
-    print_dirs();
-    
-    dirfilist.value = 1 - dirfilist.value;
-    Shiny.onInputChange("dirfilist", dirfilist);
-    printIfDirsFilesChange();
+    refresh_dirs();
 }
 
 function draw_export(paper) {
@@ -2061,10 +2137,8 @@ function draw_export(paper) {
         sat(paper.text(stx + 5, sty + 317, "New file:"));
         
         if (exportobj.filename == "") {
-            exportobj.filename = ((read_table.filename != "")?read_table.filename:imported_filename);
+            exportobj.filename = ((read_table.filename != "")?read_table.filename:imported_filename) + ((dirfile.extension == "")?"":".") + dirfile.extension;
         }
-        
-        exportobj.filename = ((read_table.filename != "")?read_table.filename:imported_filename) + "." + dirfile.extension;
         
         paper.newname = sat(paper.text(stx + 74, sty + 318, exportobj.filename),
                             {"clip": (stx + 69) + ", " + (sty + 308) + ", 448, 20"});
@@ -2117,7 +2191,9 @@ function draw_export(paper) {
         
         var export_rect = paper.rect(stx + 552, sty + 306, 75, 25)
             .attr({"stroke-width": 1.25, fill: "#ffffff", "fill-opacity": 0})
-            .click(function() {
+            .click(function(e) {
+                e.stopPropagation();
+                
                 console_command("export");
                 
                 var cr = {"£": "csv(", "§": "table(", "∞":" ", "≠": " "};
@@ -2133,29 +2209,195 @@ function draw_export(paper) {
                 exportobj.counter += 1;
                 Shiny.onInputChange("exportobj", exportobj);
                 
-                $("#export").hide();
+                $("#export").remove();
             })
         
-        dirsfilescopy = "";
+        refresh_dirs();
+        
+    }
+
+}
+
+function draw_saveRplot(paper) {
+    
+    if ($("#saveRplot").length) {
+    
+        paper.clear();
+        var stx = 13;
+        var sty = 10;
+        
+        if (plotopen) {
+            $("#preview").css({
+                "background-image": "url('css/images/plot.svg?" + new Date().getTime() + "')", 
+                "background-size": "100% 100%"
+            });
+        }
+        
+        var noplot = sat(paper.text(stx + 55, sty + 105, "No R plot window"));
+        
+        sat(paper.text(stx + 10, sty + 230, "Type:"));
+        var radios = paper.radio(stx + 60, sty + 230, 0,
+                                 ["PNG", "BMP", "JPEG", "TIFF", "SVG", "PDF"],
+                                 vertspace = [0, 25, 50, 0, 25, 50], horspace = [0, 0, 0, 75, 75, 75]);
+        
+        radios.cover[0].click(function() {
+            saveRplot.type = "png";
+            if (saveRplot.filename !== "") {
+                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            }
+            
+            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+                paper.ovr.showIt();
+            }
+            else {
+                paper.ovr.hideIt();
+            }
+        });
+        
+        radios.cover[1].click(function() {
+            saveRplot.type = "bmp";
+            if (saveRplot.filename !== "") {
+                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            }
+            
+            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+                paper.ovr.showIt();
+            }
+            else {
+                paper.ovr.hideIt();
+            }
+        });
+        
+        radios.cover[2].click(function() {
+            saveRplot.type = "jpeg";
+            if (saveRplot.filename !== "") {
+                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            }
+            
+            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+                paper.ovr.showIt();
+            }
+            else {
+                paper.ovr.hideIt();
+            }
+        });
+        
+        radios.cover[3].click(function() {
+            saveRplot.type = "tiff";
+            if (saveRplot.filename !== "") {
+                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            }
+            
+            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+                paper.ovr.showIt();
+            }
+            else {
+                paper.ovr.hideIt();
+            }
+        });
+        
+        radios.cover[4].click(function() {
+            saveRplot.type = "svg";
+            if (saveRplot.filename !== "") {
+                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            }
+            
+            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+                paper.ovr.showIt();
+            }
+            else {
+                paper.ovr.hideIt();
+            }
+        });
+        
+        radios.cover[5].click(function() {
+            saveRplot.type = "pdf";
+            if (saveRplot.filename !== "") {
+                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            }
+            
+            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+                paper.ovr.showIt();
+            }
+            else {
+                paper.ovr.hideIt();
+            }
+        });
+        
+        sat(paper.text(stx, sty + 342, "File name:"));
+        
+        paper.filename = sat(paper.text(stx + 74, sty + 343, saveRplot.filename),
+                            {"clip": (stx + 69) + ", " + (sty + 333) + ", 448, 20"});
+        var filename_rect = paper.rect(stx + 69, sty + 333, 450, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
+        paper.inlineTextEditing(paper.filename);
+        
+        filename_rect.click(function(e) {
+            e.stopPropagation();
+            var me = this;
+            ovBox = this.getBBox();
+            input = paper.filename.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
+            input.addEventListener("blur", function(e) {
+                paper.filename.inlineTextEditing.stopEditing(tasta);
                 
-        if (dirfile.dirs != null) {
-            for (var i = 0; i < dirfile.dirs.length; i++) {
-                dirsfilescopy += dirfile.dirs[i];
-            }
+                var checkext = paper.filename.attr("text").split(".");
+                var filename = (checkext.length > 1)?(copyArray(checkext).splice(0, checkext.length - 1).join(".")):(checkext[0]);
+                var extension = (checkext.length > 1)?(checkext[checkext.length - 1]):("");
+                
+                if (extension !== saveRplot.type) {
+                    saveRplot.filename = paper.filename.attr("text");
+                    paper.filename.attr({"text": paper.filename.attr("text") + "." + saveRplot.type});
+                }
+                else {
+                    saveRplot.filename = filename;
+                }
+                
+                if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+                    paper.ovr.showIt();
+                }
+                else {
+                    paper.ovr.hideIt();
+                }
+                
+                me.toFront();
+                
+                tasta = "enter";
+            }, true);
+        });
+        
+        paper.ovr = paper.checkBox(stx + 70, sty + 312, 1, "Overwrite?");
+        paper.ovr.hideIt();
+        
+        if (dirfile.files.indexOf(saveRplot.filename) >= 0) {
+            paper.ovr.showIt();
         }
         
-        if (dirfile.files != null) {
-            for (var i = 0; i < dirfile.files.length; i++) {
-                dirsfilescopy += dirfile.files[i];
-            }
-        }
+        paper.ovr.cover.click(function() {
+            paper.filename.attr({"text": ""});
+            saveRplot.filename = "";
+            paper.ovr.check();
+            paper.ovr.hideIt();
+            
+        });
         
-        dirfilevisit = true;
-        print_dirs();
+        sat(paper.text(stx + 257, sty + 15, "Set working directory:"));
         
-        dirfilist.value = 1 - dirfilist.value;
-        Shiny.onInputChange("dirfilist", dirfilist);
-        printIfDirsFilesChange();
+        sat(paper.text(stx + 574, sty + 343.5, "Save"));
+        
+        var saveRplot_rect = paper.rect(stx + 552, sty + 331, 75, 25)
+            .attr({"stroke-width": 1.25, fill: "#ffffff", "fill-opacity": 0})
+            .click(function(e) {
+                e.stopPropagation();
+                
+                if (saveRplot.filename !== "" && plotopen) {
+                    saveRplot.counter += 1;
+                    Shiny.onInputChange("saveRplot", saveRplot);
+                    
+                    $("#saveRplot").remove();
+                    
+                } 
+            })
+        
+        refresh_dirs();
         
     }
 
@@ -2320,8 +2562,8 @@ if ($("#calibrate").length) {
         paper.crfuz = 0;
         changeLabels();
         
-        calibrate.thresholds = new Array(thinfo[0]);
-        calibrate.thnames = new Array(thinfo[0]);
+        calibrate.thresholds = new Array(thinfo.nth);
+        calibrate.thnames = new Array(thinfo.nth);
         
         calibrate.thscopyfuz = new Array(6);
         for (var i = 0; i < 6; i++) {
@@ -2334,7 +2576,7 @@ if ($("#calibrate").length) {
         
         for (var i = 0; i < 3; i++) {
             ths[i].attr({"text": calibrate.thscopycrp[i]});
-            if (i < thinfo[0]) {
+            if (i < thinfo.nth) {
                 calibrate.thresholds[i] = calibrate.thscopycrp[i];
                 calibrate.thnames[i] = "t" + i;
             }
@@ -2392,14 +2634,14 @@ if ($("#calibrate").length) {
     thinfoset.push(plus, minus);
     
     plus.click(function() {
-        thinfo[0] += 1;
-        if (thinfo[0] > 3) {
-            thinfo[0] = 3;
+        thinfo.nth += 1;
+        if (thinfo.nth > 3) {
+            thinfo.nth = 3;
         }
         
-        calibrate.thresholds = new Array(thinfo[0]);
-        calibrate.thnames = new Array(thinfo[0]);
-        for (var i = 0; i < thinfo[0]; i++) {
+        calibrate.thresholds = new Array(thinfo.nth);
+        calibrate.thnames = new Array(thinfo.nth);
+        for (var i = 0; i < thinfo.nth; i++) {
             calibrate.thresholds[i] = ths[i].attr("text");
             calibrate.thnames[i] = thlabels.sub(i);
         }
@@ -2408,25 +2650,25 @@ if ($("#calibrate").length) {
         console_command("calibrate");
         
         if (findth.isChecked) {
-            thvalsfromR[0] = "noresponse";
+            poinths.message = "noresponse";
             updatecounter = 0;
             Shiny.onInputChange("thinfo", thinfo);
-            updateWhenThsChanged();
+            doWhenDataPointsAreReturned();
         }
-        else if (thsetter_vals.length > 0) {
+        else {
             drawPointsAndThresholds();
         }
     });
     
     minus.click(function() {
-        thinfo[0] -= 1;
-        if (thinfo[0] < 1) {
-            thinfo[0] = 1;
+        thinfo.nth -= 1;
+        if (thinfo.nth < 1) {
+            thinfo.nth = 1;
         }
         
-        calibrate.thresholds = new Array(thinfo[0]);
-        calibrate.thnames = new Array(thinfo[0]);
-        for (var i = 0; i < thinfo[0]; i++) {
+        calibrate.thresholds = new Array(thinfo.nth);
+        calibrate.thnames = new Array(thinfo.nth);
+        for (var i = 0; i < thinfo.nth; i++) {
             calibrate.thresholds[i] = ths[i].attr("text");
             calibrate.thnames[i] = thlabels.sub(i);
         }
@@ -2435,20 +2677,20 @@ if ($("#calibrate").length) {
         console_command("calibrate");
         
         if (findth.isChecked) {
-            thvalsfromR[0] = "noresponse";
+            poinths.message = "noresponse";
             updatecounter = 0;
             Shiny.onInputChange("thinfo", thinfo);
-            updateWhenThsChanged();
+            doWhenDataPointsAreReturned();
         }
-        else if (thsetter_vals.length > 0) {
+        else {
             drawPointsAndThresholds();
         }
     });
     
     function showths() {
-        thinfotext.attr({"text": ("Number of thresholds: " + thinfo[0])});
+        thinfotext.attr({"text": ("Number of thresholds: " + thinfo.nth)});
         for (var i = 1; i < 3; i++) {
-            if (i < thinfo[0]) {
+            if (i < thinfo.nth) {
                 thsets[i].show();
             }
             else {
@@ -2472,16 +2714,19 @@ if ($("#calibrate").length) {
     findth.cover.click(function() {
         calibrate.findth = findth.isChecked;
         
+        thinfo.th = findth.isChecked;
+        
         if (getKeys(colclicks).indexOf("calibrate") >= 0) {
+            
             calibrate.x[0] = getTrueKeys(colclicks.calibrate.x);
             
             if (calibrate.findth && calibrate.x[0].length > 0) {
-                thinfo[2] = 1 - thinfo[2]; 
-                thvalsfromR = ["noresponse"];
+                thinfo.counter = 1 - thinfo.counter; 
                 updatecounter = 0;
+                poinths.message = "noresponse";
                 
                 Shiny.onInputChange("thinfo", thinfo);
-                updateWhenThsChanged();
+                doWhenDataPointsAreReturned();
             }
         }
     });
@@ -2776,13 +3021,13 @@ if ($("#calibrate").length) {
                     if ($.isNumeric(finaltext)) { 
                         finaltext = 1*finaltext;
                         
-                        if (thsetter_vals.length > 0) {
-                            if (finaltext < thsetter_vals[0][0]) {
-                                finaltext = "" + thsetter_vals[0][0];
+                        if (poinths.thvals.length > 0) {
+                            if (finaltext < min(poinths.vals)) {
+                                finaltext = "" + min(poinths.vals);
                             }
                             
-                            if (finaltext > thsetter_vals[thsetter_vals.length - 1][0]) {
-                                finaltext = "" + thsetter_vals[thsetter_vals.length - 1][0];
+                            if (finaltext > max(poinths.vals)) {
+                                finaltext = "" + max(poinths.vals);
                             }
                         }
                     }
@@ -2881,7 +3126,7 @@ if ($("#calibrate").length) {
                      calibrate.thscopycrp[i] = calibrate.thscopyfuz[i];
                      ths[i].attr({"text": calibrate.thscopyfuz[i]});
                      
-                     if (i < thinfo[0]) {
+                     if (i < thinfo.nth) {
                          calibrate.thresholds[i] = calibrate.thscopyfuz[i];
                      }
                  }
@@ -3189,8 +3434,8 @@ if ($("#recode").length) {
     });
     
     paper.oldradio.cover[1].click(function() {
-        paper.rules.oldv[0] = paper.oldv.texts.FROM.attr("text");
-        paper.rules.oldv[1] = paper.oldv.texts.TO.attr("text");
+        paper.rules.oldv[0] = paper.oldv.texts.range.FROM.attr("text");
+        paper.rules.oldv[1] = paper.oldv.texts.range.TO.attr("text");
     });
     
     paper.oldradio.cover[2].click(function() {
@@ -3494,8 +3739,8 @@ if ($("#xyplot").length) {
     
     var stx = 13, sty = 10;
     
-    sat(paper.text(stx, sty + 14, "Outcome:"));
-    sat(paper.text(stx, sty + 170, "Condition:"));
+    sat(paper.text(stx, sty + 14 , "Condition X:"));
+    sat(paper.text(stx, sty + 170, "Outcome Y:"));
     
     paper.scale = scale;
     paper.sx = 230;
@@ -3504,8 +3749,8 @@ if ($("#xyplot").length) {
     paper.offset = 8;
     paper.rdim = paper.dim - 2*paper.offset;
     
-    paper.negy = paper.checkBox(stx + 79, sty + 9, xyplot.negy, "negate");
-    paper.negx = paper.checkBox(stx + 79, sty + 165, xyplot.negx, "negate");
+    paper.negx = paper.checkBox(stx + 89, sty + 9, xyplot.negx, "negate");
+    paper.negy = paper.checkBox(stx + 89, sty + 165, xyplot.negy, "negate");
     paper.index = 0;
     var powersof2 = 2;
     
@@ -4077,6 +4322,8 @@ function draw_tt(paper) {
     
     if ($("#tt").length) {
     
+        paper.clear();
+        
         paper.text(13, 18, "Outcome:").attr({"text-anchor": "start", "font-size": "14px"});
         paper.text(233, 18, "Conditions:").attr({"text-anchor": "start", "font-size": "14px"});
         
@@ -4679,69 +4926,72 @@ function doWhenDataPointsAreReturned() {
     
     updatecounter += 1;
     
-    if (updatecounter < 21) {
-        if (lastvals.toString() != thsetter_vals.toString()) {
-            drawPointsAndThresholds();
-        }
-        else {
+    if (updatecounter < 101) { 
+        
+        if (poinths.message == "noresponse") {
+            
             setTimeout(doWhenDataPointsAreReturned, 50);
         }
-    }
-    else {
-        
-        updatecounter = 0; 
-    }
-}
-
-function doWhenXYplotPointsAreReturned() {
-    
-    updatecounter += 1;
-    
-    if (updatecounter < 21) {
-        if (lastvals.toString() != xyplotdata.toString()) {
-            draw_xyplot(papers["xyplot_main"]);
-            updatecounter = 0;
-        }
         else {
-            setTimeout(doWhenXYplotPointsAreReturned, 50);
+            if (poinths.message == "notnumeric") {
+                
+                var clthlen = calibrate.thresholds.length;
+                calibrate.thresholds = new Array(clthlen);
+                
+                for (var i = 0; i < clthlen; i++) {
+                    ths[i].attr({"text": ""});
+                    calibrate.thresholds[i] = ""; 
+                }
+            }
+            else {
+                if (poinths.thvals.length > 0) {
+                    calibrate.thresholds = new Array(poinths.thvals.length);
+                    calibrate.thscopycrp = new Array(poinths.thvals.length);
+                    calibrate.thnames = new Array(poinths.thvals.length);
+                    for (var i = 0; i < poinths.thvals.length; i++) {
+                        ths[i].attr({"text": poinths.thvals[i]});
+                        calibrate.thresholds[i] = poinths.thvals[i];
+                        calibrate.thscopycrp[i] = poinths.thvals[i];
+                    }
+                }
+                
+            }
+            
+            console_command("calibrate");
+            
+            drawPointsAndThresholds();
         }
     }
     else {
-        
-        $("#result").append("<br><br><span style='color:red'>Error in doWhenXYplotPointsAreReturned:<br> R takes too long to respond.</span><br>");
-        $("#result").animate({
-            scrollTop: $("#result")[0].scrollHeight
-        }, 1000);
-        
         updatecounter = 0; 
     }
 }
 
 function drawPointsAndThresholds() {
-    if (papers["calibrate_main"].crfuz == 0) {
+    if (papers["calibrate_main"].crfuz == 0) { 
         calibrate.thsettervar = getTrueKeys(colclicks.calibrate.x);
         
         thsetter_content.remove();
         thsetter_content = papers["calibrate_main"].set().attr({stroke: "#a0a0a0"});
         
-        var min = thsetter_vals[0][0];
-        var max = thsetter_vals[thsetter_vals.length - 1][0];
+        var minv = min(poinths.vals);
+        var maxv = max(poinths.vals);
         
         var lm = 160;
         var rm = $("#calibrate").width() - 27; 
         
         var thy = 234;
         
-        if (thsetter_jitter.length != thsetter_vals.length) {
-            thsetter_jitter = new Array(thsetter_vals);
-            for (var i = 0; i < thsetter_vals.length; i++) {
+        if (thsetter_jitter.length != poinths.vals.length) {
+            thsetter_jitter = new Array(poinths.vals.length);
+            for (var i = 0; i < poinths.vals.length; i++) {
                 thsetter_jitter[i] = randomBetween(185, 215);
             }
         }
         
-        for (var i = 0; i < thsetter_vals.length; i++) {
+        for (var i = 0; i < poinths.vals.length; i++) {
             var point = papers["calibrate_main"].circle(
-                (rm - lm)*(thsetter_vals[i][0] - min)/(max - min) + lm,
+                (rm - lm)*(poinths.vals[i] - minv)/(maxv - minv) + lm,
                 calibrate.jitter?thsetter_jitter[i]:200,
                 4);
             point.attr({fill: "#ffffff", "fill-opacity": 0.0});
@@ -4750,8 +5000,8 @@ function drawPointsAndThresholds() {
             thsetter_content.push(point);
         }
         
-        thsetter_content.push(sat(papers["calibrate_main"].text(lm - 3, thy + 15, min)));
-        thsetter_content.push(sat(papers["calibrate_main"].text(rm + 3, thy + 15, max), {"anchor": "end"}));
+        thsetter_content.push(sat(papers["calibrate_main"].text(lm - 3, thy + 15, minv)));
+        thsetter_content.push(sat(papers["calibrate_main"].text(rm + 3, thy + 15, maxv), {"anchor": "end"}));
         
         thsetter_content.push(papers["calibrate_main"].path([ 
             ["M", lm, thy + 5],
@@ -4766,15 +5016,15 @@ function drawPointsAndThresholds() {
         if (calibrate.thresholds.length > 0) {
             for (i = 0; i < calibrate.thresholds.length; i++) {
                 if (calibrate.thresholds[i] != "") {
-                    if (calibrate.thresholds[i] < min) {
-                        calibrate.thresholds[i] = min;
-                        ths[i].attr({"text": min});
+                    if (calibrate.thresholds[i] < minv) {
+                        calibrate.thresholds[i] = minv;
+                        ths[i].attr({"text": minv});
                     }
-                    else if (calibrate.thresholds[i] > max) {
-                        calibrate.thresholds[i] = max;
-                        ths[i].attr({"text": max});
+                    else if (calibrate.thresholds[i] > maxv) {
+                        calibrate.thresholds[i] = maxv;
+                        ths[i].attr({"text": maxv});
                     }
-                    position = (rm - lm)*(calibrate.thresholds[i] - min)/(max - min) + lm;
+                    position = (rm - lm)*(calibrate.thresholds[i] - minv)/(maxv - minv) + lm;
                     handles[i] = papers["calibrate_main"].path([
                         ["M", position, thy],
                         ["L", position - 5, thy + 7],
@@ -4782,8 +5032,8 @@ function drawPointsAndThresholds() {
                         ["L", position, thy],
                         ["L", position, thy - 66]
                     ]).attr({"stroke-width": 1.5, fill: "#cb2626", stroke: "#cb2626"});
-                    handles[i].min = min;
-                    handles[i].max = max;
+                    handles[i].min = minv;
+                    handles[i].max = maxv;
                     handles[i].name = i;
                     handles[i].left = lm;
                     handles[i].right = rm;
@@ -4825,65 +5075,66 @@ function drawPointsAndThresholds() {
     
 }
 
-function updateWhenThsChanged() {
+function doWhenXYplotPointsAreReturned() {
     
     updatecounter += 1;
     
-    if (updatecounter < 101) { 
-        
-        if (thvalsfromR[0] == "noresponse") {
-            
-            setTimeout(updateWhenThsChanged, 50);
+    if (updatecounter < 21) {
+        if (lastvals.toString() != xyplotdata.toString()) {
+            draw_xyplot(papers["xyplot_main"]);
+            updatecounter = 0;
         }
         else {
-            
-            if (thvalsfromR[0] == "notnumeric") {
-                
-                var clthlen = calibrate.thresholds.length;
-                calibrate.thresholds = new Array(clthlen);
-                
-                for (var i = 0; i < clthlen; i++) {
-                    ths[i].attr({"text": ""});
-                    calibrate.thresholds[i] = ""; 
-                }
-            }
-            else {
-                
-                calibrate.thresholds = new Array(thvalsfromR.length);
-                calibrate.thscopycrp = new Array(thvalsfromR.length);
-                calibrate.thnames = new Array(thvalsfromR.length);
-                for (var i = 0; i < thvalsfromR.length; i++) {
-                    ths[i].attr({"text": thvalsfromR[i]});
-                    calibrate.thresholds[i] = thvalsfromR[i];
-                    calibrate.thscopycrp[i] = thvalsfromR[i];
-                }
-                
-            }
-            
-            console_command("calibrate");
-            
-            if (calibrate.type == "crisp") {
-                updatecounter = 0;
-                thsetter2R.counter += 1;
-                thsetter2R.cond = calibrate.x[0];
-                
-                drawPointsAndThresholds();
-            }
+            setTimeout(doWhenXYplotPointsAreReturned, 50);
         }
     }
     else {
+        
+        $("#result").append("<br><br><span style='color:red'>Error in doWhenXYplotPointsAreReturned:<br> R takes too long to respond.</span><br>");
+        $("#result").animate({
+            scrollTop: $("#result")[0].scrollHeight
+        }, 1000);
+        
         updatecounter = 0; 
     }
 }
 
+function pingit(where) {
+    
+    if (where == "loop") { 
+    
+        pingobj += 1;
+        
+        Shiny.onInputChange("pingobj", pingobj);
+        
+        setTimeout(pingit.bind(null, "loop"), 1000*60*4);
+        
+    }
+    else {
+        
+        if (!pingstarted) {
+            
+            pingstarted = true;
+            
+            pingobj += 1;
+        
+            Shiny.onInputChange("pingobj", pingobj);
+            
+            setTimeout(pingit.bind(null, "loop"), 1000*60*4);
+            
+        }
+        
+    }
+}
+
 function printRcommand() {
+    pingit();
     
     updatecounter += 1;
     
     if (updatecounter < 21) {
         
-        if (outres[0] != "listen2R") {
-            
+        if (outres.result != "listen2R") {
             updatecounter = 0;
             
             var sc = string_command.split("\n");
@@ -4904,46 +5155,72 @@ function printRcommand() {
             tempcommand = "";
             var toprint = "";
             
-            if (outres[0] == "error") {
-                toprint = "Error: " + outres[1] + "<br>";
+            if (outres.error != null) {
+                toprint = strwrap("Error: " + outres.error + "<br>", 74, "  ");
+                $("#result_main").append("<span style='color:red'>" + toprint + "</span><br>");
             } 
             else {
-                if (outres[0] != null && outres[0] != "NULL") { 
-                    if (outres[0] == "warning") {
-                        for (var i = 1; i < outres.length - 1; i++) {
-                            toprint += outres[i] + "<br>";
+                if (outres.result != null) {
+                    if (outres.result.length > 0) {
+                        for (var i = 0; i < outres.result.length; i++) {
+                            toprint += outres.result[i] + "<br>";
                         }
+                        
+                        $("#result_main").append(toprint.split(" ").join("&nbsp;") + "<br>");
                     }
                     else {
-                        for (var i = 0; i < outres.length; i++) {
-                            toprint += outres[i] + "<br>";
-                        }
+                        $("#result_main").append("<br>");
                     }
+                }
+                else {
+                    $("#result_main").append("<br>");
+                }
+                
+                if (outres.warning != null) {
+                    toprint = strwrap("Warning: " + outres.warning + "<br>", 74, "  ");
+                    $("#result_main").append("<span style='color:red'>" + toprint + "</span><br>");
                 }
             }
             
-            if (outres.length > 0) {
-                if (outres[0] == "error") {
-                    $("#result_main").append("<span style='color:red'>" + toprint + "</span><br>")
-                }
-                else {
-                    $("#result_main").append(toprint.split(" ").join("&nbsp;") + "<br>");
+            var modified = getKeys(outres.modified);
+            
+            if (modified.length > 0) {
+                if (any(modified, "== \"dataset\"")) {
+                    
+                    datainfo = outres.modified.dataset.datainfo;
+                    theData = outres.modified.dataset.theData;
+                    dataCoords = outres.modified.dataset.dataCoords;
+                    updateWhenDataChanged();
                 }
                 
-                if (outres[0] == "warning") {
-                    
-                    toprint = strwrap("Warning: " + outres[outres.length - 1], 74, "  ");
-                    
-                    $("#result_main").append("<span style='color:red'>" + toprint + "</span><br><br>");
+                if (any(modified, "== \"calibcond\"")) {
+                    poinths = outres.modified.calibcond;
+                    drawPointsAndThresholds();
                 }
-            }
-            else {
-                $("#result_main").append("<br>");
             }
             
             createCommandPromptInRconsole();
             
             $("#tempdiv").click();
+            
+            if (outres.plot) {
+                plotopen = true;
+                
+                showDialogToFront(plotsettings);
+                
+                $("#plotdiv_main").css({
+                    "background-image": "url('css/images/plot.svg?" + new Date().getTime() + "')", 
+                    "background-size": "100% 100%"
+                });
+            
+                if ($("#saveRplot").length) {
+                    $("#preview").css({
+                        "background-image": "url('css/images/plot.svg?" + new Date().getTime() + "')", 
+                        "background-size": "100% 100%"
+                    });
+                }
+            
+            }
             
             $("#result_main").animate({
                 scrollTop: $("#result_main")[0].scrollHeight
@@ -4972,6 +5249,32 @@ function printRcommand() {
         
         createCommandPromptInRconsole();
         $("#tempdiv").click();
+        updatecounter = 0;
+    }
+}
+
+function resizePlot() {
+    
+    updatecounter += 1;
+    
+    if (updatecounter < 21) {
+    
+        if (outres[0] != "listen2R") {
+            
+            updatecounter = 0;
+            
+            $("#plotdiv_main").css({
+                "background-image": "url('css/images/plot.svg?" + new Date().getTime() + "')", 
+                "background-size": "100% 100%"
+            });
+        }
+        else {
+            setTimeout(resizePlot, 100);
+        }
+        
+    }
+    else {
+        
         updatecounter = 0;
     }
 }
@@ -5104,6 +5407,7 @@ function doWhenRresponds() {
                         update_data();
                     } 
                 }
+                
             }
             
         }
@@ -5124,7 +5428,8 @@ function doWhenRresponds() {
 }
 
 function print_dirs() {
-    if ($("#import").length && current_command == "import") {
+    
+    if ($("#import").length) {
         
         if (dirfile.filename == "error!") {
             papers["import_main"].glow.show();
@@ -5287,7 +5592,7 @@ function print_dirs() {
         
     }
     
-    if ($("#export").length && current_command == "export") {
+    if ($("#export").length) {
         
         papers["expath"].goToDir = function(dir) {
             dirfile_chosen[0] = "dir";
@@ -5310,8 +5615,8 @@ function print_dirs() {
         var exrects = papers["exportdirs"].set();
         var expluses = papers["exportdirs"].set();
         var x = 30; 
-        var dirs_length = 1*((dirfile.dirs === null)?0:dirfile.dirs.length);
-        var files_length = 1*((dirfile.files === null)?0:dirfile.files.length);
+        var exdirs_length = 1*((dirfile.dirs === null)?0:dirfile.dirs.length);
+        var exfiles_length = 1*((dirfile.files === null)?0:dirfile.files.length);
         var exclicked = -1;
         
         papers["export_main"].ovr.hideIt();
@@ -5323,7 +5628,7 @@ function print_dirs() {
         
         console_command("export");
         
-        for (i = 0; i < (1 + dirs_length + files_length); i++) {
+        for (i = 0; i < (1 + exdirs_length + exfiles_length); i++) {
             
             printplus = false;
             
@@ -5336,12 +5641,12 @@ function print_dirs() {
                 expluses.push(papers["exportdirs"].text(0, 0, ""));
             }
             else {
-                if (i < (dirs_length + 1)) {
+                if (i < (exdirs_length + 1)) {
                     printplus = true;
                     extoprint = dirfile.dirs[i - 1];
                 }
                 else {
-                    extoprint = dirfile.files[i - dirs_length - 1];
+                    extoprint = dirfile.files[i - exdirs_length - 1];
                 }
             }
             
@@ -5371,11 +5676,11 @@ function print_dirs() {
                     exrects_back[this.id].attr({fill: "#79a74c", "stroke-opacity": 0, "fill-opacity": 1});
                     extexts[this.id].attr({fill: "#ffffff"});
                     
-                    if (this.id < (dirs_length + 1)) {
+                    if (this.id < (exdirs_length + 1)) {
                         expluses[this.id].attr({fill: "#ffffff"});
                     }
                     
-                    if (this.id > dirs_length) { 
+                    if (this.id > exdirs_length) { 
                         papers["export_main"].newname.attr({"text": this.txt});
                         exportobj.filename = this.txt;
                         papers["export_main"].ovr.showIt();
@@ -5384,7 +5689,7 @@ function print_dirs() {
                 })
                 .dblclick(function() {
                     
-                    dirfile_chosen[0] = (this.id < (dirs_length + 1))?"dir":"file";
+                    dirfile_chosen[0] = (this.id < (exdirs_length + 1))?"dir":"file";
                     dirfile_chosen[1] = (this.txt == "..")?((dirfile_chosen[1] == "..")?"...":".."):this.txt;
                     
                     if (dirfile_chosen[0] == "dir") {
@@ -5422,6 +5727,148 @@ function print_dirs() {
             $("#exportdirs").scrollTop(0);
         
     }
+    
+    if ($("#saveRplot").length) {
+        
+        papers["savepath"].goToDir = function(dir) {
+            dirfile_chosen[0] = "dir";
+            dirfile_chosen[1] = dir;
+            pathcopy = dirfile.filepath;
+            Shiny.onInputChange("dirfile_chosen", dirfile_chosen);
+            printDirsWhenPathChanges();
+        }
+        
+        setPath(papers["savepath"], dirfile.wd);
+        
+        var rw = 400; 
+        
+        papers["savedirs"].clear();
+        
+        if (savetexts !== void 0) {
+            savetexts.remove();
+        }
+        
+        var aaa, bbb, ccc, svtoprint, printplus;
+        var row = 10;
+        var fill_opacity = 0.3;
+        var saverects_back = papers["savedirs"].set();
+        var savetexts = papers["savedirs"].set();
+        var saverects = papers["savedirs"].set();
+        var savepluses = papers["savedirs"].set();
+        var x = 30; 
+        var savedirs_length = 1*((dirfile.dirs === null)?0:dirfile.dirs.length);
+        var savefiles_length = 1*((dirfile.files === null)?0:dirfile.files.length);
+        var svclicked = -1;
+        
+        papers["saveRplot_main"].ovr.hideIt();
+        if (dirfile.files != void 0) {
+            if (dirfile.files.indexOf(exportobj.filename) >= 0) {
+                papers["saveRplot_main"].ovr.showIt();
+            }
+        }
+        
+        console_command("saveRplot_main");
+        
+        for (var i = 0; i < (1 + savedirs_length + savefiles_length); i++) {
+            
+            printplus = false;
+            
+            bbb = papers["savedirs"].rect(0, row - 10, rw, 20);
+            bbb.id = i;
+            saverects_back.push(bbb);
+            
+            if (i == 0) {
+                svtoprint = "..";
+                savepluses.push(papers["savedirs"].text(0, 0, ""));
+            }
+            else {
+                if (i < (savedirs_length + 1)) {
+                    printplus = true;
+                    svtoprint = dirfile.dirs[i - 1];
+                }
+                else {
+                    svtoprint = dirfile.files[i - savedirs_length - 1];
+                }
+            }
+            
+            if (printplus) {
+                savepluses.push(papers["savedirs"].text(x - 20, row, "+").attr({"text-anchor": "start", "font-size": "14px"}));
+            }
+            
+            aaa = sat(papers["savedirs"].text(x, row, svtoprint));
+            
+            savetexts.push(aaa);
+            
+            ccc = papers["savedirs"].rect(0, row - 10, rw, 20);
+            ccc.id = i;
+            ccc.txt = (i == 0)?(".."):(svtoprint);
+            
+            ccc.click(function() {
+                    savepluses.forEach(function(e) {
+                        e.attr({fill: "#000000"});
+                    });
+                    
+                    if (svclicked >= 0 && svclicked != this.id) {
+                        saverects_back[svclicked].attr({fill: "#e6f2da", "stroke-opacity": 0, "fill-opacity": 1*(svclicked % 2 === 0)});
+                        savetexts[svclicked].attr({fill: "#000000"});
+                    }
+                    
+                    svclicked = this.id;
+                    
+                    saverects_back[this.id].attr({fill: "#79a74c", "stroke-opacity": 0, "fill-opacity": 1});
+                    savetexts[this.id].attr({fill: "#ffffff"});
+                    
+                    if (this.id < (savedirs_length + 1)) {
+                        savepluses[this.id].attr({fill: "#ffffff"});
+                    }
+                    
+                    if (this.id > savedirs_length) { 
+                        papers["saveRplot_main"].filename.attr({"text": this.txt});
+                        saveRplot.filename = this.txt;
+                        papers["saveRplot_main"].ovr.showIt();
+                    }
+                    
+                })
+                .dblclick(function() {
+                    
+                    dirfile_chosen[0] = (this.id < (savedirs_length + 1))?"dir":"file";
+                    dirfile_chosen[1] = (this.txt == "..")?((dirfile_chosen[1] == "..")?"...":".."):this.txt;
+                    
+                    if (dirfile_chosen[0] == "dir") {
+                        
+                        pathcopy = dirfile.filepath;
+                        Shiny.onInputChange("dirfile_chosen", dirfile_chosen);
+                        consoleIfPathChanges();
+                        printDirsWhenPathChanges();
+                        
+                    }
+                    
+                });
+                
+            saverects.push(ccc);
+            
+            row += 20;
+        }
+        
+        saverects_back.forEach(function(e) {
+            e.attr({fill: (e.id % 2 === 0)?"#e6f2da":"#ffffff", "stroke-opacity": 0, "fill-opacity": 1});
+        });
+        
+        saverects.forEach(function(e) {
+            e.attr({fill: "#ffffff", "stroke-opacity": 0, "fill-opacity": 0});
+        });
+        
+        saverects_back.toBack();
+        saverects.toFront();
+        
+        canvas_height = Math.max(400, saverects.getBBox().height);
+        
+        $(papers["savedirs"].canvas).height(canvas_height);
+        $("#savedirs").css({height: canvas_height});
+        
+            $("#savedirs").scrollTop(0);
+        
+    }
 }
 
 function updateWhenDataChanged() {
@@ -5445,35 +5892,49 @@ function updateWhenDataChanged() {
 
 function printIfDirsFilesChange() {
     
-    var test = "";
+    updatecounter += 1;
     
-    if (dirfile.dirs != null) {
-        for (var i = 0; i < dirfile.dirs.length; i++) {
-            test += dirfile.dirs[i];
+    if (updatecounter < 21) {
+        
+        var test = "";
+        
+        if (dirfile.dirs != null) {
+            test += dirfile.dirs.toString();
         }
-    }
-    
-    if (dirfile.files != null) {
-        for (var i = 0; i < dirfile.files.length; i++) {
-            test += dirfile.files[i];
+        
+        if (dirfile.files != null) {
+            test += dirfile.files.toString();
         }
-    }
-    
-    if (test != dirsfilescopy) {
-        print_dirs();
+        
+        if (test != dirsfilescopy) {
+            
+            print_dirs();
+            updatecounter = 0;
+        }
+        else {
+            setTimeout(printIfDirsFilesChange, 50);
+        }
     }
     else {
-        setTimeout(printDirsWhenPathChanges, 50);
+        updatecounter = 0;
     }
 }
 
 function printDirsWhenPathChanges() {
     
-    if (dirfile.filepath != pathcopy) {
-        print_dirs();
+    updatecounter += 1;
+    
+    if (updatecounter < 21) {
+        
+        if (dirfile.filepath != pathcopy) {
+            print_dirs();
+        }
+        else {
+            setTimeout(printDirsWhenPathChanges, 50);
+        }
     }
     else {
-        setTimeout(printDirsWhenPathChanges, 50);
+        updatecounter = 0;
     }
 }
 
@@ -5680,6 +6141,8 @@ function makePapers(obj) {
 
 $("#menu_import").click(function() {
     
+    pingit();
+    
     var settings = {
         name:       "import",
         title:      "Import from text file",
@@ -5690,8 +6153,8 @@ $("#menu_import").click(function() {
         inside: {
             
             impath:     {border: true, left: 270, top:  62, width: 400, height:  40},
-            importcols: {border: true, left:  14, top: 260, width: 235, height: 120},
-            importdirs: {border: true, left: 264, top:  80, width: 400, height: 300}
+            importdirs: {border: true, left: 264, top:  80, width: 400, height: 300},
+            importcols: {border: true, left:  14, top: 260, width: 235, height: 120}
         }
     };
     
@@ -5711,6 +6174,9 @@ $("#menu_import").click(function() {
 });
 
 $("#menu_export").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:       "export",
         title:      "Export to text file",
@@ -5740,6 +6206,8 @@ $("#menu_export").click(function() {
 });
 
 $("#menu_edit").click(function() {
+    
+    pingit();
     
     var vscrollbar = datainfo.nrows > visiblerows;
     var hscrollbar = datainfo.ncols > visiblecols;
@@ -5901,6 +6369,9 @@ $("#menu_edit").click(function() {
 });
 
 $("#menu_calibrate").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:      "calibrate",
         title:     "Calibrate",
@@ -5937,7 +6408,7 @@ $("#menu_calibrate").click(function() {
             papers["calibrate_main"].Run.transform("t" + ($("#calibrate").width() - 490) + ",0");
         },
         stop: function () {
-            if (thsetter_vals.length > 0) {
+            if (poinths.vals.length > 0) {
                 drawPointsAndThresholds();
             }
         }
@@ -5948,6 +6419,9 @@ $("#menu_calibrate").click(function() {
 });
 
 $("#menu_recode").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:      "recode",
         title:     "Recode",
@@ -5977,6 +6451,9 @@ $("#menu_recode").click(function() {
 });
 
 $("#menu_tt").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:      "tt",
         title:     "Truth table",
@@ -6005,6 +6482,9 @@ $("#menu_tt").click(function() {
 });
 
 $("#menu_eqmcc").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:       "eqmcc",
         title:      "Quine-McCluskey minimization",
@@ -6038,6 +6518,9 @@ $("#menu_eqmcc").click(function() {
 });
 
 $("#menu_xyplot").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:      "xyplot",
         title:     "XY plot",
@@ -6046,8 +6529,8 @@ $("#menu_xyplot").click(function() {
         width:     720,
         height:    567,
         inside: {
-            xyplotcols1: {border: true, left: 13, top:   54, width: 140, height: 120},
-            xyplotcols2: {border: true, left: 13, top:  210, width: 140, height: 120}
+            xyplotcols1: {border: true, left: 13, top:  210, width: 150, height: 120},
+            xyplotcols2: {border: true, left: 13, top:   54, width: 150, height: 120}
             
         }
     };
@@ -6089,6 +6572,9 @@ $("#menu_xyplot").click(function() {
 });
 
 $("#menu_venn").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:      "venn",
         title:     "Venn diagram",
@@ -6137,7 +6623,43 @@ $("#menu_venn").click(function() {
     return false;
 });
 
+$("#menu_saveRplot").click(function() {
+    
+    pingit();
+    
+    var settings = {
+        name:       "saveRplot",
+        title:      "Save R plot window",
+        position:   {my: "left top", at: "left+5px top+33px", of: window, collision: "flip"},
+        resizable:  false,
+        width:      655,
+        height:     400,
+        inside: {
+            
+            preview: {border: false, left: 10, top:  30, width: 220, height: 200},
+            savepath: {border: false, left: 240, top:  60, width: 400, height:  40},
+            savedirs: {border: true, left: 240, top:  78, width: 400, height: 260}
+        }
+    };
+    
+    if ($("#saveRplot").length) {
+        showDialogToFront(settings);
+    }
+    else {
+        current_command = "saveRplot";
+        createDialog(settings);
+        makePapers(settings);
+        draw_saveRplot(papers["saveRplot_main"]);
+    }
+    
+    $("#main_menu").smartmenus('menuHideAll');
+    return false;
+});
+
 $("#menu_about").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:       "about",
         title:      "About this software",
@@ -6153,7 +6675,7 @@ $("#menu_about").click(function() {
     else {
         createDialog(settings);
         var messages = [
-            "R package: QCAGUI, version 2.2",
+            "R package: QCAGUI, version 2.3",
             "",
             "Author: Adrian Dușa (dusa.adrian@unibuc.ro)",
             "",
@@ -6186,6 +6708,9 @@ $("#menu_about").click(function() {
 });
 
 $("#menu_changes").click(function() {
+    
+    pingit();
+    
     var settings = {
         name:       "changes",
         title:      "Change log",
@@ -6231,8 +6756,20 @@ $("#menu_changes").click(function() {
 });
 
 $("#menu_help").click(function() {
+    
+    pingit();
+    
     help += 1;
     Shiny.onInputChange("help", help);
+});
+
+$("#menu_quit").click(function() {
+    var quit = 0;
+    quit += 1;
+    if (confirm("Close Window?")) {
+        Shiny.onInputChange("quit", quit);
+        close();
+    }
 });
 
 createDialog({
@@ -6255,6 +6792,35 @@ createDialog({
     height:    resultHeight, 
     closable: false
 });
+
+var plotsettings = {
+    name:      "plotdiv",
+    title:     "R plot window",
+    position:  {my: "right top", at: "left-10px top", of: "#command", collision: "fitflip"},
+    resizable: true,
+    width:     550,
+    height:    570,
+    closable: true
+}
+
+createDialog(plotsettings);
+
+$("#plotdiv").resizable({
+    stop: function() {
+        plotsize[0] = $('#plotdiv_main').width()/96
+        plotsize[1] = $('#plotdiv_main').height()/96;
+        
+        outres = new Array();
+        outres[0] = "listen2R";
+        Shiny.onInputChange("plotsize", plotsize);
+        
+        updatecounter = 0;
+        resizePlot();
+        
+    }
+})
+
+$("#plotdiv").hide();
 
 $("#result_main").append("<span style='color:#932192'>" + "> " + "</span>");
 $("#result_main").append("<span style='color:blue'>library(QCA)</span><br>");
@@ -6430,16 +6996,40 @@ function createDialog(settings) {
             
     $("#" + settings.name + "_img").click(function(event) {
         event.stopPropagation();
-        if (settings.name != "command" && settings.name != "result") {
-            $("#" + settings.name).hide("fade", { percent: 0 }, 500);
+        
+        if (settings.name == "plotdiv") {
+            closeplot += 1;
+            plotopen = false;
+            Shiny.onInputChange("closeplot", closeplot);
+            $("#preview").css({
+                "background-image": ""
+            });
         }
+        
+        if (settings.name != "command" && settings.name != "result") {
+            
+            $("#" + settings.name).remove();
+        }
+        
     });
     
     $("#" + settings.name + "_img").mouseup(function(event) {
         if (clickfired) {
-            if (settings.name != "command" && settings.name != "result") {
-                $("#" + settings.name).hide("fade", { percent: 0 }, 500);
+            
+            if (settings.name == "plotdiv") {
+                closeplot += 1;
+                plotopen = false;
+                Shiny.onInputChange("closeplot", closeplot);
+                $("#preview").css({
+                    "background-image": ""
+                });
             }
+            
+            if (settings.name != "command" && settings.name != "result") {
+                
+                $("#" + settings.name).remove();
+            }
+            
             clickfired = false;
         }
     });

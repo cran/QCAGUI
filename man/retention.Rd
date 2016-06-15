@@ -93,6 +93,7 @@ Diagnostics for Qualitative Comparative Analysis: A Combinatorial Approach.}
 }
 
 \examples{
+require("QCA")
 
 # the replication data, see Thiem, Spohel and Dusa (2015)
 

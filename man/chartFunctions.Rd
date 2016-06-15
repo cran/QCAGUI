@@ -78,6 +78,7 @@ quantitative strategies}, Berkeley: University of California Press
 }
 
 \examples{
+require("QCA")
 
 # non-standard products, it needs the set names
 chart <- makeChart("A, B, c", "ABC, Abc, AbC, aBc", snames =  "A,B,C")

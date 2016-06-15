@@ -137,6 +137,7 @@ vol.17, no.6, pp.625-642.
 }
 
 \examples{
+require("QCA")
 
 # generate heights for 100 people
 # with an average of 175cm and a standard deviation of 10cm
@@ -204,7 +205,14 @@ plot(x, cx, main = "Membership scores in the set of average height",
      xlab = "Raw data", ylab = "Calibrated data")
 
 
-# larger values will increase the membership in or out of the set
+# different thresholds to produce a linear trapezoidal shape
+cx <- calibrate(x, type = "fuzzy",
+      thresholds = "e1=155, c1=165, i1=172, i2=179, c2=187, e2=195")
+plot(x, cx, main = "Membership scores in the set of average height",
+     xlab = "Raw data", ylab = "Calibrated data")
+
+
+# larger values of above and below will increase membership in or out of the set
 cx <- calibrate(x, type = "fuzzy", below = 10, above = 10,
       thresholds = "e1=155, c1=165, i1=175, i2=175, c2=185, e2=195")
 plot(x, cx, main = "Membership scores in the set of average height",

@@ -9,6 +9,7 @@ export(.onAttach,
     eqmccLoop,
     export,
     factorize,
+    findRows,
     findSubsets,
     findSupersets,
     findTh,
@@ -16,11 +17,6 @@ export(.onAttach,
     fuzzyor,
     getRow,
     intersection,
-    is.deMorgan,
-    is.pof,
-    is.qca,
-    is.tt,
-    is.sS,
     makeChart,
     pof,
     prettyTable,
@@ -52,10 +48,12 @@ export(.onAttach,
 import(lpSolve)
 import(shiny)
 import(venn)
+import(fastdigest)
 importFrom("utils", "combn", "packageDescription", "remove.packages", "capture.output")
 importFrom("stats", "binom.test", "cutree", "dist", "hclust", "na.omit", "dbinom")
-importFrom("grDevices", "dev.cur", "dev.new")
-importFrom("graphics", "abline", "axis", "box", "mtext", "par")
+importFrom("grDevices", "dev.cur", "dev.new", "dev.list")
+importFrom("graphics", "abline", "axis", "box", "mtext", "par", "title", "text")
+importFrom("methods", "is")
 S3method(print, "aE")
 S3method(print, "deMorgan")
 S3method(print, "fctr")

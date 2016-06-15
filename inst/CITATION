@@ -1,7 +1,7 @@
 meta <- packageDescription("QCAGUI")
-year <- sub("-.*", "", meta["Date"])
-note <- sprintf("R Package Version %s", meta["Version"])
-title <- sprintf("%s", meta["Title"])
+year <- sub("-.*", "", unlist(meta["Date"]))
+note <- paste("R Package Version", unlist(meta["Version"]))
+title <- unlist(meta["Title"])
 
 citHeader("To cite this package in publications, please use:")
 
@@ -14,18 +14,18 @@ citEntry(entry = "Article",
     pages       = "576--586",
     title       = "User manual for the QCA(GUI) package in R",
     textVersion = paste("Dusa, Adrian (2007).",
-                     "User manual for the QCA(GUI) package in R,",
-                     "Journal of Business Research 60(5), 576-586.")
+                        "User manual for the QCA(GUI) package in R,",
+                        "Journal of Business Research 60(5), 576-586.")
 )
 
 citEntry(entry = "Manual",
     author      = personList(as.person("Adrian Dusa")),
     year        = "2016",
-    title       = title,
-    note        = note,
+    title       = "Modern Functions for Qualitative Comparative Analysis",
+    note        = "R Package version 2.3",
     url         = "http://cran.r-project.org/package=QCAGUI",
-    textVersion = paste(paste("Dusa, Adrian (", sprintf("%s", year), ")", sep=""),
-                      title, note, "URL: http://cran.r-project.org/package=QCAGUI.", sep = ". "),
+    textVersion = paste("Dusa, Adrian (2016) Modern Functions for Qualitative Comparative Analysis",
+                      "R package 2.3", "URL: http://cran.r-project.org/package=QCAGUI", sep = ". "),
     header      = "For the package itself:"
 )
 

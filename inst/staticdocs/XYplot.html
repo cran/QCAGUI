@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-<title>XYplot. QCAGUI 2.2</title>
+<title>XYplot. QCAGUI 2.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="
 Adrian Dusa
@@ -34,7 +34,7 @@ Adrian Dusa
     <div class="navbar">
   <div class="navbar-inner">
     <div class="container">
-      <a class="brand" href="#">QCAGUI 2.2</a>
+      <a class="brand" href="#">QCAGUI 2.3</a>
       <div class="nav">
         <ul class="nav">
           <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
@@ -54,7 +54,7 @@ Adrian Dusa
 <div class="row">
   <div class="span8">
     <h2>Usage</h2>
-    <pre><div>XYplot(x, y, data, relation&nbsp;=&nbsp;"nec", size&nbsp;=&nbsp;15, mguides&nbsp;=&nbsp;TRUE, jitter&nbsp;=&nbsp;FALSE, ...)</div></pre>
+    <pre><div>XYplot(x, y, data, relation&nbsp;=&nbsp;"nec", size&nbsp;=&nbsp;15, mguides&nbsp;=&nbsp;TRUE, jitter&nbsp;=&nbsp;FALSE, clabels&nbsp;=&nbsp;NULL, ...)</div></pre>
     
     <h2>Arguments</h2>
     <dl>
@@ -76,6 +76,8 @@ Adrian Dusa
       <dt>mguides</dt>
       <dd>Logical, print the middle guides.</dd>
       <dt>jitter</dt>
+      <dd>Logical, jitter the points.</dd>
+      <dt>clabels</dt>
       <dd>Logical, jitter the points.</dd>
       <dt>...</dt>
       <dd>Other graphical parameters from <code>par</code></dd>
@@ -163,70 +165,71 @@ XYplot(CVF[, 5:6])
 # same using two numeric vectors
 XYplot(CVF$NATPRIDE, CVF$PROTEST)
 </div>
-<p><img src='XYplot-3.png' alt='' /></p>
+<p><img src='XYplot-3.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # same using two column names
-XYplot(&quot;NATPRIDE&quot;, &quot;PROTEST&quot;, data = CVF)
+XYplot(&quot;NATPRIDE, PROTEST&quot;, data = CVF)
 
 # or using one string containing both
 XYplot(&quot;NATPRIDE, PROTEST&quot;, data = CVF)
 
 # since they are valid R statements, it works even without quotes
+# (this only works in the normal R console, not in the GUI version)
 XYplot(NATPRIDE, PROTEST, data = CVF)
 
 # negating the X axis, using numeric vectors
 XYplot(1 - CVF$NATPRIDE, CVF$PROTEST)
 </div>
-<p><img src='XYplot-5.png' alt='' /></p>
+<p><img src='XYplot-5.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # same thing using quotes
-XYplot(&quot;1 - NATPRIDE&quot;, &quot;PROTEST&quot;, data = CVF)
+XYplot(&quot;1 - NATPRIDE, PROTEST&quot;, data = CVF)
 
-# same thing without quotes, using tilde for negation
-XYplot(~NATPRIDE, PROTEST, data = CVF)
+# using tilde for negation
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF)
 
 # different color for the points
-XYplot(~NATPRIDE, PROTEST, data = CVF, col = &quot;blue&quot;)
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF, col = &quot;blue&quot;)
 </div>
-<p><img src='XYplot-6.png' alt='' /></p>
+<p><img src='XYplot-6.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # using a different character expansion for the axes
-XYplot(~NATPRIDE, PROTEST, data = CVF, cex.axis = 0.9)
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF, cex.axis = 0.9)
 </div>
-<p><img src='XYplot-7.png' alt='' /></p>
+<p><img src='XYplot-7.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # custom axis labels
-XYplot(~NATPRIDE, PROTEST, data = CVF, xlab = &quot;Negation of NATPRIDE&quot;,
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF, xlab = &quot;Negation of NATPRIDE&quot;,
        ylab = &quot;Outcome: PROTEST&quot;)
 </div>
-<p><img src='XYplot-8.png' alt='' /></p>
+<p><img src='XYplot-8.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # sufficiency relation
-XYplot(~NATPRIDE, PROTEST, data = CVF, relation = &quot;suf&quot;)
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF, relation = &quot;suf&quot;)
 </div>
-<p><img src='XYplot-9.png' alt='' /></p>
+<p><img src='XYplot-9.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # jitter the points
-XYplot(~NATPRIDE, PROTEST, data = CVF, jitter = TRUE)
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF, jitter = TRUE)
 </div>
-<p><img src='XYplot-10.png' alt='' /></p>
+<p><img src='XYplot-10.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # jitter with more amount
-XYplot(~NATPRIDE, PROTEST, data = CVF, jitter = TRUE, amount = 0.02)
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF, jitter = TRUE, amount = 0.02)
 </div>
-<p><img src='XYplot-11.png' alt='' /></p>
+<p><img src='XYplot-11.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # adding labels to points
-pos &lt;- XYplot(~NATPRIDE, PROTEST, data = CVF, jitter = TRUE)
-text(pos$x + 0.02, pos$y + 0.02, labels = rownames(CVF), cex = 0.8)
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF, jitter = TRUE, cex = 0.8,
+       clabels = rownames(CVF))
 </div>
-<p><img src='XYplot-12.png' alt='' /></p>
+<p><img src='XYplot-12.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # or just the row numbers, since the labels are very long
-pos &lt;- XYplot(~NATPRIDE, PROTEST, data = CVF, jitter = TRUE)
-text(pos$x + 0.02, pos$y + 0.02, cex = 0.8)
+XYplot(&quot;~NATPRIDE, PROTEST&quot;, data = CVF, jitter = TRUE, cex = 0.8,
+       clabels = seq(nrow(CVF)))
 </div>
-<p><img src='XYplot-13.png' alt='' /></p>
+<p><img src='XYplot-13.svg' alt='' width='400' height='400' /></p>
 <div class='input'></div></pre>
   </div>
   <div class="span4">

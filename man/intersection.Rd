@@ -49,6 +49,7 @@ Quantitative Strategies}. Berkeley: University of California Press.
 
 
 \examples{
+require("QCA")
 
 # in Ragin's (1987) book, the equation E = SG + LW is the result
 # of the Boolean minimization for the ethnic political mobilization.

@@ -26,7 +26,6 @@ function(expression = "", snames = "") {
         snames <- toupper(QCA::splitstr(snames))
     }
     
-    # ",[0-9]" to eliminate _only_ commas within curly brackets, like T{1,2}"
     if (any(grepl(",", gsub(",[0-9]", "", expression)))) {
         expression <- QCA::splitstr(expression)
     }
@@ -36,27 +35,15 @@ function(expression = "", snames = "") {
     if (any(multivalue)) {
         expression <- gsub("\\*", "", expression)
         
-        # check to see if opened brackets have closing brackets
         if (length(unlist(gregexpr("\\{+", expression))) != length(unlist(gregexpr("\\}+", expression)))) {
             cat("\n")
             stop(simpleError("Incorrect expression, opened and closed brackets don't match.\n\n"))
         }
     }
     
-    
-    # TO DO: solve round brackets
-    
-    
-    
-    
-    # de gsub("\\(|\\)"...) n-o sa mai fie nevoie pentru ca am rezolvat parantezele mai sus
     pporig <- QCA::trimst(unlist(strsplit(gsub("\\(|\\)", "", expression), split="\\+")))
     expression <- gsub("[[:space:] \\( \\)]", "", expression)
     
-    # whatever it is outside the brackets must have the same length
-    # as the information inside the brackets
-    
-    # remove everything except snames' names and the brackets
     tempexpr <- gsub("\\*|,|;", "", expression)
     
     if (any(multivalue)) {
@@ -64,17 +51,18 @@ function(expression = "", snames = "") {
         insb <- QCA::curlyBrackets(tempexpr)
         tempexpr <- QCA::curlyBrackets(tempexpr, outside=TRUE)
         
-        
-        
         if (length(insb) != length(tempexpr)) {
             cat("\n")
             stop(simpleError("Incorrect expression, some snames don't have brackets.\n\n"))
         }
+        
+        if (any(grepl("[a-zA-Z]", insb))) {
+            cat("\n")
+            stop(simpleError("Invalid {multi}values, levels should be numeric.\n\n"))
+        }
     }
     
-    # parse plus
     pp <- unlist(strsplit(expression, split="\\+"))
-    
     
     if (any(multivalue)) {
         conds <- sort(unique(toupper(gsub("~", "", QCA::curlyBrackets(pp, outside=TRUE)))))
@@ -89,15 +77,12 @@ function(expression = "", snames = "") {
             }
         }
         
-        # initiate the return matrices
         retmat <- matrix(0, nrow=length(pp), ncol=length(conds))
         rownames(retmat) <- pporig
         colnames(retmat) <- conds
         values <- matrix("", nrow=length(pp), ncol=length(conds))
         rownames(values) <- pporig
         colnames(values) <- conds
-        
-        
         
         for (i in seq_along(pp)) {
         
@@ -113,7 +98,9 @@ function(expression = "", snames = "") {
             matched <- logical(length(x))
             
             for (j in seq(length(x))) {
+                
                 matched[j] <- all(QCA::splitstr(y[j]) != 0)
+                
                 if (grepl("~", x[j])) {
                     matched[j] <- !matched[j]
                     y[j] <- paste("~", y[j], sep="")
@@ -133,9 +120,7 @@ function(expression = "", snames = "") {
                 if (all(gsub("~", "", conds) %in% snames)) {
                     conds <- snames
                 }
-                # else if (all(unlist(strsplit(gsub("~", "", conds), split="")) %in% snames)) { # try if not single letters
-                #     conds <- snames
-                # }
+                
                 else {
                     cat("\n")
                     stop(simpleError("Parts of the expression don't match the set names from \"snames\" argument.\n\n"))
@@ -167,7 +152,6 @@ function(expression = "", snames = "") {
             }
         }
         else {
-            # no standard way to split the string
             
             conds <- unique(toupper(gsub("~", "", pp)))
             
@@ -205,9 +189,6 @@ function(expression = "", snames = "") {
                 colnames(retmat) <- snames
                 negation <- retmat
                 
-                # either the string contains only whole condition names
-                # (with more than one letter each)
-                
                 if (all(toupper(gsub("~", "", pp)) %in% snames)) {
                     
                     for (i in seq_along(pp)) {
@@ -218,15 +199,12 @@ function(expression = "", snames = "") {
                 }
                 else {
                     
-                    # when the names of the snames are single letters
                     if (all(nchar(snames) == 1)) {
                             
                         for (i in seq_along(pp)) {
                         
                             x <- unlist(strsplit(pp[i], split=""))
                             
-                            
-                            # if single letters, tildae will be separated
                             if (any(x == "~")) {
                                 y <- which(x == "~")
                                 if (max(y) == length(x)) {
@@ -244,7 +222,6 @@ function(expression = "", snames = "") {
                                 stop(simpleError("Duplicated names in the same product.\n\n"))
                             }
                             
-                            
                             if (!all(cols %in% snames)) {
                                 cat("\n")
                                 stop(simpleError("Parts of the expression don't match the set names from \"snames\" argument.\n\n"))
@@ -259,8 +236,6 @@ function(expression = "", snames = "") {
                         
                     }
                     else {
-                        # or search deep to split, up to 7 snames for the moment
-                           ### ?is this a good idea, or just stop with an error? ###
                         
                         maybe <- logical(length(snames))
                         for (i in seq_along(snames)) {
@@ -269,16 +244,13 @@ function(expression = "", snames = "") {
                         
                         snames <- snames[maybe]
                         
-                        
                         if (length(snames) > 7) {
                             cat("\n")
                             stop(simpleError("Too many causal snames' to search.\n\n"))
                         }
                         
-                        # impicant matrix
                         im <- createMatrix(rep(3, length(snames)))[-1, , drop = FALSE]
                         
-                        # matrix namespace
                         mns <- matrix(nrow = 0, ncol = ncol(im))
                         
                         perms <- function(x) {
@@ -296,7 +268,6 @@ function(expression = "", snames = "") {
                         
                         noflevels <- rep(3, length(snames))
                         
-                        # matrix name space
                         mns <- lapply(seq(2, 3^length(snames)), function(x) {
                             x <- getRow(noflevels, x)
                             snames[x == 1] <- tolower(snames[x == 1])
@@ -311,14 +282,12 @@ function(expression = "", snames = "") {
                             
                         })
                         
-                        
                         namespace <- matrix(nrow=0, ncol=1)
                         for (i in seq(length(mns))) {
                             temp <- matrix(apply(mns[[i]], 1, paste, collapse=""), ncol=1)
                             rownames(temp) <- paste(i, seq(nrow(temp)), sep="_")
                             namespace <- rbind(namespace, temp)
                         }
-                        
                         
                         if (any(duplicated(namespace))) {
                             cat("\n")
@@ -347,7 +316,6 @@ function(expression = "", snames = "") {
                             retmat[i, ] <- y + 1
                         }
                         
-                        # check for negation
                         for (i in seq_along(pp)) {
                             cplus <- which(retmat[i, ] != "")
                             for (j in cplus) {
@@ -357,26 +325,21 @@ function(expression = "", snames = "") {
                             }
                         }
                         
-                    } # snames are other than single letters
+                    } 
                     
-                } # expression contains more than whole snames names
+                } 
                 
-            } # expression contains more than single letters
+            } 
             
-        } # non-standard split (no * found)
+        } 
         
-        
-        # for ALL non-multivalue expressions, the negation of a negation is a presence of a causal condition
         for (i in seq(length(retmat))) {
             if (negation[i] == 1) {
                 retmat[i] <- 3 - QCA::asNumeric(retmat[i])
             }
         }
         
-        
-    } # non-multivalue
-    
-    # retmat <- retmat[, colSums(retmat) > 0, drop = FALSE]
+    } 
     
     if (any(multivalue)) {
         attr(retmat, "mv") <- values[, colnames(retmat), drop = FALSE]

@@ -5,7 +5,6 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
       omit = c(), dir.exp = "", details = FALSE, show.cases = FALSE, 
       inf.test = "", use.tilde = FALSE, use.letters = FALSE, ...) {
 
-
     check.object <- verify.mqca(data, outcome, conditions)
     
     conditions <- check.object$conditions
@@ -19,7 +18,6 @@ function(data, outcome = "", neg.out = FALSE, conditions = "",
         
         conditions <- names(data)[- which(names(data) == check.object$outcome[i])]
         
-        # to do: try manipulating the match.call() object or something, instead of this
         eqmcc.list[[i]] <- eqmcc(
             data, outcome = outcome[i], neg.out=neg.out, conditions = conditions,
             relation = relation, n.cut=n.cut, icp = icp, ica = ica,

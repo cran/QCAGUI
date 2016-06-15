@@ -22,10 +22,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         ica <- incl.cut[2]
     }
     
-    
-    ### 
-    ### ### backwards compatibility 
-    ### 
         neg.out <- FALSE
         if ("neg.out" %in% names(other.args)) {
             neg.out <- other.args$neg.out
@@ -40,9 +36,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
             ica <- other.args$incl.cut0
             incl.cut[2] <- ica
         }
-    ### 
-    ### ### backwards compatibility 
-    ### 
     
     names(data) <- toupper(names(data))
     conditions <- toupper(conditions)
@@ -61,8 +54,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         outcome <- substring(outcome, 2)
     }
     
-    # for the moment, toupper(outcome) is redundant but should the negation be 
-    # treated with lower case letters in the future, it will prove important
     if (!identical(outcome, "")) {
         if (! toupper(QCA::curlyBrackets(outcome, outside=TRUE)) %in% colnames(data)) {
             cat("\n")
@@ -76,14 +67,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         
         data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% QCA::splitstr(outcome.value))
     }
-    ### this was supposed to treat the negation using lower case letters
-    # else if (! outcome %in% colnames(data)) {
-    #     data[, toupper(outcome)] <- 1 - data[, toupper(outcome)]
-    # }
-    
-    # already on line 23
-    # outcome <- toupper(outcome)
-    ### 
     
     if (identical(conditions, "")) {
         conditions <- names(data)[-which(names(data) == outcome)]
@@ -98,7 +81,7 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         sort.by <- QCA::splitstr(sort.by)
     }
     
-    decreasing <- TRUE # just to set a default value
+    decreasing <- TRUE 
     if ("decreasing" %in% names(other.args)) {
         decreasing <- other.args$decreasing
     }
@@ -106,7 +89,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     if (is.character(decreasing) & length(decreasing) == 1) {
         decreasing <- QCA::splitstr(decreasing)
     }
-    
     
     if (!identical(inf.test, "")) {
         inf.test <- QCA::splitstr(inf.test)
@@ -128,7 +110,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     outcome <- toupper(outcome)
     
     initial.data <- initial.data[, c(conditions, outcome)]
-    
     
     if (neg.out) {
         data[, outcome] <- 1 - data[, outcome]
@@ -152,10 +133,9 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     }
     
     data <- as.data.frame(lapply(data, function(x) {
-        # to make sure that any factor is character
+        
         x <- as.character(x)
         
-        # otherwise replacement was not possible
         x[x == dc.code] <- -1
         
         return(QCA::asNumeric(x))
@@ -167,10 +147,8 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     rownames(data) <- rownames(initial.data)
     
     nofconditions <- length(conditions)
-    # fuzzy.cc <- apply(data[, conditions, drop=FALSE], 2, function(x) any(abs(x - round(x)) >= .Machine$double.eps^0.5))
     
     fuzzy.cc <- apply(data[, conditions, drop=FALSE], 2, function(x) any(x %% 1 > 0))
-    
     
     for (i in seq(length(conditions))) {
         if (!fuzzy.cc[i]) {
@@ -182,24 +160,17 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         }
     }
     
-    # the data MUST begin with 0 and MUST be incremented by 1 for each level...!
-    # perhaps trying something like
-    # apply(data[, conditions], 2, function(x) length(unique(x))) + 1
     noflevels <- apply(data[, conditions, drop=FALSE], 2, max) + 1
     noflevels[noflevels == 1] <- 2
     noflevels[fuzzy.cc] <- 2
-    
     
     if (via.pof) {
         return(as.vector(noflevels))
     }
     
-    
-    condata <- data[, conditions]
+    condata <- data[, conditions, drop = FALSE]
     if (any(fuzzy.cc)) {
-        condata[, fuzzy.cc] <- lapply(condata[, fuzzy.cc], function(x) {
-            (x > 0.5)*1
-        })
+        condata[, fuzzy.cc] <- lapply(condata[, fuzzy.cc, drop = FALSE], function(x) as.numeric(x > 0.5))
     }
     
     line.data <- as.vector(as.matrix(condata) %*% c(rev(cumprod(rev(noflevels))), 1)[-1])
@@ -210,7 +181,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     rownstt <- sort(line.data)[uniq] + 1
     rownames(tt) <- rownstt
     
-    # ipc <- .Call("truthTable", as.matrix(data[, conditions]), as.matrix(tt), as.numeric(fuzzy.cc), data[, outcome], PACKAGE="QCAGUI")
     ipc <- QCA::callTruthTable(as.matrix(data[, conditions]), as.matrix(tt), as.numeric(fuzzy.cc), data[, outcome])
     colnames(ipc) <- rownstt
     
@@ -222,15 +192,23 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     }
     
     tt$OUT <- "?"
-    tt$OUT[!exclude] <- as.numeric(ipc[2, ] >= (icp - .Machine$double.eps ^ 0.5))[!exclude]
-    tt$OUT[!exclude & ipc[2, ] < icp & ipc[2, ] >= (ica - .Machine$double.eps ^ 0.5)] <- "C"
+    tt$OUT[!exclude] <- as.numeric(ipc[2, !exclude] >= (icp - .Machine$double.eps ^ 0.5))
+    tt$OUT[ipc[2, !exclude] < icp & ipc[2, !exclude] >= (ica - .Machine$double.eps ^ 0.5)] <- "C"
+    
     tt <- cbind(tt, t(ipc))
     
-    cases <- sapply(line.data[order(line.data)][uniq], function(x) {
+    cases <- sapply(sort(unique(line.data)), function(x) {
         paste(rownames(data)[which(line.data == x)], collapse=",")
     })
     
+    casesexcl <- cases[exclude]
+    
+    rownstt <- rownstt[!exclude]
+    cases <- cases[!exclude]
+    
     excluded <- tt[exclude, , drop = FALSE]
+    excluded$OUT <- as.numeric(ipc[2, exclude] >= (icp - .Machine$double.eps ^ 0.5))
+    excluded$OUT[ipc[2, exclude] < icp & ipc[2, exclude] >= (ica - .Machine$double.eps ^ 0.5)]  <- "C"
     
     if (length(conditions) < 8) {
         
@@ -241,7 +219,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         ttc$n     <-  0
         ttc$incl  <- "-"
         
-        # sometimes a causal condition may be named PRI (see Porter data)
         whichpri <- which(colnames(ttc) == "PRI")
         
         ttc[, whichpri[length(whichpri)]] <- "-"  
@@ -249,15 +226,14 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         tt <- ttc
     }
     
-    
     if (!identical(sort.by, "")) {
         
-        if (is.logical(sort.by)) { # & !is.null(names(sort.by)) # if logical, it should _always_ have names
+        if (is.logical(sort.by)) { 
             decreasing <- as.vector(sort.by)
             sort.by <- names(sort.by)
         }
         else {
-            # just to make sure we _do_ have a "decreasing" object
+            
             if (missing(decreasing)) {
                 decreasing <- rep(TRUE, length(sort.by))
             }
@@ -281,7 +257,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         decreasing <- decreasing[sort.by %in% names(tt)]
         sort.by <- sort.by[sort.by %in% names(tt)]
         
-        
         rowsorder <- seq_len(nrow(tt))
         for (i in rev(seq(length(sort.by)))) {
             rowsorder <- rowsorder[order(tt[rowsorder, sort.by[i]], decreasing = decreasing[i])]
@@ -292,8 +267,6 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         rowsorder <- rowsorder[order(sortvector)]
         
     }
-    
-    
     
     for (i in seq(length(conditions))) {
         if (!fuzzy.cc[i]) {
@@ -310,7 +283,7 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     if (inf.test[1] == "binom") {
         statistical.testing <- TRUE
         if (length(inf.test) > 1) {
-            alpha <- as.numeric(inf.test[2]) # already checked if a number between 0 and 1
+            alpha <- as.numeric(inf.test[2]) 
         }
         else {
             alpha <- 0.05
@@ -343,23 +316,15 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         }
     }
     
-    
-    # deal with the show.cases in the print function
-    # if (show.cases) {
-    
-        # apparently this is necessary, otherwise the new column cases will be a factor
         tt$cases <- ""
         
         if (length(conditions) < 8) {
             tt$cases[rownstt] <- cases
         }
         else {
-            tt$cases <- cases[!exclude]
+            tt$cases <- cases
         }
         
-    # }
-    
-    
     x <- list(tt = tt, indexes = rownstt, noflevels = as.vector(noflevels),
               initial.data = initial.data, recoded.data = data, cases = cases, 
               options = list(outcome = outcome.copy, conditions = conditions, neg.out = neg.out, n.cut = n.cut,
@@ -369,24 +334,14 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     
     if (any(exclude)) {
         excluded$cases <- ""
-        excluded$cases <- cases[exclude]
+        excluded$cases <- casesexcl
         x$excluded <- structure(list(tt = excluded,
-                                    options = list(show.cases = TRUE, complete = FALSE, excluded = TRUE)), class="tt")
+                                     options = list(show.cases = TRUE, complete = FALSE, excluded = TRUE)), class="tt")
     }
     
-    # also verify if not already letters
     if (use.letters & any(nchar(conditions) > 1)) { 
         colnames(x$tt)[seq(nofconditions)] <- LETTERS[seq(nofconditions)]
     }
-    
-    # PRI <- FALSE
-    # if ("PRI" %in% names(other.args)) {
-    #     if (is.logical(other.args$PRI)) {
-    #         PRI <- other.args$PRI[1]
-    #     }
-    # }
-    
-    # x$options$PRI <- PRI
     
     if (!identical(sort.by, "")) {
         x$rowsorder <- rowsorder

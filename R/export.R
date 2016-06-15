@@ -3,15 +3,12 @@ function(x, file = "", ...) {
     
     export.args <- list(...)
     Call <- match.call(expand.dots = TRUE)
-    # Callist <- as.list(Call)
-    # as.list(Call) e acelasi lucru cu list(...)
     
     caseid <- "cases"
     if (any(names(export.args) == "caseid")) {
         caseid <- export.args[["caseid"]]
         Call[["caseid"]] <- NULL
     }
-    
     
     if (!missing(x)) {
         if (is.data.frame(x)) {
@@ -42,7 +39,6 @@ function(x, file = "", ...) {
         Call[["col.names"]] <- export.args[["col.names"]]
     }
     
-                                                       
     Call[[1L]] <- as.name("write.table")
     Call[[2L]] <- as.name("x")
     Call[[3L]] <- file

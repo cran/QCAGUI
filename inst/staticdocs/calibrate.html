@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-<title>calibrate. QCAGUI 2.2</title>
+<title>calibrate. QCAGUI 2.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="
 Adrian Dusa
@@ -34,7 +34,7 @@ Adrian Dusa
     <div class="navbar">
   <div class="navbar-inner">
     <div class="container">
-      <a class="brand" href="#">QCAGUI 2.2</a>
+      <a class="brand" href="#">QCAGUI 2.3</a>
       <div class="nav">
         <ul class="nav">
           <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
@@ -115,39 +115,54 @@ distributions.</p>
 named numeric vector. If used as a named vector, for the first category of <dfn>s-shaped</dfn>
 distributions, the names of the thresholds should be:</p>
   
-      <p><table><tr><td>
-    <b><code>"e"</code></b> </td>
-</tr><tr><td> for the full set exclusion</td>
-</tr><tr><td>
-    <b><code>"c"</code></b> </td>
-</tr><tr><td> for the set crossover</td>
-</tr><tr><td>
-    <b><code>"i"</code></b> </td>
-</tr><tr><td> for the full set inclusion</td>
-</tr></table></p>
+      <p>
+      <table>
+        <tr>
+            <td> <b><code>"e"</code></b> </td>
+            <td> for the full set exclusion</td>
+        </tr>
+        <tr>
+            <td> <b><code>"c"</code></b> </td>
+            <td> for the set crossover</td>
+        </tr>
+        <tr>
+            <td> <b><code>"i"</code></b> </td>
+            <td> for the full set inclusion</td>
+        </tr>
+      </table>
+      </p>
   
       <p>For the second category of <dfn>bell-shaped</dfn> distributions, the names of the thresholds
 should be:</p>
   
-      <p><table><tr><td>
-    <b><code>"e1"</code></b> </td>
-</tr><tr><td> for the first (left) threshold for full set exclusion</td>
-</tr><tr><td>
-    <b><code>"c1"</code></b> </td>
-</tr><tr><td> for the first (left) threshold for set crossover</td>
-</tr><tr><td>
-    <b><code>"i1"</code></b> </td>
-</tr><tr><td> for the first (left) threshold for full set inclusion</td>
-</tr><tr><td>
-    <b><code>"i2"</code></b> </td>
-</tr><tr><td> for the second (right) threshold for full set inclusion</td>
-</tr><tr><td>
-    <b><code>"c2"</code></b> </td>
-</tr><tr><td> for the second (right) threshold for set crossover</td>
-</tr><tr><td>
-    <b><code>"e2"</code></b> </td>
-</tr><tr><td> for the second (right) threshold for full set exclusion</td>
-</tr></table></p>
+      <p>
+        <table>
+            <tr>
+                <td> <b><code>"e1"</code></b> </td>
+                <td> for the first (left) threshold for full set exclusion</td>
+            </tr>
+            <tr>
+                <td> <b><code>"c1"</code></b> </td>
+                <td> for the first (left) threshold for set crossover</td>
+            </tr>
+            <tr>
+                <td> <b><code>"i1"</code></b> </td>
+                <td> for the first (left) threshold for full set inclusion</td>
+            </tr>
+            <tr>
+                <td> <b><code>"i2"</code></b> </td>
+                <td> for the second (right) threshold for full set inclusion</td>
+            </tr>
+            <tr>
+                <td> <b><code>"c2"</code></b> </td>
+                <td> for the second (right) threshold for set crossover</td>
+            </tr>
+            <tr>
+                <td> <b><code>"e2"</code></b> </td>
+                <td> for the second (right) threshold for full set exclusion</td>
+            </tr>
+        </table>
+      </p>
   
       <p>If used as a simple numerical vector, the order of the values matter.</p>
   
@@ -182,26 +197,35 @@ distributions (using 3 thresholds), and they are mutually exclusive.</p>
       <p>The parameters <b><code>below</code></b> and <b><code>above</code></b> (active only when both
 <b><code>logistic = TRUE</code></b> and <b><code>ecdf</code></b> are deactivated, establish the degree of
 concentration and  dilation (convex or concave shape) between the threshold and crossover:</p>
-  
-      <p><table><tr><td>
-    <b><code>0 < below < 1</code></b> </td>
-</tr><tr><td> dilates in a concave shape below the crossover</td>
-</tr><tr><td>
-    <b><code>below = 1</code></b>     </td>
-</tr><tr><td> produces a linear shape (neither convex, nor concave)</td>
-</tr><tr><td>
-    <b><code>below > 1</code></b>     </td>
-</tr><tr><td> concentrates in a convex shape below the crossover</td>
-</tr><tr><td>
-    <b><code>0 < above < 1</code></b> </td>
-</tr><tr><td> dilates in a concave shape above the crossover</td>
-</tr><tr><td>
-    <b><code>above = 1</code></b>     </td>
-</tr><tr><td> produces a linear shape (neither convex, nor concave)</td>
-</tr><tr><td>
-    <b><code>above > 1</code></b>     </td>
-</tr><tr><td> concentrates in a convex shape above the crossover</td>
-</tr></table></p>
+      
+      <p>
+        <table>
+            <tr>
+                <td> <b><code>0 < below < 1</code></b> </td>
+                <td> dilates in a concave shape below the crossover</td>
+            </tr>
+            <tr>
+                <td> <b><code>below = 1</code></b> </td>
+                <td> produces a linear shape (neither convex, nor concave)</td>
+            </tr>
+            <tr>
+                <td> <b><code>below > 1</code></b> </td>
+                <td> concentrates in a convex shape below the crossover</td>
+            </tr>
+            <tr>
+                <td> <b><code>0 < above < 1</code></b> </td>
+                <td> dilates in a concave shape above the crossover</td>
+            </tr>
+            <tr>
+                <td> <b><code>above = 1</code></b> </td>
+                <td> produces a linear shape (neither convex, nor concave)</td>
+            </tr>
+            <tr>
+                <td> <b><code>above > 1</code></b> </td>
+                <td> concentrates in a convex shape above the crossover</td>
+            </tr>
+        </table>
+      </p>
   
       <p>Usually, <b><code>below</code></b> and <b><code>above</code></b> have equal values, unless specific reasons
 exist to make them different.</p>
@@ -243,19 +267,17 @@ x &lt;- rnorm(n = 100, mean = 175, sd = 10)
 cx &lt;- calibrate(x, thresholds = 175)
 plot(x, cx, main=&quot;Binary crisp set using 1 threshold&quot;,
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;, yaxt=&quot;n&quot;)
+axis(2, at = 0:1)
 </div>
-<div class='input'>axis(2, at = 0:1)
-</div>
-<p><img src='calibrate-3.png' alt='' /></p>
+<p><img src='calibrate-3.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 cx &lt;- calibrate(x, thresholds = c(170, 180))
 plot(x, cx, main=&quot;3 value crisp set using 2 thresholds&quot;,
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;, yaxt=&quot;n&quot;)
+axis(2, at = 0:2)
 </div>
-<div class='input'>axis(2, at = 0:2)
-</div>
-<p><img src='calibrate-6.png' alt='' /></p>
+<p><img src='calibrate-6.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 # calibrate to an increasing, s-shaped fuzzy-set
@@ -263,7 +285,7 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, thresholds = &quot;e=165, c=175,
 plot(x, cx, main = &quot;Membership scores in the set of tall people&quot;, 
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-8.png' alt='' /></p>
+<p><img src='calibrate-8.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
      
 # calibrate to a decreasing, s-shaped fuzzy-set
@@ -271,7 +293,7 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, thresholds = &quot;i=165, c=175,
 plot(x, cx, main = &quot;Membership scores in the set of short people&quot;, 
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-10.png' alt='' /></p>
+<p><img src='calibrate-10.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 # when not using the logistic function, linear increase
@@ -280,7 +302,7 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, logistic = FALSE,
 plot(x, cx, main = &quot;Membership scores in the set of tall people&quot;, 
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-12.png' alt='' /></p>
+<p><img src='calibrate-12.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 # tweaking the parameters &quot;above&quot; and &quot;below&quot; the crossover,
@@ -290,7 +312,7 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, logistic = FALSE, above = 3.5, b
 plot(x, cx, main = &quot;Membership scores in the set of tall people&quot;, 
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-14.png' alt='' /></p>
+<p><img src='calibrate-14.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 # calibrate to a bell-shaped fuzzy set
@@ -299,7 +321,7 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, below = 3, above = 3,
 plot(x, cx, main = &quot;Membership scores in the set of average height&quot;,
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-16.png' alt='' /></p>
+<p><img src='calibrate-16.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 # calibrate to an inverse bell-shaped fuzzy set
@@ -308,7 +330,7 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, below = 3, above = 3,
 plot(x, cx, main = &quot;Membership scores in the set of non-average height&quot;,
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-18.png' alt='' /></p>
+<p><img src='calibrate-18.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 # the default values of &quot;above&quot; and &quot;below&quot; will produce a triangular shape
@@ -317,16 +339,25 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;,
 plot(x, cx, main = &quot;Membership scores in the set of average height&quot;,
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-20.png' alt='' /></p>
+<p><img src='calibrate-20.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
-# larger values will increase the membership in or out of the set
+# different thresholds to produce a linear trapezoidal shape
+cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, below = 10, above = 10,
+      thresholds = &quot;e1=156, c1=164, i1=172, i2=179, c2=187, e2=195&quot;)
+plot(x, cx, main = &quot;Membership scores in the set of average height&quot;,
+     xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
+</div>
+<p><img src='calibrate-21.svg' alt='' width='400' height='400' /></p>
+<div class='input'>
+
+# larger values of above and below will increase membership in or out of the set
 cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, below = 10, above = 10,
       thresholds = &quot;e1=155, c1=165, i1=175, i2=175, c2=185, e2=195&quot;)
 plot(x, cx, main = &quot;Membership scores in the set of average height&quot;,
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-22.png' alt='' /></p>
+<p><img src='calibrate-22.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 
 # while extremely large values will produce virtually crisp results
@@ -334,15 +365,13 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, below = 10000, above = 10000,
       thresholds = &quot;e1=155, c1=165, i1=175, i2=175, c2=185, e2=195&quot;)
 plot(x, cx, main = &quot;Binary crisp scores in the set of average height&quot;,
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;, yaxt=&quot;n&quot;)
+axis(2, at = 0:1)
+abline(v = c(165, 185), col = &quot;red&quot;, lty = 2)
 </div>
-<div class='input'>axis(2, at = 0:1)
-</div>
-<div class='input'>abline(v = c(165, 185), col = &quot;red&quot;, lty = 2)
-</div>
-<p><img src='calibrate-26.png' alt='' /></p>
+<p><img src='calibrate-26.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # check if crisp
-round(cx, 0)
+cx
 </div>
 <div class='output'>  [1] 1 1 1 1 1 0 1 1 1 1 1 0 1 1 1 1 1 1 0 1 1 0 1 0 0 0 1 1 1 1 1 0 0 0 1 1 1 0 0 1 0
  [42] 0 0 1 1 0 0 1 1 0 1 0 1 1 1 1 1 1 0 0 1 0 1 0 1 0 1 0 1 0 1 1 0 0 0 1 1 1 1 0 1 0
@@ -357,7 +386,7 @@ cx &lt;- calibrate(x, type = &quot;fuzzy&quot;, logistic = FALSE, ecdf = TRUE,
 plot(x, cx, main = &quot;Membership scores in the set of tall people&quot;, 
      xlab = &quot;Raw data&quot;, ylab = &quot;Calibrated data&quot;)
 </div>
-<p><img src='calibrate-30.png' alt='' /></p></pre>
+<p><img src='calibrate-30.svg' alt='' width='400' height='400' /></p></pre>
   </div>
   <div class="span4">
     <!-- <ul>

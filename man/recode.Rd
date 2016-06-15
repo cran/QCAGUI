@@ -43,7 +43,9 @@ Actually, since all rules are specified in a string, it really doesn't matter
 if the \bold{\code{c()}} function is used or not. For compatibility reasons it accepts it, but
 a more simple way to specify a set of rules is \bold{\code{"1,3,5:7=A; else=B"}}
 
-Special values \bold{\code{lo}} and \bold{\code{hi}} may also appear in the range of values.
+Special values \bold{\code{lo}} and \bold{\code{hi}} may also appear in the range of values,
+while \bold{\code{else}} can be used with \bold{\code{else=copy}} to copy all values which
+were not specified in the recoding rules.
 
 In the package \pkg{car}, a character \bold{\code{output}} would have to be quoted,
 like \bold{\code{"1:2='A'"}} but that is not mandatory is this function, \bold{\code{"1:2=A"}}
@@ -74,12 +76,18 @@ Adrian Dusa
 }
 
 \examples{
+require("QCA")
+
 x <- rep(1:3, 3)
 x
 #  [1] 1 2 3 1 2 3 1 2 3
 
 recode(x, "1:2 = A; else = B")
 #  [1] "A" "A" "B" "A" "A" "B" "A" "A" "B"
+
+recode(x, "1:2 = 0; else = copy")
+#  [1] 0 0 3 0 0 3 0 0 3
+
 
 set.seed(1234)
 x <- factor(sample(letters[1:10], 20, replace = TRUE),

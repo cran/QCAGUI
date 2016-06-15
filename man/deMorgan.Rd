@@ -1,7 +1,6 @@
 \name{deMorgan}
 
 \alias{deMorgan}
-\alias{is.deMorgan}
 
 \title{Negate Boolean expressions}
 
@@ -11,8 +10,6 @@ This function negates an boolean expression written in Disjunctive Normal Form.
 
 \usage{
 deMorgan(expression, prod.split = "", use.tilde = FALSE, complete = TRUE)
-
-is.deMorgan(x)
 }
 
 \arguments{
@@ -21,7 +18,6 @@ is.deMorgan(x)
   \item{prod.split}{The intersection (product) operator (if any).}
   \item{use.tilde}{Logical, use tilde for negation with bivalent variables.}
   \item{complete}{Logical, present the result broken down to individual pieces.}
-  \item{x}{An object of class \code{"deMorgan"}.}
 }
 
 \details{
@@ -72,6 +68,8 @@ and Quantitative Strategies}. Berkeley: University of California Press.
 \seealso{\code{\link{eqmcc}}}
 
 \examples{
+require("QCA")
+
 # example from Ragin (1987, p.99)
 deMorgan("AC + B~C")
 

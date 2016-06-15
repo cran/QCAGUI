@@ -30,6 +30,8 @@ Adrian Dusa
 
 
 \examples{
+require("QCA")
+
 # -----
 # Cebotari & Vink (2013, 2015)
 data(CVF)

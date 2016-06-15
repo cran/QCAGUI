@@ -1,7 +1,6 @@
 \name{eqmcc}
 
 \alias{eqmcc}
-\alias{is.qca}
 
 \title{QCA minimization using the enhanced Quine-McCluskey algorithm}
 
@@ -16,8 +15,6 @@ eqmcc(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
       incl.cut = 1,  explain = "1", include = "", row.dom = FALSE, all.sol = FALSE,
       omit = NULL, dir.exp = "", details = FALSE, show.cases = FALSE,
       inf.test = "", use.tilde = FALSE, use.letters = FALSE, ...)
-
-is.qca(x)
 }
 
 \arguments{
@@ -54,7 +51,6 @@ is.qca(x)
   \item{use.tilde}{Logical, use tilde for negation with bivalent variables.}
   \item{use.letters}{Logical, use letters instead of causal conditions' names.}
   \item{...}{Other arguments (mainly for backwards compatibility).}
-  \item{x}{An object of class \code{"qca"}.}
 }
 
 \details{
@@ -292,6 +288,8 @@ Qualitative Comparative Analysis (QCA) and Related Techniques}, SAGE.
 \seealso{\code{\link{truthTable}}, \code{\link{factorize}}}
 
 \examples{
+require("QCA")
+
 # -----
 # Lipset binary crisp data
 data(LC)

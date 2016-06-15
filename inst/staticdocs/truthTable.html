@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-<title>truthTable. QCAGUI 2.2</title>
+<title>truthTable. QCAGUI 2.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="
 Adrian Dusa
@@ -34,7 +34,7 @@ Adrian Dusa
     <div class="navbar">
   <div class="navbar-inner">
     <div class="container">
-      <a class="brand" href="#">QCAGUI 2.2</a>
+      <a class="brand" href="#">QCAGUI 2.3</a>
       <div class="nav">
         <ul class="nav">
           <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
@@ -55,7 +55,7 @@ Adrian Dusa
   <div class="span8">
     <h2>Usage</h2>
     <pre><div>truthTable(data, outcome&nbsp;=&nbsp;"", conditions&nbsp;=&nbsp;"", n.cut&nbsp;=&nbsp;1, incl.cut&nbsp;=&nbsp;1, complete&nbsp;=&nbsp;FALSE,  show.cases&nbsp;=&nbsp;FALSE, sort.by&nbsp;=&nbsp;"", use.letters&nbsp;=&nbsp;FALSE, inf.test&nbsp;=&nbsp;"", ...)</div>
-<div>is.tt(x)</div></pre>
+</pre>
     
     <h2>Arguments</h2>
     <dl>
@@ -154,15 +154,13 @@ length 2, in the form: <b><code>c(ic1, ic0)</code></b> where:</p>
   
       <p><table><tr><td>
 <b><code>ic1</code></b> </td>
-</tr><tr><td> is the inclusion cutoff for the presence of the output,</td>
-</tr><tr><td>
-                  </td>
-</tr><tr><td> a minimum sufficiency inclusion score above which the output
+<td> is the inclusion cutoff for the presence of the output,</td>
+</tr><tr><td></td>
+<td> a minimum sufficiency inclusion score above which the output
                        value is coded with <b><code>"1"</code></b>.</td>
-</tr><tr><td> </td>
 </tr><tr><td>
 <b><code>ic0</code></b> </td>
-</tr><tr><td> is the inclusion cutoff for the absence of the output,</td>
+<td> is the inclusion cutoff for the absence of the output,</td>
 </tr></table></p>
   
       <p>If not specifically declared, the argument <b><code>ic0</code></b> is automatically set equal to
@@ -172,12 +170,10 @@ length 2, in the form: <b><code>c(ic1, ic0)</code></b> where:</p>
   
       <p><table><tr><td>
 <b><code>"1"</code></b> </td>
-</tr><tr><td> if they have an inclusion score above <b><code>ic1</code></b></td>
-</tr><tr><td> </td>
+<td> if they have an inclusion score above <b><code>ic1</code></b></td>
 </tr><tr><td>
 <b><code>"C"</code></b> </td>
-</tr><tr><td> if they have an inclusion score below <b><code>ic1</code></b> and above <b><code>ic0</code></b> (contradiction)</td>
-</tr><tr><td> </td>
+<td> if they have an inclusion score below <b><code>ic1</code></b> and above <b><code>ic0</code></b> (contradiction)</td>
 </tr></table></p>
   
       <p>When argument <b><code>show.cases</code></b> is set to <b><code>TRUE</code></b>, the case names will be
@@ -189,17 +185,13 @@ can later be used to print them).</p>
 present in the truth table. Typically, sorting occurs by their outcome value,
 and/or by their inclusion score, and/or by their frequency, in any order.</p>
   
-      <p><b><code>sort.by</code></b> can also be a named logical vector, with the names indicating the
-columns to sort and the logical value indicating a decreasing order (<b><code>TRUE</code></b>)
-or not. The order specified in this vector is the order in which the configurations will
+      <p>Sorting decreasingly (the default) or increasingly can be specified adding the signs
+<b><code>-</code></b> or <b><code>+</code></b> next after the column name in argument
+<b><code>sort.by</code></b> (see examples). Note that <b><code>-</code></b> is redundant because
+it is the default anyways.</p>
+
+    <p>The order specified in this vector is the order in which the configurations will
 be sorted. When sorting based on the OUTput column, remainders will always be sorted last.</p>
-  
-      <p>Aternatively, the (deprecated) <b><code>decreasing</code></b> argument can be used either as
-a logical vector of the same length as <b><code>sort.by</code></b>, or a single logical value
-which will be used for all columns in <b><code>sort.by</code></b>. If the length of the 
-<b><code>decreasing</code></b> is shorter than <b><code>sort.by</code></b>'s, it will be augmented with
-<b><code>TRUE</code></b> values. If <b><code>sort.by</code></b> is already defined as a logical vector, 
-<b><code>decreasing</code></b> will be ignored.</p>
   
       <p>The argument <b><code>use.letters</code></b> controls using the original names of the causal
 conditions, or replace them by single letters in alphabetical order. If the
@@ -214,15 +206,14 @@ the output for a truth table row will be coded as:</p>
   
       <p><table><tr><td>
 <b><code>"1"</code></b> </td>
-</tr><tr><td> if the true inclusion score is significanly higher than <b><code>ic1</code></b>,</td>
-</tr><tr><td> </td>
+<td> if the true inclusion score is significanly higher than <b><code>ic1</code></b>,</td>
+
 </tr><tr><td>
 <b><code>"C"</code></b> </td>
-</tr><tr><td> contradiction, if the true inclusion score is not significantly higher than <b><code>ic1</code></b></td>
-</tr><tr><td>
-                  </td>
-</tr><tr><td> but significantly higher than <b><code>ic0</code></b>,</td>
-</tr><tr><td> </td>
+<td> contradiction, if the true inclusion score is not significantly higher than <b><code>ic1</code></b></td>
+</tr><tr><td></td>
+<td> but significantly higher than <b><code>ic0</code></b>,</td>
+
 </tr></table></p>
   
       <p>It should be noted that statistical tests perform well only when the number of cases is large,
@@ -249,29 +240,29 @@ truth table row having a correspondent intersection in the diagram.</p>
 An object of class &#147;tt&#148;, a list containing the following components:</p>
   
       <p><table><tr><td>
-<b>tt</b> </td>
-</tr><tr><td> The truth table itself.</td>
+<b>tt</b> </td><td></td>
+<td> The truth table itself.</td>
 </tr><tr><td>
-<b>indexes</b> </td>
-</tr><tr><td> The line numbers for the observed causal configurations.</td>
+<b>indexes</b> </td><td></td>
+<td> The line numbers for the observed causal configurations.</td>
 </tr><tr><td>
-<b>noflevels</b> </td>
-</tr><tr><td> A vector with the number of values for each causal condition.</td>
+<b>noflevels</b> </td><td></td>
+<td> A vector with the number of values for each causal condition.</td>
 </tr><tr><td>
-<b>initial.data</b> </td>
-</tr><tr><td> The initial data.</td>
+<b>initial.data</b> </td><td></td>
+<td> The initial data.</td>
 </tr><tr><td>
-<b>recoded.data</b> </td>
-</tr><tr><td> The crisp version of the <b><code>initial.data</code></b>, if fuzzy.</td>
+<b>recoded.data</b> </td><td></td>
+<td> The crisp version of the <b><code>initial.data</code></b>, if fuzzy.</td>
 </tr><tr><td>
-<b>cases</b> </td>
-</tr><tr><td> The cases for each observed causal configuration.</td>
+<b>cases</b> </td><td></td>
+<td> The cases for each observed causal configuration.</td>
 </tr><tr><td>
-<b>options</b> </td>
-</tr><tr><td> The command options used.</td>
+<b>options</b> </td><td></td>
+<td> The command options used.</td>
 </tr></table></p>
   
-      <p>For reasons related to compatibility with other packages, the <b><code>optios</code></b>
+      <p>For reasons related to compatibility with other packages, the <b><code>options</code></b>
 component with temporarily contain both forms of notation for the inclusion cuttofs: in
 addition to <b><code>incl.cut</code></b> it will also contain <b><code>incl.cut1</code></b> and
 <b><code>incl.cut0</code></b> (but will soon be deprecated).</p>
@@ -446,7 +437,6 @@ truthTable(LC, &quot;SURV&quot;, complete = TRUE)
 </div>
 <div class='input'>
 # sorting by multiple columns, decreasing by default
-# equivalent to the (now obsolete) argument decreasing = TRUE
 truthTable(LC, &quot;SURV&quot;, complete = TRUE, sort.by = &quot;incl, n&quot;)
 </div>
 <div class='output'>
@@ -491,8 +481,8 @@ truthTable(LC, &quot;SURV&quot;, complete = TRUE, sort.by = &quot;incl, n&quot;)
 </div>
 <div class='input'>
 # sort the truth table decreasing for inclusion, and increasing for n
-# &quot;n = FALSE&quot; is equivalent to using &quot;decreasing = FALSE&quot;
-truthTable(LC, &quot;SURV&quot;, complete = TRUE, sort.by = &quot;incl, n = FALSE&quot;)
+# note that &quot;-&quot; is redundant, sorting is decreasing by default
+truthTable(LC, &quot;SURV&quot;, complete = TRUE, sort.by = &quot;incl-, n+&quot;)
 </div>
 <div class='output'>
   OUT: outcome value
@@ -562,7 +552,7 @@ truthTable(LM, &quot;SURV&quot;, sort.by = &quot;incl&quot;)
 </div>
 <div class='input'>
 # using a frequency cutoff equal to 2 cases
-ttLM &lt;- truthTable(LM, &quot;SURV&quot;, n.cut = 2, sort.by = &quot;incl = TRUE&quot;)
+ttLM &lt;- truthTable(LM, &quot;SURV&quot;, n.cut = 2, sort.by = &quot;incl&quot;)
 ttLM
 </div>
 <div class='output'>
@@ -596,21 +586,21 @@ ttLM$excluded
 # -----
 # Cebotari &amp; Vink fuzzy data
 data(CVF)
-ttCVF &lt;- truthTable(CVF, &quot;PROTEST&quot;, incl.cut = 0.8, sort.by=&quot;incl&quot;)
+ttCVF &lt;- truthTable(CVF, &quot;PROTEST&quot;, incl.cut = 0.8, sort.by = &quot;incl&quot;)
 
 # view the Venn diagram for this truth table
 library(venn)
 venn(ttCVF)
 </div>
-<p><img src='truthTable-20.png' alt='' /></p>
+<p><img src='truthTable-20.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # each intersection transparent by its inclusion score
 venn(ttCVF, transparency = ttCVF$tt$incl)
 </div>
-<p><img src='truthTable-22.png' alt='' /></p>
+<p><img src='truthTable-22.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # the truth table negating the outcome
-truthTable(CVF, &quot;~PROTEST&quot;, incl.cut = 0.8, sort.by=&quot;incl&quot;)
+truthTable(CVF, &quot;~PROTEST&quot;, incl.cut = 0.8, sort.by = &quot;incl&quot;)
 </div>
 <div class='output'>
   OUT: outcome value
@@ -639,7 +629,7 @@ truthTable(CVF, &quot;~PROTEST&quot;, incl.cut = 0.8, sort.by=&quot;incl&quot;)
 </div>
 <div class='input'>
 # allow contradictions
-truthTable(CVF, &quot;PROTEST&quot;, incl.cut = c(0.8, 0.75), sort.by=&quot;incl&quot;)
+truthTable(CVF, &quot;PROTEST&quot;, incl.cut = c(0.8, 0.75), sort.by = &quot;incl&quot;)
 </div>
 <div class='output'>
   OUT: outcome value
@@ -698,7 +688,7 @@ truthTable(RS, &quot;REC&quot;)
   </div>
   <div class="span4">
     <!-- <ul>
-      <li>truthTable</li><li>is.tt</li>
+      <li>truthTable</li>
     </ul>
     <ul>
       <li>functions</li>

@@ -10,7 +10,7 @@ for a numerical causal condition, to be split into separate groups.
 }
 
 \usage{
-findTh(x, n = 1, hclustm = "ward.D2", distm = "canberra", ...)
+findTh(x, n = 1, hclustm = "complete", distm = "euclidean", ...)
 }
 
 \arguments{
@@ -42,17 +42,6 @@ More details about the clustering techniques used in this function are found
 using \code{?hclust}, and also more details about different distance measures
 can be found with \code{?dist}. This function uses their default values.
 
-Starting with version 2.2, this function changed the default values for arguments
-\bold{\code{hclustm}} and \bold{\code{distm}}. Previously, they were left at their
-defaults from the original functions \bold{\code{hclust()}} and \bold{\code{dist()}}
-but now they have changed to better identify groupings for QCA analysis, see examples.
-
-The method "ward.D2" implements Ward's original clustering criterion based on
-minimum variance method to find compact, spherical clusters (perfect for QCA
-analyses), while the distance "canberra" is also well suited to find compact
-clusters, with the additional note that it needs non-negative values (which
-is also the most common case in the QCA research).
-
 }
 
 \value{
@@ -67,9 +56,9 @@ Adrian Dusa
 \seealso{\code{\link{cutree}}, \code{\link{hclust}}, \code{\link{dist}}}
 
 \examples{
+require("QCA")
 
-# hypothetical list of country GDPs, clearly separated
-# into either two or three groups
+# hypothetical list of country GDPs
 gdp <- c(460, 500, 900, 2000, 2100, 2400, 15000, 16000, 20000)
 
 
@@ -80,12 +69,12 @@ findTh(gdp)
 
 # find two thresholds to separate into two groups
 findTh(gdp, n = 2)
+# 8700 18000
+
+
+# using different clustering methods
+findTh(gdp, n = 2, hclustm = "ward.D2", distm = "canberra")
 # 1450 8700
-
-
-# using the (old) defaults from the original functions
-findTh(gdp, n = 2, hclustm = "complete", distm = "euclidean")
-# 8700 18000 (?)
 
 }
 

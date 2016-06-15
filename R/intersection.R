@@ -17,11 +17,11 @@ function(e1 = "", e2 = "", snames = "") {
     
     collapse <- ifelse(any(grepl("\\*", c(e1, e2))), "*", "")
     
-    if (is.deMorgan(e1)) {
+    if (is(e1, "deMorgan")) {
         e1 <- paste(e1[[1]][[2]], collapse = " + ")
     }
     
-    if (is.deMorgan(e2)) {
+    if (is(e2, "deMorgan")) {
         e2 <- paste(e2[[1]][[2]], collapse = " + ")
     }
     

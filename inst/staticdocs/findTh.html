@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-<title>findTh. QCAGUI 2.2</title>
+<title>findTh. QCAGUI 2.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="
 Adrian Dusa
@@ -34,7 +34,7 @@ Adrian Dusa
     <div class="navbar">
   <div class="navbar-inner">
     <div class="container">
-      <a class="brand" href="#">QCAGUI 2.2</a>
+      <a class="brand" href="#">QCAGUI 2.3</a>
       <div class="nav">
         <ul class="nav">
           <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
@@ -54,7 +54,7 @@ Adrian Dusa
 <div class="row">
   <div class="span8">
     <h2>Usage</h2>
-    <pre><div>findTh(x, n&nbsp;=&nbsp;1, hclustm&nbsp;=&nbsp;"ward.D2", distm&nbsp;=&nbsp;"canberra", ...)</div></pre>
+    <pre><div>findTh(x, n&nbsp;=&nbsp;1, hclustm&nbsp;=&nbsp;"complete", distm&nbsp;=&nbsp;"euclidean", ...)</div></pre>
     
     <h2>Arguments</h2>
     <dl>
@@ -100,18 +100,7 @@ see <code>?cutree</code>.</p>
       <p>More details about the clustering techniques used in this function are found
 using <code>?hclust</code>, and also more details about different distance measures
 can be found with <code>?dist</code>. This function uses their default values.</p>
-  
-      <p>Starting with version 2.2, this function changed the default values for arguments
-<b><code>hclustm</code></b> and <b><code>distm</code></b>. Previously, they were left at their
-defaults from the original functions <b><code>hclust()</code></b> and <b><code>dist()</code></b>
-but now they have changed to better identify groupings for QCA analysis, see examples.</p>
-  
-      <p>The method "ward.D2" implements Ward's original clustering criterion based on
-minimum variance method to find compact, spherical clusters (perfect for QCA
-analyses), while the distance "canberra" is also well suited to find compact
-clusters, with the additional note that it needs non-negative values (which
-is also the most common case in the QCA research).</p>
-  
+
       <p></p>
   
     </div>
@@ -143,19 +132,16 @@ findTh(gdp)
 # find two thresholds to separate into two groups
 findTh(gdp, n = 2)
 </div>
-<div class='output'>[1] 1450 8700
-</div>
-<div class='input'># 1450 8700
-
-
-# using the (old) defaults from the original functions
-findTh(gdp, n = 2, hclustm = &quot;complete&quot;, distm = &quot;euclidean&quot;)
-</div>
 <div class='output'>[1]  8700 18000
 </div>
-<div class='input'># 8700 18000 (?)
+<div class='input'>
 
-</div></pre>
+# using different clustering methods
+findTh(gdp, n = 2, hclustm = &quot;ward.D2&quot;, distm = &quot;canberra&quot;)
+</div>
+<div class='output'>[1] 1450 8700
+</div>
+</pre>
   </div>
   <div class="span4">
     <!-- <ul>

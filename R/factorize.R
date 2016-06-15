@@ -5,11 +5,6 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
         requireNamespace("QCA", quietly = TRUE)
     }
     
-    # if a string, expression should be DNF
-    # no "()" brakets should be allowed
-    
-    # TO TEST: relation between mv and tilde
-    
     if (!identical(snames, "")) {
         snames <- QCA::splitstr(snames)
     }
@@ -52,18 +47,12 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
                 
             }
             
-            
-            # print(list(mat, cf, rowsf))
-            # print("####################")
-            
-            
             trowsf <- table(unlist(rowsf))
             if (any(trowsf == length(rowsf))) {
                 c2 <- names(trowsf)[trowsf == length(rowsf)]
                 cf <- c(cf, c2[c2 != ""])
                 rowsf <- lapply(rowsf, setdiff, c2)
             }
-            
             
             rowsf1 <- rowsf[rowsf != ""]
             rowsf[rowsf != ""] <- rowsf1[order(match(toupper(gsub("[^A-Za-z]", "", rowsf1)), snames))]
@@ -100,7 +89,6 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
         
         return(pasted)
     }
-    
     
     getFacts <- function(mat) {
         
@@ -153,7 +141,6 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
         
         return(result)
     }
-    
     
     getSol <- function(sol, collapse, pos) {
         pospos <- FALSE
@@ -219,7 +206,7 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
     
     result <- list()
     
-    if (is.qca(expression)) {
+    if (is(expression, "qca")) {
         
         collapse <- expression$options$collapse
         
@@ -234,7 +221,6 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
         
         if ("i.sol" %in% names(expression)) {
             
-            
             result$i.sol <- lapply(expression$i.sol, function(x) {
                 lapply(x$solution, paste, collapse=" + ")
             })
@@ -248,7 +234,7 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
             
         }
     }
-    else if (is.deMorgan(expression)) {
+    else if (is(expression, "deMorgan")) {
         
         collapse <- ifelse(any(grepl("\\*", unname(unlist(expression)))), "*", "")
         
@@ -315,11 +301,9 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
     
     mv <- any(grepl("\\{", unlist(result)))
     
-    
     if (missing(tilde)) {
         tilde <- any(grepl("~", unlist(result)))
     }
-    
     
     result[[1]] <- lapply(result[[1]], function(x) {
         
@@ -349,7 +333,6 @@ function(expression, snames = "", pos = FALSE, tilde, ...) {
     if (is.null(names(result))) {
         result <- result[[1]][[1]]
     }
-    
     
     return(structure(result, class="fctr"))
     

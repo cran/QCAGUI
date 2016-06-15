@@ -84,7 +84,6 @@ function(data, outcome = "", conditions = "", type = "corruption",
         return(nofsetsxl)
     }
     
-    
     if (dep) {
         nofsets <- 0
         totalsets <- choose(nrow(data), n.pert)

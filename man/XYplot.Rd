@@ -11,14 +11,14 @@ two separate vectors of numeric values.
 
 \usage{
 XYplot(x, y, data, relation = "nec", size = 15, mguides = TRUE,
-       jitter = FALSE, ...)
+       jitter = FALSE, clabels = NULL, ...)
 }
 
 \arguments{
-  \item{x}{A string with the name of the column from the \bold{\code{data}} for the X axis,
+  \item{x}{Character, the name of the column from the \bold{\code{data}} for the X axis,
         or the coordinates of points in the plot (either a matrix/dataframe with at least
         two columns, or a vector of values for the X axis).}
-  \item{y}{A string with the name of the column from the \bold{\code{data}} for the Y axis,
+  \item{y}{Character, the name of the column from the \bold{\code{data}} for the Y axis,
         or the Y coordinates of points in the plot, optional if \bold{\code{x}}
         is a matrix/dataframe.}
   \item{data}{A calibrated dataset, only if \bold{\code{x}} and \bold{\code{y}} are names.}
@@ -27,6 +27,8 @@ XYplot(x, y, data, relation = "nec", size = 15, mguides = TRUE,
   \item{size}{Plot size, in centimeters.}
   \item{mguides}{Logical, print the middle guides.}
   \item{jitter}{Logical, jitter the points.}
+  \item{clabels}{A vector of case labels with the same length as
+        \bold{\code{x}} and \bold{\code{y}}.}
   \item{...}{Other graphical parameters from \code{par}}
 }
 
@@ -90,6 +92,8 @@ A Guide to Qualitative Comparative Analysis}. Cambridge: Cambridge University Pr
 }
 
 \examples{
+require("QCA")
+
 # Cebotari & Vink (2013)
 data(CVF)
 
@@ -106,43 +110,44 @@ XYplot("NATPRIDE", "PROTEST", data = CVF)
 XYplot("NATPRIDE, PROTEST", data = CVF)
 
 # since they are valid R statements, it works even without quotes
+# (this only works in normal R console, not in the GUI version)
 XYplot(NATPRIDE, PROTEST, data = CVF)
 
 # negating the X axis, using numeric vectors
 XYplot(1 - CVF$NATPRIDE, CVF$PROTEST)
 
 # same thing using quotes
-XYplot("1 - NATPRIDE", "PROTEST", data = CVF)
+XYplot("1 - NATPRIDE, PROTEST", data = CVF)
 
-# same thing without quotes, using tilde for negation
-XYplot(~NATPRIDE, PROTEST, data = CVF)
+# using tilde for negation
+XYplot("~NATPRIDE, PROTEST", data = CVF)
 
 # different color for the points
-XYplot(~NATPRIDE, PROTEST, data = CVF, col = "blue")
+XYplot("~NATPRIDE, PROTEST", data = CVF, col = "blue")
 
 # using a different character expansion for the axes
-XYplot(~NATPRIDE, PROTEST, data = CVF, cex.axis = 0.9)
+XYplot("~NATPRIDE, PROTEST", data = CVF, cex.axis = 0.9)
 
 # custom axis labels
-XYplot(~NATPRIDE, PROTEST, data = CVF, xlab = "Negation of NATPRIDE",
+XYplot("~NATPRIDE, PROTEST", data = CVF, xlab = "Negation of NATPRIDE",
        ylab = "Outcome: PROTEST")
 
 # sufficiency relation
-XYplot(~NATPRIDE, PROTEST, data = CVF, relation = "suf")
+XYplot("~NATPRIDE, PROTEST", data = CVF, relation = "suf")
 
 # jitter the points
-XYplot(~NATPRIDE, PROTEST, data = CVF, jitter = TRUE)
+XYplot("~NATPRIDE, PROTEST", data = CVF, jitter = TRUE)
 
 # jitter with more amount
-XYplot(~NATPRIDE, PROTEST, data = CVF, jitter = TRUE, amount = 0.02)
+XYplot("~NATPRIDE, PROTEST", data = CVF, jitter = TRUE, amount = 0.02)
 
 # adding labels to points
-pos <- XYplot(~NATPRIDE, PROTEST, data = CVF, jitter = TRUE)
-text(pos$x + 0.02, pos$y + 0.02, labels = rownames(CVF), cex = 0.8)
+XYplot("~NATPRIDE, PROTEST", data = CVF, jitter = TRUE, cex = 0.8,
+       clabels = rownames(CVF))
 
-# or just the row numbers, since the labels are very long
-pos <- XYplot(~NATPRIDE, PROTEST, data = CVF, jitter = TRUE)
-text(pos$x + 0.02, pos$y + 0.02, cex = 0.8)
+# or just the row numbers, since the row names are too long
+XYplot("~NATPRIDE, PROTEST", data = CVF, jitter = TRUE, cex = 0.8,
+       clabels = seq(nrow(CVF)))
 
 }
 

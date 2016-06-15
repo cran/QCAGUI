@@ -3,7 +3,6 @@
 \alias{superSubset}
 \alias{findSubsets}
 \alias{findSupersets}
-\alias{is.sS}
 
 \title{Functions to find subsets or supersets}
 
@@ -20,8 +19,6 @@ superSubset(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
 findSubsets(noflevels, row.no, maximum)
 
 findSupersets(noflevels, input.combs)
-
-is.sS(x)
 }
 
 \arguments{
@@ -44,7 +41,6 @@ is.sS(x)
   \item{input.combs}{A matrix of configurations or a vector of their row numbers
        in the implicant matrix.}
   \item{...}{Other arguments for backward compatibility.}
-  \item{x}{An object of class \code{"sS"}.}
 }
 
 \details{
@@ -162,6 +158,8 @@ Cambridge: Cambridge University Press.
 \seealso{\code{\link{createMatrix}}, \code{\link{getRow}}}
 
 \examples{
+require("QCA")
+
 # Lipset binary crisp sets
 data(LC)
 ssLC <- superSubset(LC, "SURV")
@@ -170,7 +168,7 @@ require(venn)
 x = list("SURV" = which(LC$SURV == 1),
          "STB" = which(ssLC$coms[, 1] == 1),
          "LIT" = which(ssLC$coms[, 2] == 1))
-venn(x)
+venn(x, cexil = 0.7)
 
 
 # Lipset multi-value sets

@@ -1,35 +1,45 @@
-\name{translate}
+\name{Interpret SOP expressions: translate, compute, findRows}
 
 \alias{translate}
 \alias{compute}
+\alias{findRows}
 
-\title{Functions to interpret a QCA expression}
+\title{Functions to interpret a SOP expression}
 
 \description{
-These two functions interpret an expression written in a SOP (sum of products) form, for both
-crisp and multivalue QCA. The first translates the expression into a standard (canonical) 
-SOP form using a matrix of implicants, while the second uses the first to compute the
-scores based on a particular dataset.
+These functions interpret an expression written in a SOP (sum of products) form, for both
+crisp and multivalue QCA. The function translate() translates the expression into a standard
+(canonical) SOP form using a matrix of implicants, while compute() uses the first to compute
+the scores based on a particular dataset.
+
+The function findRows() takes a QCA expression written in SOP form, and applies it
+on a truth table to find all rows that match the pattern in the expression.
 
 For crisp sets notation, upper case letters are considered the presence of that causal
 condition, and lower case letters are considered the absence of the respective causal
 condition. Tilde is recognized as a negation, even in combination with upper/lower letters.
 
-The functions are suggested by Jirka Lewandowski (2015) but the actual code in these functions
-has been completely re-written to integrate it with the package QCAGUI, and expanded with
-more extensive functionality (see details and examples below).
+Functions similar to translate() and compute() have initially been written by Jirka
+Lewandowski (2015) but the actual code in these functions has been completely re-written
+to integrate it with the package QCAGUI, and expanded with more extensive functionality
+(see details and examples below).
 }
 
 \usage{
 translate(expression = "", snames = "")
 
-compute(expression = "", data)
+compute(expression = "", data, separate = FALSE)
+
+findRows(expression = "", ttobj, remainders = FALSE)
 }
 
 \arguments{
-  \item{expression}{String: a QCA expression written in disjunctive normal form.}
+  \item{expression}{String: a QCA expression written in sum of products form.}
   \item{snames}{A string containing the sets' names, separated by commas.}
   \item{data}{A dataset with binary cs, mv and fs data.}
+  \item{separate}{Logical, perform computations on individual, separate paths.}
+  \item{ttobj}{A truth table, an object of class "tt".}
+  \item{remainders}{Logical, find remainders only.}
 }
 
 \details{
@@ -98,6 +108,7 @@ Jirka Lewandowski (2015) QCAtools: Helper functions for QCA in R. R package vers
 }
 
 \examples{
+require("QCA")
 
 translate("A + B*C")
 
@@ -125,13 +136,9 @@ translate("C{1} + T{1,2} + T{1}V{0} + C{0}")
 # or even negated
 translate("C{1} + ~T{1,2} + T{1}V{0} + C{0}")
 
-
-
 # if the expression does not contain the product sign *
 # snames are required to complete the translation 
 translate("AB + cD", "A, B, C, D")
-
-
 
 # snames are not required
 translate("PER*FECT + str*ing")
@@ -143,21 +150,34 @@ translate("PERFECT + string", "PER, FECT, STR, ING")
 # SU overlaps with SUB in SUBER, but the result is still correct
 translate("SUBER + subset", "SU, BER, SUB, SET")
 
-
-# error because combinations of condition names clash (not run)
-# translate("SUPER + subset", "SUP, ER, SU, PER, SUB, SET")
-
-
-
-# example of compute
-data(CVF)
-compute("natpride + GEOCON", data = CVF)
-
+\dontrun{
+# error because combinations of condition names clash
+translate("SUPER + subset", "SUP, ER, SU, PER, SUB, SET")
+}
 
 # to print _all_ codes from the standard output matrix
 (obj <- translate("A + b*C"))
 print(obj, original = TRUE) # also prints the -1 code
 
+
+
+# for compute()
+data(CVF)
+compute("natpride + GEOCON", data = CVF)
+
+# calculating individual paths
+compute("natpride + GEOCON", data = CVF, separate = TRUE)
+
+
+
+# for findRows()
+data(LC)
+ttLC <- truthTable(LC, "SURV", show.cases = TRUE)
+
+findRows("DEV*ind*STB", ttLC)
+
+
+findRows("DEV*ind*STB", ttLC, remainders = TRUE)
 }
 
 \keyword{functions}

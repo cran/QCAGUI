@@ -49,7 +49,7 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
         }
         
         return(as.numeric(unclass(cut(x, breaks=c(-Inf, thresholds, Inf), right=!include))) - 1)
-        # the built-in findInterval() was interesting, but doesn't cope well with the include argument
+        
     }
     else if (type == "fuzzy") {
         check.equal <- function(x, y) {
@@ -61,7 +61,6 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
         lth <- length(thresholds)
         nth <- names(thresholds)
         
-        
         if (lth != 3 & lth != 6) {
             cat("\n")
             stop(simpleError("For fuzzy data, there should be either 3 or 6 thresholds\".\n\n"))
@@ -72,7 +71,6 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
             stop(simpleError("The inclusion degree of membership has to be bigger than 0.5 and less than 1.\n\n"))
         }
         
-        
         if (lth == 3) {
             if (!is.null(names(thresholds))) {
                 if (length(unique(nth)) == sum(nth %in% c("e", "c", "i"))) {
@@ -80,7 +78,6 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                 }
             }
             
-            # get rid of the names, if any
             thresholds <- as.vector(thresholds)
             
             thEX <- thresholds[1]
@@ -94,15 +91,11 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                 }
                 
                 y <- (x < thCR) + 1
-                # y is the index of the position in the vector {-1, 1}
                 
-                result <- 1/(1 + exp(-((x - thCR) * (c(1, -1)[y]*log(idm/(1 - idm))/(c(thIN, thEX)[y] - thCR)))))
+                fs <- 1/(1 + exp(-((x - thCR) * (c(1, -1)[y]*log(idm/(1 - idm))/(c(thIN, thEX)[y] - thCR)))))
                 
                 if (thresholds[1] > thresholds[3]) {
-                    return(1 - result)
-                }
-                else {
-                    return(result)
+                    fs <- 1 - fs
                 }
             }
             else {
@@ -167,16 +160,15 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                     }
                 }
             }
-            return(fs)
+            
         }
-        else { # 6 thresholds
+        else { 
             if (!is.null(nth)) {
                 if (length(unique(nth)) == sum(nth %in% c("e1", "c1", "i1", "i2", "c2", "e2"))) {
                     thresholds <- thresholds[match(c("e1", "c1", "i1", "i2", "c2", "e2"), nth)]
                 }
             }
             
-            # get rid of the names, if any
             thresholds <- as.vector(thresholds)
             
             thEX1 <- thresholds[1]
@@ -195,7 +187,6 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                 cat("\n")
                 stop(simpleError("Second crossover threshold not between second exclusion and inclusion thresholds.\n\n"))
             }
-            
             
             somequal <- FALSE
             if (any(table(c(thEX1, thCR1, thIN1)) > 1) | any(table(c(thIN2, thCR2, thEX2)) > 1) | thCR1 == thCR2) {
@@ -272,7 +263,10 @@ function (x, type="crisp", thresholds = NA, include = TRUE, logistic = TRUE,
                     }
                 }
             }
-            return(fs)
-        } 
+        }
+        
+        fs[fs < 0.0000000001] <- 0
+        fs[fs > 0.9999999999] <- 1
+        return(fs)
     }
 }

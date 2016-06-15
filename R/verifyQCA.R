@@ -1,21 +1,16 @@
 `verify.data` <-
 function(data, outcome = "", conditions = "") {
     
-     # check if the data is a data.frame
     if (!is.data.frame(data)) {
         cat("\n")
         stop(simpleError("The input data should be a data frame.\n\n"))
     }
     
-    
-     # check if the data has column names
     if (is.null(colnames(data))) {
         cat("\n")
         stop(simpleError("Please specify the column names for your data.\n\n"))
     }
     
-     # check the outcome specified by the user
-     
     if (identical(outcome, "")) {
         cat("\n")
         stop(simpleError("The outcome set is not specified.\n\n"))
@@ -25,7 +20,6 @@ function(data, outcome = "", conditions = "") {
         cat("\n")
         stop(simpleError("The name of the outcome is not correct.\n\n"))
     }
-    
     
     if (!identical(conditions, "")) {
         if (outcome %in% conditions) {
@@ -42,9 +36,13 @@ function(data, outcome = "", conditions = "") {
             cat("\n")
             stop(simpleError("Cannot find a solution with only one causal condition.\n\n"))
         }
+    
+        if (any(duplicated(conditions))) {
+            cat("\n")
+            stop(simpleError("Duplicated conditions.\n\n"))
+        }
     }
     
-    # checking for complete data (without missings)
     if (any(is.na(data))) {
         checked <- sapply(data, function(x) any(is.na(x)))
         cat("\n")
@@ -54,14 +52,8 @@ function(data, outcome = "", conditions = "") {
     
 }
 
-
-
 `verify.qca` <-
 function(data) {
-    # requireNamespace("QCA") is not needed
-    # because it was already loaded either by eqmcc() (same for truthTable())
-    
-    # determine if it's a dataframe
     
     if (is.data.frame(data)) {
         if (is.null(colnames(data))) {
@@ -69,9 +61,8 @@ function(data) {
             stop(simpleError("The dataset doesn't have any columns names.\n\n"))
         }
         
-        # determine if it's a valid QCA dataframe
         checkNumUncal <- lapply(data, function(x) {
-            # making sure it's not a temporal QCA column
+            
             x <- setdiff(x, c("-", "dc", "?"))
             pn <- QCA::possibleNumeric(x)
             
@@ -120,11 +111,10 @@ function(data) {
     }
 }
 
-
 `verify.tt` <-
 function(data, outcome = "", conditions = "", complete = FALSE, show.cases = FALSE, icp = 1, ica = 1, inf.test) {
     
-    if (class(data) != "data.frame") {
+    if (!inherits(data, "data.frame")) {
         cat("\n")
         errmessage <- paste("You have to provide a data frame, the current \"data\" argument contains an object\n",
                    "       of class \"", class(data), "\"",
@@ -135,7 +125,7 @@ function(data, outcome = "", conditions = "", complete = FALSE, show.cases = FAL
         stop(simpleError(paste(strwrap(errmessage, exdent = 7), collapse = "\n", sep="")))
     }
     
-    if (is.tt(data)) {
+    if (is(data, "tt")) {
         data <- data$initial.data
     }
     
@@ -169,13 +159,17 @@ function(data, outcome = "", conditions = "", complete = FALSE, show.cases = FAL
             cat("\n")
             stop(simpleError("Cannot find a solution with only one causal condition.\n\n"))
         }
+    
+        if (any(duplicated(conditions))) {
+            cat("\n")
+            stop(simpleError("Duplicated conditions.\n\n"))
+        }
     }
     else {
         conditions <- colnames(data)
         conditions <- conditions[conditions != outcome]
     }
     
-    # checking for complete data (without missings)
     if (any(is.na(data))) {
         checked <- sapply(data, function(x) any(is.na(x)))
         cat("\n")
@@ -183,8 +177,6 @@ function(data, outcome = "", conditions = "", complete = FALSE, show.cases = FAL
              paste(names(checked)[checked], collapse = ", "), "\n\n", sep="")))
     }
     
-    
-    # checking for the two including cut-offs
     if (any(c(icp, ica) < 0) | any(c(icp, ica) > 1)) {
         cat("\n")
         stop(simpleError("The including cut-off(s) should be bound to the interval [0, 1].\n\n"))
@@ -207,20 +199,17 @@ function(data, outcome = "", conditions = "", complete = FALSE, show.cases = FAL
     verify.inf.test(inf.test, data)
 }
 
-
 `verify.eqmcc` <-
 function(data, outcome = "", conditions = "", explain = "",
          include = "", use.letters = FALSE) {
 
     verify.data(data, outcome = outcome, conditions = conditions)
     
-     # check if the user specifies something to explain
     if (all(explain == "")) {
         cat("\n")
         stop(simpleError("You have not specified what to explain.\n\n"))
     }
     
-     # check if the user specifies something to explain
     if (!all(explain %in% c(0, 1, "C"))) {
         cat("\n")
         stop(simpleError("You should explain either 0, 1, or C.\n\n"))
@@ -237,7 +226,6 @@ function(data, outcome = "", conditions = "", explain = "",
         }
     }
     
-     # check if explain has both 1 and 0
     if (length(chexplain) == 2) {
         cat("\n")
         stop(simpleError("Combination to be explained not allowed.\n\n"))
@@ -249,8 +237,6 @@ function(data, outcome = "", conditions = "", explain = "",
         stop(simpleError(paste(strwrap(errmessage, exdent = 7), collapse = "\n", sep="")))
     }
     
-    
-     # subset the data with the conditions specified
     if (!identical(conditions, "")) {
         
         if (length(conditions) == 1 & is.character(conditions)) {
@@ -273,14 +259,11 @@ function(data, outcome = "", conditions = "", explain = "",
         }
     }
     
-    
-     # if more than 26 conditions (plus one outcome), we cannot use letters
     if (use.letters & ncol(data) > 27) {
         cat("\n")
         stop(simpleError("Cannot use letters. There are more than 26 conditions.\n\n"))
     }
     
-    # checking for complete data (without missings)
     if (any(is.na(data))) {
         checked <- sapply(data, function(x) any(is.na(x)))
         cat("\n")
@@ -289,24 +272,18 @@ function(data, outcome = "", conditions = "", explain = "",
     }
 }
 
-
-
 `verify.dir.exp` <-
 function(data, outcome, conditions, dir.exp = "") {
     
-    # checking the directional expectations
     if (identical(dir.exp, "")) {
         return(dir.exp)
     }
     else {
         
-        # delc is dir.exp.list.complete
         delc <- vector("list", length = length(conditions))
         names(delc) <- conditions
         
         for (i in seq(length(delc))) {
-            # sometimes a condition cand have 0, 1 and "-" as values
-            # see RS$EBA, which is also treated as a factor by default, in R
             
             values <- sort(unique(data[, conditions[i]]))
             
@@ -316,7 +293,7 @@ function(data, outcome, conditions, dir.exp = "") {
             
             if (QCA::possibleNumeric(values)) {
                 values <- QCA::asNumeric(values)
-                if (any(values %% 1 > 0)) { # fuzzy data
+                if (any(values %% 1 > 0)) { 
                     max.value <- 1
                 }
                 else {
@@ -327,13 +304,11 @@ function(data, outcome, conditions, dir.exp = "") {
                 max.value <- values[length(values)]
             }
             
-            
             if (max.value != "-") {
                 delc[[i]] <- rep(0, length(seq(0, as.numeric(max.value))))
                 names(delc[[i]]) <- seq(0, as.numeric(max.value))
             }
         }
-        
         
         if (length(dir.exp) == 1 & is.character(dir.exp)) {
             dir.exp <- QCA::splitstr(dir.exp)
@@ -344,7 +319,6 @@ function(data, outcome, conditions, dir.exp = "") {
             stop(simpleError("Number of expectations does not match number of conditions.\n\n"))
         }
         
-        # del is dir.exp.list
         del <- strsplit(as.character(dir.exp), split=";")
         
         if (!is.null(names(dir.exp))) {
@@ -387,14 +361,10 @@ function(data, outcome, conditions, dir.exp = "") {
     }
 }
 
-
-
-
-
 `verify.mqca` <-
 function(data, outcome = "", conditions = c("")) {
     
-    mvoutcome <- grepl("[{]", outcome) # there is a "{" sign in the outcome names
+    mvoutcome <- grepl("[{]", outcome) 
     outcome.value <- rep(-1, length(outcome))
     
     if (any(mvoutcome)) {
@@ -446,7 +416,6 @@ function(data, outcome = "", conditions = c("")) {
         
         fuzzy.outcome <- apply(data[, outcome, drop=FALSE], 2, function(x) any(x %% 1 > 0))
         
-        # Test if outcomes are in fact multi-valent, even if the user did not specify that 
         if (any(!fuzzy.outcome)) {
             outcome.copy <- outcome[!fuzzy.outcome]
             
@@ -477,9 +446,6 @@ function(data, outcome = "", conditions = c("")) {
     
 }
 
-
-
-
 `verify.inf.test` <- function(inf.test, data) {
     if (all(inf.test != "")) {
         if (inf.test[1] != "binom") {
@@ -505,5 +471,4 @@ function(data, outcome = "", conditions = c("")) {
         }
     }
 }
-
 

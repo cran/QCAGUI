@@ -1,9 +1,6 @@
 `recode` <-
 function(x, rules, ...) {
     
-    # TO DO: detect usage of both ; and , as rules separator, and generate error
-    
-    
     if (!isNamespaceLoaded("QCA")) {
         requireNamespace("QCA", quietly = TRUE)
     }
@@ -56,7 +53,6 @@ function(x, rules, ...) {
         return(seq(seqfrom, seqto))
     }
     
-    
     rules <- gsub("\n|\t", "", gsub("'", "", gsub(")", "", gsub("c(", "", rules, fixed = TRUE))))
     if (length(rules) == 1) {
          rules <- unlist(strsplit(rules, split=";"))
@@ -83,7 +79,6 @@ function(x, rules, ...) {
             stop(simpleError("Too many \"else\" statements.\n\n"))
         }
         
-        # place the "else" statement as the last one, very important
         whichelse <- which(oldval == "else")
         oldval <- c(oldval[-whichelse], oldval[whichelse])
         newval <- c(newval[-whichelse], newval[whichelse])
@@ -95,12 +90,10 @@ function(x, rules, ...) {
     
     newval <- QCA::trimst(rep(newval, unlist(lapply(oldval, length))))
     
-    
     if (any(unlist(lapply(oldval, function(y) lapply(y, length))) > 2)) {
         cat("\n")
         stop(simpleError("Too many : sequence operators.\n\n"))
     }
-    
     
     from <- unlist(lapply(oldval, function(y) lapply(y, "[", 1)))
     to <- unlist(lapply(oldval, function(y) lapply(y, "[", 2)))
@@ -111,21 +104,19 @@ function(x, rules, ...) {
     xisnumeric <- QCA::possibleNumeric(uniques)
     
     if (xisnumeric) {
-        x <- as.numeric(x) # to be safe
+        x <- as.numeric(x) 
     }
     
-    
     for (i in seq(length(from))) {
-        if (!is.na(to[i])) { # a range
+        if (!is.na(to[i])) { 
             
             vals <- uniques[getFromRange(from[i], to[i])]
             temp[x %in% vals] <- newval[i]
             recoded <- c(recoded, vals)
             
         }
-        else { # a single value
+        else { 
             
-            # "else" should (must?) be the last rule
             if (from[i] == "else") {
                 temp[!(x %in% recoded)] <- newval[i]
             }
@@ -133,18 +124,13 @@ function(x, rules, ...) {
                 temp[is.na(x)] <- newval[i]
             }
             else {
-                # if (!any(x == from[i])) {
-                #     cat("\n")
-                #     val <- ifelse(is.na(suppressWarnings(as.numeric(from[i]))), paste("\"", from[i], "\"", sep = ""), from[i])
-                #     stop(simpleError(paste("The value", val, "was not found.\n\n", sep="")))
-                # }
+                
                 temp[x == from[i]] <- newval[i]
             }
             
             recoded <- c(recoded, from[i])
         }
     }
-    
     
 	if (as.factor.result) {
 	    if (identical(factor.levels, c())) {

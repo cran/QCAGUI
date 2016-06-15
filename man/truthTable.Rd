@@ -1,6 +1,5 @@
 \name{truthTable}
 \alias{truthTable}
-\alias{is.tt}
 
 \title{Create a truth table}
 
@@ -15,8 +14,6 @@ vector space corners (the truth table rows, combinations of causal conditions).
 truthTable(data, outcome = "", conditions = "", n.cut = 1,
     incl.cut = 1, complete = FALSE,  show.cases = FALSE,
     sort.by = "", use.letters = FALSE, inf.test = "", ...)
-
-is.tt(x)
 }
 
 \arguments{
@@ -36,7 +33,6 @@ is.tt(x)
        (currently only \code{"binom"}) and the critical significance level. It can be either
        a vector of length 2, or a single string containing both, separated by a comma.}
   \item{...}{Other arguments (mainly for backward compatibility).}
-  \item{x}{An object of class \dQuote{tt}.}
 }
 
 \details{
@@ -119,17 +115,13 @@ The \bold{\code{sort.by}} argument orders all configurations by any of the colum
 present in the truth table. Typically, sorting occurs by their outcome value,
 and/or by their inclusion score, and/or by their frequency, in any order.
 
-\bold{\code{sort.by}} can also be a named logical vector, with the names indicating the
-columns to sort and the logical value indicating a decreasing order (\bold{\code{TRUE}})
-or not. The order specified in this vector is the order in which the configurations will
-be sorted. When sorting based on the OUTput column, remainders will always be sorted last.
+Sorting decreasingly (the default) or increasingly can be specified adding the signs
+\bold{\code{-}} or \bold{\code{+}}, next after the column name in argument
+\bold{\code{sort.by}} (see examples). Note that \bold{\code{-}} is redundant, because
+it is the default anyways.
 
-Aternatively, the (deprecated) \bold{\code{decreasing}} argument can be used either as
-a logical vector of the same length as \bold{\code{sort.by}}, or a single logical value
-which will be used for all columns in \bold{\code{sort.by}}. If the length of the 
-\bold{\code{decreasing}} is shorter than \bold{\code{sort.by}}'s, it will be augmented with
-\bold{\code{TRUE}} values. If \bold{\code{sort.by}} is already defined as a logical vector, 
-\bold{\code{decreasing}} will be ignored.
+The order specified in this vector is the order in which the configurations will
+be sorted. When sorting based on the OUTput column, remainders will always be sorted last.
 
 The argument \bold{\code{use.letters}} controls using the original names of the causal
 conditions, or replace them by single letters in alphabetical order. If the
@@ -179,7 +171,7 @@ An object of class \dQuote{tt}, a list containing the following components:
 \bold{rowsorder} \tab The order of the rows after sorting, if using \bold{\code{sort.by}}.
 }
 
-For reasons related to compatibility with other packages, the \bold{\code{optios}}
+For reasons related to compatibility with other packages, the \bold{\code{options}}
 component with temporarily contain both forms of notation for the inclusion cuttofs: in
 addition to \bold{\code{incl.cut}} it will also contain \bold{\code{incl.cut1}} and
 \bold{\code{incl.cut0}} (but will soon be deprecated).
@@ -219,6 +211,8 @@ A User's Guide}. New York: Springer.
 \seealso{\code{\link{eqmcc}}}
 
 \examples{
+require("QCA")
+
 # -----
 # Lipset binary crisp data
 data(LC)
@@ -237,12 +231,11 @@ print(ttLC, show.cases = TRUE, complete = TRUE)
 truthTable(LC, "SURV", complete = TRUE)
 
 # sorting by multiple columns, decreasing by default
-# equivalent to the (now obsolete) argument decreasing = TRUE
 truthTable(LC, "SURV", complete = TRUE, sort.by = "incl, n")
 
 # sort the truth table decreasing for inclusion, and increasing for n
-# "n = FALSE" is equivalent to using "decreasing = FALSE"
-truthTable(LC, "SURV", complete = TRUE, sort.by = "incl, n = FALSE")
+# note that "-" is redundant, sorting is decreasing by default 
+truthTable(LC, "SURV", complete = TRUE, sort.by = "incl-, n+")
 
 
 
@@ -252,7 +245,7 @@ data(LM)
 truthTable(LM, "SURV", sort.by = "incl")
 
 # using a frequency cutoff equal to 2 cases
-ttLM <- truthTable(LM, "SURV", n.cut = 2, sort.by = "incl = TRUE")
+ttLM <- truthTable(LM, "SURV", n.cut = 2, sort.by = "incl")
 ttLM
 
 # the observed combinations coded as remainders
@@ -263,7 +256,7 @@ ttLM$excluded
 # -----
 # Cebotari & Vink fuzzy data
 data(CVF)
-ttCVF <- truthTable(CVF, "PROTEST", incl.cut = 0.8, sort.by="incl")
+ttCVF <- truthTable(CVF, "PROTEST", incl.cut = 0.8, sort.by = "incl")
 
 # view the Venn diagram for this truth table
 library(venn)
@@ -273,10 +266,10 @@ venn(ttCVF)
 venn(ttCVF, transparency = ttCVF$tt$incl)
 
 # the truth table negating the outcome
-truthTable(CVF, "~PROTEST", incl.cut = 0.8, sort.by="incl")
+truthTable(CVF, "~PROTEST", incl.cut = 0.8, sort.by = "incl")
 
 # allow contradictions
-truthTable(CVF, "PROTEST", incl.cut = c(0.8, 0.75), sort.by="incl")
+truthTable(CVF, "PROTEST", incl.cut = c(0.8, 0.75), sort.by = "incl")
 
 
 

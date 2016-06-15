@@ -1,5 +1,5 @@
 `findTh` <-
-function(x, n = 1, hclustm = "ward.D2", distm = "canberra", ...) {
+function(x, n = 1, hclustm = "complete", distm = "euclidean", ...) {
     
     if (!isNamespaceLoaded("QCA")) {
         requireNamespace("QCA", quietly = TRUE)
@@ -7,15 +7,9 @@ function(x, n = 1, hclustm = "ward.D2", distm = "canberra", ...) {
     
     other.args <- list(...)
     
-    ### 
-    ### ### backwards compatibility 
-    ### 
         if ("groups" %in% names(other.args)) {
             n <- other.args$groups - 1
         }
-    ### 
-    ### ### backwards compatibility 
-    ### 
     
     x <- sort(x)
     cutpoints <- cumsum(rle(cutree(hclust(dist(x, method = distm), method = hclustm), k = n + 1))[[1]])

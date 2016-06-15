@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-<title>eqmcc. QCAGUI 2.2</title>
+<title>eqmcc. QCAGUI 2.3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="
 Adrian Dusa
@@ -34,7 +34,7 @@ Adrian Dusa
     <div class="navbar">
   <div class="navbar-inner">
     <div class="container">
-      <a class="brand" href="#">QCAGUI 2.2</a>
+      <a class="brand" href="#">QCAGUI 2.3</a>
       <div class="nav">
         <ul class="nav">
           <li><a href="index.html"><i class="icon-home icon-white"></i> Index</a></li>
@@ -54,8 +54,8 @@ Adrian Dusa
 <div class="row">
   <div class="span8">
     <h2>Usage</h2>
-    <pre><div>eqmcc(data, outcome&nbsp;=&nbsp;"", conditions&nbsp;=&nbsp;"",  relation&nbsp;=&nbsp;"suf", n.cut&nbsp;=&nbsp;1, incl.cut&nbsp;=&nbsp;1,  explain&nbsp;=&nbsp;"1", include&nbsp;=&nbsp;"", row.dom&nbsp;=&nbsp;FALSE, all.sol&nbsp;=&nbsp;FALSE, omit&nbsp;=&nbsp;NULL, dir.exp&nbsp;=&nbsp;"", details&nbsp;=&nbsp;FALSE, show.cases&nbsp;=&nbsp;FALSE, inf.test&nbsp;=&nbsp;"", use.tilde&nbsp;=&nbsp;FALSE, use.letters&nbsp;=&nbsp;FALSE, ...)</div>
-<div>is.qca(x)</div></pre>
+    <pre><div>eqmcc(data, outcome&nbsp;=&nbsp;"", conditions&nbsp;=&nbsp;"", relation&nbsp;=&nbsp;"suf", n.cut&nbsp;=&nbsp;1, incl.cut&nbsp;=&nbsp;1,  explain&nbsp;=&nbsp;"1", include&nbsp;=&nbsp;"", row.dom&nbsp;=&nbsp;FALSE, all.sol&nbsp;=&nbsp;FALSE, omit&nbsp;=&nbsp;NULL, dir.exp&nbsp;=&nbsp;"", details&nbsp;=&nbsp;FALSE, show.cases&nbsp;=&nbsp;FALSE, inf.test&nbsp;=&nbsp;"", use.tilde&nbsp;=&nbsp;FALSE, use.letters&nbsp;=&nbsp;FALSE, ...)</div>
+</pre>
     
     <h2>Arguments</h2>
     <dl>
@@ -110,8 +110,6 @@ Adrian Dusa
       <dd>Logical, use letters instead of causal conditions' names.</dd>
       <dt>...</dt>
       <dd>Other arguments (mainly for backwards compatibility).</dd>
-      <dt>x</dt>
-      <dd>An object of class <code>"qca"</code>.</dd>
     </dl>
     
     <div class="Description">
@@ -190,22 +188,28 @@ Most of the analyses use the inclusion cutoff for the presence of the output
 <b><code>incl.cut</code></b> can be specified as a vector of length 2, in the form:
 <b><code>c(ic1, ic0)</code></b> where:</p>
   
-      <p><table><tr><td>
-<b><code>ic1</code></b> </td>
-</tr><tr><td> is the inclusion cutoff for the presence of the output,</td>
-</tr><tr><td>
-                  </td>
-</tr><tr><td> a minimum sufficiency inclusion score above which the output
+      <p>
+      <table>
+        <tr>
+            <td><b><code>ic1</code></b></td>
+            <td> is the inclusion cutoff for the presence of the output,</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td> a minimum sufficiency inclusion score above which the output
                        value is coded with <code>"1"</code>.</td>
-</tr><tr><td> </td>
-</tr><tr><td>
-<b><code>ic0</code></b> </td>
-</tr><tr><td> is the inclusion cutoff for the absence of the output,</td>
-</tr><tr><td>
-                  </td>
-</tr><tr><td> a maximum sufficiency inclusion score below which the output
+        </tr>
+        <tr>
+            <td><b><code>ic0</code></b></td>
+            <td> is the inclusion cutoff for the absence of the output,</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td> a maximum sufficiency inclusion score below which the output
                        value is coded with <code>"0"</code>.</td>
-</tr></table></p>
+        </tr>
+      </table>
+      </p>
   
       <p>If not specifically declared, the argument <b><code>ic0</code></b> is automatically set
 equal to <b><code>ic1</code></b>, but otherwise <b><code>ic0</code></b> should always be lower
@@ -213,19 +217,23 @@ than <b><code>ic1</code></b>.</p>
   
       <p>Using these two cutoffs, the observed combinations are coded with:</p>
   
-      <p><table><tr><td>
-<b><code>"1"</code></b> </td>
-</tr><tr><td> if they have an inclusion score above <b><code>ic1</code></b></td>
-</tr><tr><td> </td>
-</tr><tr><td>
-<b><code>"C"</code></b> </td>
-</tr><tr><td> if they have an inclusion score below <b><code>ic1</code></b> and
+      <p>
+      <table>
+        <tr>
+            <td><b><code>"1"</code></b></td>
+            <td> if they have an inclusion score above <b><code>ic1</code></b></td>
+        </tr>
+        <tr>
+            <td><b><code>"C"</code></b></td>
+            <td> if they have an inclusion score below <b><code>ic1</code></b> and
 above <b><code>ic0</code></b> (contradiction)</td>
-</tr><tr><td> </td>
-</tr><tr><td>
-<b><code>"0"</code></b> </td>
-</tr><tr><td> if they have an inclusion score below <b><code>ic0</code></b></td>
-</tr></table></p>
+        </tr>
+        <tr>
+            <td><b><code>"0"</code></b></td>
+            <td> if they have an inclusion score below <b><code>ic0</code></b></td>
+        </tr>
+      </table>
+      </p>
   
       <p>The argument <b><code>explain</code></b> specifies the output values corresponding to the
 truth table rows which enter in the minimization process.
@@ -286,25 +294,30 @@ inference test, in order to assign values in the output column from the truth ta
 For the moment, it is only the binomial test, which needs crisp data (it doesn't work
 with fuzzy sets). For a given (specified) critical significance level, the output for
 a truth table row will be coded as:</p>
-  
-      <p><table><tr><td>
-<b><code>"1"</code></b> </td>
-</tr><tr><td> if the true inclusion score is significanly higher than
+
+      <p>
+      <table>
+        <tr>
+            <td><b><code>"1"</code></b></td>
+            <td> if the true inclusion score is significanly higher than
                        <b><code>ic1</code></b>,</td>
-</tr><tr><td> </td>
-</tr><tr><td>
-<b><code>"C"</code></b> </td>
-</tr><tr><td> contradiction, if the true inclusion score is not significantly
+        </tr>
+        <tr>
+            <td><b><code>"C"</code></b></td>
+            <td> contradiction, if the true inclusion score is not significantly
                        higher than <b><code>ic1</code></b></td>
-</tr><tr><td>
-                  </td>
-</tr><tr><td> but significantly higher than <b><code>ic0</code></b>,</td>
-</tr><tr><td> </td>
-</tr><tr><td>
-<b><code>"0"</code></b> </td>
-</tr><tr><td> if the true inclusion score is not significantly higher than
+        </tr>
+        <tr>
+            <td></td>
+            <td> but significantly higher than <b><code>ic0</code></b>,</td>
+        </tr>
+        <tr>
+            <td><b><code>"0"</code></b></td>
+            <td> if the true inclusion score is not significantly higher than
                        <b><code>ic0</code></b>.</td>
-</tr></table></p>
+        </tr>
+      </table>
+      </p>
   
       <p>It should be noted that statistical tests perform well only when the number of cases is
 large, otherwise they are usually not significant. For a low number of cases, depending
@@ -327,43 +340,41 @@ An object of class <code>"qca"</code> when using a single outcomes, or class <co
 when using multiple outcomes. These objects are lists having the following components:</p>
   
       <p><table><tr><td>
-  <b>tt</b> </td>
-</tr><tr><td> The truth table object.</td>
+  <b>tt</b> </td><td></td>
+<td> The truth table object.</td>
 </tr><tr><td>
-  <b>excluded</b> </td>
-</tr><tr><td> The line number(s) of the negative configuration(s).</td>
+  <b>excluded</b> </td><td></td>
+<td> The line number(s) of the negative configuration(s).</td>
 </tr><tr><td>
-  <b>initials</b> </td>
-</tr><tr><td> The initial positive configuration(s).</td>
+  <b>initials</b> </td><td></td>
+<td> The initial positive configuration(s).</td>
 </tr><tr><td>
-  <b>PIs</b> </td>
-</tr><tr><td> The prime implicant(s).</td>
+  <b>PIs</b> </td><td></td>
+<td> The prime implicant(s).</td>
 </tr><tr><td>
-  <b>PIchart</b> </td>
-</tr><tr><td> A list containing the PI chart(s).</td>
+  <b>PIchart</b> </td><td></td>
+<td> A list containing the PI chart(s).</td>
 </tr><tr><td>
-  <b>solution</b> </td>
-</tr><tr><td> A list of solution(s).</td>
+  <b>solution</b> </td><td></td>
+<td> A list of solution(s).</td>
 </tr><tr><td>
-  <b>essential</b> </td>
-</tr><tr><td> A list of essential PI(s).</td>
+  <b>essential</b> </td><td></td>
+<td> A list of essential PI(s).</td>
 </tr><tr><td>
-  <b>pims</b> </td>
-</tr><tr><td> A list of PI membership scores.</td>
+  <b>pims</b> </td><td></td>
+<td> A list of PI membership scores.</td>
 </tr><tr><td>
-  <b>SA</b> </td>
-</tr><tr><td> A list of simplifying assumptions.</td>
+  <b>SA</b> </td><td></td>
+<td> A list of simplifying assumptions.</td>
 </tr><tr><td>
-  <b>i.sol</b> </td>
-</tr><tr><td> A list of components specific to intermediate solution(s), 
+  <b>i.sol</b> </td><td></td>
+<td> A list of components specific to intermediate solution(s), 
                      each having a prime implicants</td>
-</tr><tr><td>
-               </td>
-</tr><tr><td> chart, prime implicant membership scores, (non-simplifying)
+</tr><tr><td></td><td></td>
+<td> chart, prime implicant membership scores, (non-simplifying)
                      easy counterfactuals and</td>
-</tr><tr><td>
-               </td>
-</tr><tr><td> difficult counterfactuals.</td>
+</tr><tr><td></td><td></td>
+<td> difficult counterfactuals.</td>
 </tr></table></p>
   
       <p></dl></p>
@@ -449,7 +460,7 @@ M1: DEV*LIT*IND*STB + DEV*urb*LIT*STB &lt;=&gt; SURV
 library(venn)
 venn(cLC)
 </div>
-<p><img src='eqmcc-6.png' alt='' /></p>
+<p><img src='eqmcc-6.svg' alt='' width='400' height='400' /></p>
 <div class='input'>
 # add details and case names
 eqmcc(ttLC, details = TRUE, show.cases = TRUE)
@@ -773,7 +784,7 @@ for(i in 1:4) {
     XYplot(pims[, i], CVF$PROTEST, cex.axis = 0.6)
 }
 </div>
-<p><img src='eqmcc-36.png' alt=''/></p>
+<p><img src='eqmcc-36.svg' alt='' width='600' height='600'/></p>
 <div class='input'>
 
 # -----
@@ -818,7 +829,7 @@ M1: P*E*S + E*A*S*eba + P*E*A*EBA &lt;=&gt; REC
   </div>
   <div class="span4">
     <!-- <ul>
-      <li>eqmcc</li><li>is.qca</li>
+      <li>eqmcc</li>
     </ul>
     <ul>
       <li>functions</li>

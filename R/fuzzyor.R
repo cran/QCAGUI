@@ -31,7 +31,6 @@
     
     cols <- colnames(other.args)
     
-    
     if (is.null(cols)) {
         cols <- LETTERS[seq(ncol(other.args))]
     }

@@ -6,27 +6,22 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
         requireNamespace("QCA", quietly = TRUE)
     }
     
-    memcare <- FALSE # to be updated with a future version
+    memcare <- FALSE 
     
     other.args <- list(...)
     
     colnames(data) <- toupper(colnames(data))
     
-    ### backwards compatibility 
         neg.out <- FALSE
         if ("neg.out" %in% names(other.args)) {
             neg.out <- other.args$neg.out
         }
-    ### 
-    
-    
     
     incl.cut <- incl.cut - .Machine$double.eps ^ 0.5
     if (cov.cut > 0) {
         cov.cut <- cov.cut - .Machine$double.eps ^ 0.5
     }
     
-    ### TO MODIFY when the negation will be treated with lower case letters
     outcome <- toupper(outcome)
     
     if (substring(outcome, 1, 1) == "~") {
@@ -34,8 +29,6 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
         outcome <- substring(outcome, 2)
     }
     
-    # for the moment, toupper(outcome) is redundant but if in the future
-    # the negation will be treated with lower case letters, it will prove important
     if (! toupper(QCA::curlyBrackets(outcome, outside=TRUE)) %in% toupper(colnames(data))) {
         cat("\n")
         stop(simpleError("Inexisting outcome name.\n\n"))
@@ -47,14 +40,6 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
         
         data[, toupper(outcome)] <- as.numeric(data[, toupper(outcome)] %in% QCA::splitstr(outcome.value))
     }
-    ### this is supposed to treat the negation using lower case letters, maybe in a future version
-    # else if (! outcome %in% colnames(data)) {
-    #     data[, toupper(outcome)] <- 1 - data[, toupper(outcome)]
-    # }
-    
-    # to undo line 45
-    # outcome <- toupper(outcome)
-    ### 
     
     if (identical(conditions, "")) {
         conditions <- names(data)[-which(names(data) == outcome)]
@@ -90,7 +75,6 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
     data <- data[, c(conditions, outcome)]
     nofconditions <- length(conditions)
     
-    
     if (neg.out) {
         data[, outcome] <- 1 - data[, outcome]
     }
@@ -118,22 +102,21 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
     noflevels[fc] <- 2
     mbase <- c(rev(cumprod(rev(noflevels + 1L))), 1)[-1]
     
+    noflevels[noflevels == 1] <- 2
     
     if (memcare) {
-        # CMatrix <- .Call("superSubsetMem", as.matrix(data[, conditions]), noflevels, mbase, as.numeric(fc), data[, outcome], as.numeric(relation == "necessity"), PACKAGE="QCAGUI")
+        
         CMatrix <- QCA::callSuperSubsetMem(as.matrix(data[, conditions]), noflevels, mbase, as.numeric(fc), data[, outcome], as.numeric(QCA::nec(relation)))
     }
     else {
-        nk <- createMatrix(noflevels + 1L)
-        # colnames(nk) <- conditions
-        nk <- nk[-1, ] # first row is always empty
         
-        # CMatrix <- .Call("superSubset", as.matrix(data[, conditions]), nk, as.numeric(fc), data[, outcome], as.numeric(relation == "necessity"), PACKAGE="QCAGUI")
+        nk <- createMatrix(noflevels + 1L)
+        
+        nk <- nk[-1, ] 
+        
         CMatrix <- QCA::callSuperSubset(as.matrix(data[, conditions]), nk, as.numeric(fc), data[, outcome], as.numeric(QCA::nec(relation)))
     }
     
-    
-    # to modify this, attributing colnames copies the object and uses too much memory
     colnames(CMatrix) <- expressions <- seq_len(ncol(CMatrix)) + 1L
     lincl <- ifelse(QCA::nec(relation), 2, 1)
     
@@ -144,7 +127,7 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
     
     if (lexpressions > 0) {
         if (QCA::suf(relation)) {
-            # expressions <- .Call("removeRedundants", expressions, noflevels, mbase, PACKAGE="QCAGUI")
+            
             expressions <- QCA::callRemoveRedundants(expressions, noflevels, mbase)
         }
         
@@ -169,7 +152,6 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
         
         exprnec <- exprnec[CMatrix[4, ] >= incl.cut & CMatrix[3, ] >= cov.cut]
         
-        # exprnec <- .Call("removeRedundants", exprnec, noflevels, mbase, PACKAGE="QCAGUI")
         exprnec <- QCA::callRemoveRedundants(exprnec, noflevels, mbase)
         
         exprnec <- setdiff(exprnec, expressions)
@@ -217,7 +199,6 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
         stop(simpleError(paste("\nThere are no combinations with incl.cut = ", round(incl.cut, 3), " and cov.cut = ", round(cov.cut, 3), "\n\n", sep="")))
     }
     
-    
     mins <- matrix(NA, nrow=nrow(data), ncol=nrow(result.matrix))
     for (i in seq(nrow(result.matrix))) {
         mins[, i] <- apply(data[, conditions], 1, function(v) {
@@ -250,7 +231,6 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
         colnames(result) <- c("inclN", "PRI", "inclS")
     }
     
-    
     if (QCA::nec(relation)) {
         colnames(result)[2] <- "RoN"
         result[, 2] <- pof(mins, data[, outcome])$incl.cov[, 2]
@@ -275,6 +255,4 @@ function(data, outcome = "", conditions = "", relation = "nec", incl.cut = 1,
     
     return(structure(out.list, class="sS"))
 }
-
-
 

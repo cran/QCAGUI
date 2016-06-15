@@ -165,21 +165,25 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
     
 }
 
-Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, size, fontsize) {
+Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, lbspace, size, fontsize) {
     
-    if (size == void 0) {
+    if (size === void 0) {
         size = 6.5;
     }
     
-    if (vertspace == void 0) {
+    if (vertspace === void 0) {
         vertspace = 25;
     }
     
-    if (horspace == void 0) {
-        horspace = 14;
+    if (horspace === void 0) { 
+        horspace = rep(0, labels.length);
     }
     
-    if (fontsize == void 0) {
+    if (lbspace === void 0) {
+        lbspace = 14;
+    }
+    
+    if (fontsize === void 0) {
         fontsize = 14;
     }
     
@@ -195,22 +199,24 @@ Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, siz
     
     for (var i = 0; i < labels.length; i++) {
         
-        rd.label[i] = this.text(x + horspace, y + newvert - 1, labels[i]).attr({"text-anchor": "start", "font-size": fontsize+"px"});
+        rd.label[i] = this.text(x + horspace[i] + lbspace, y + newvert - 1, labels[i]).attr({"text-anchor": "start", "font-size": fontsize+"px"});
         
-        rd.circle[i] = this.circle(x, y + newvert, size).attr({fill: "#eeeeee", "stroke": "#a0a0a0", "stroke-width": 1.2});
+        rd.circle[i] = this.circle(x + horspace[i], y + newvert, size).attr({fill: "#eeeeee", "stroke": "#a0a0a0", "stroke-width": 1.2});
         
-        rd.cover[i] = this.circle(x, y + newvert, size + 2).attr({fill: "#eeeeee", stroke: "none", "fill-opacity": 0, "cursor": "pointer"});
+        rd.cover[i] = this.circle(x + horspace[i], y + newvert, size + 2).attr({fill: "#eeeeee", stroke: "none", "fill-opacity": 0, "cursor": "pointer"});
         rd.cover[i].i = i;
         rd.cover[i].click(function() {
             rd.fill.show();
             
-            rd.fill.transform("t0," + (this.getBBox().y - y + size + 2));
+            var BBox = this.getBBox();
+            
+            rd.fill.transform("t" + (BBox.x - x + size + 2) + "," + (BBox.y - y + size + 2));
             rd.whichChecked = this.i;
         });
         
         if (Array.isArray(vertspace)) {
             
-            newvert = vertspace[i];
+            newvert = vertspace[i + 1];
         }
         else {
             newvert = (i + 1)*vertspace;
@@ -533,6 +539,40 @@ function unique(obj) {
     
     return(uniques);
     
+}
+
+function min(obj) { 
+    var minval = obj[0];
+    if (obj.length > 1) {
+        for (var i = 1; i < obj.length; i++) {
+            if (minval > obj[i] && obj[i] !== null) {
+                minval = obj[i];
+            }
+        }
+    }
+    return(minval);
+}
+
+function max(obj) { 
+    var maxval = obj[0];
+    if (obj.length > 1) {
+        for (var i = 1; i < obj.length; i++) {
+            if (maxval < obj[i] && obj[i] !== null) {
+                maxval = obj[i];
+            }
+        }
+    }
+    return(maxval);
+}
+
+function paste(obj, from, to, sep) {
+    var result = obj[from];
+    if (from < to) {
+        for (var i = from + 1; i < to + 1; i++) {
+            result += obj[i];
+        }
+    }
+    return(result);
 }
 
 function makeRules(oldv, newv) {
@@ -1246,11 +1286,21 @@ function parseText(text, conditions) {
     return(finalResult);
 }
 
-function parseCommand(command) {
-    var pairs = {
-        "(": ")",
-        "[": "]",
-        "{": "}"
+function parseCommand(command, brackets = true) {
+    
+    var pairs; 
+    if (brackets) {
+        pairs = {
+            "(": ")",
+            "[": "]",
+            "{": "}"
+        }
+    }
+    else {
+        pairs = {
+            "(": ")",
+            "[": "]"
+        }
     }
     
     command = command.replace(/"([^"]+)"/g, "");
