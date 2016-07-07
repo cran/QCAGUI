@@ -113,7 +113,7 @@ Chicago Press.
 }
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # three binary causal conditions, having two levels each: 0 and 1=
 noflevels <- c(2, 2, 2)
@@ -163,6 +163,6 @@ mat
 #  16  1  2  0    |   16  0  1  -       aB
 #  17  1  2  1    |   17  0  1  0       aBc
                           
-}
+}}
 
 \keyword{functions}

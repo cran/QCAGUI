@@ -68,7 +68,7 @@ and Quantitative Strategies}. Berkeley: University of California Press.
 \seealso{\code{\link{eqmcc}}}
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # example from Ragin (1987, p.99)
 deMorgan("AC + B~C")
@@ -88,6 +88,6 @@ deMorgan(cLC)
 pLC <- eqmcc(LC, "SURV", include = "?")
 
 deMorgan(pLC)
-}
+}}
 
 \keyword{functions}

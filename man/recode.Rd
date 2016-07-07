@@ -76,7 +76,7 @@ Adrian Dusa
 }
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 x <- rep(1:3, 3)
 x
@@ -128,6 +128,7 @@ recode(sort(x), "An : 'that has' = 1; spaces = 2")
 # same thing with
 recode(sort(x), "An : that has = 1; spaces = 2")
 #  [1] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2
-}
+
+}}
 
 \keyword{functions}

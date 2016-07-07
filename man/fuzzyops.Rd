@@ -30,7 +30,7 @@ Adrian Dusa
 
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # -----
 # Cebotari & Vink (2013, 2015)
@@ -62,7 +62,6 @@ fo
 
 attr(fo, "name")
 
-
-}
+}}
 
 \keyword{functions}

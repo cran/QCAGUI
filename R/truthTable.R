@@ -37,7 +37,8 @@ function(data, outcome = "", conditions = "", n.cut = 1,
             incl.cut[2] <- ica
         }
     
-    names(data) <- toupper(names(data))
+    initialcols <- colnames(data)
+    colnames(data) <- toupper(colnames(data))
     conditions <- toupper(conditions)
     outcome <- toupper(outcome)
     
@@ -105,11 +106,8 @@ function(data, outcome = "", conditions = "", n.cut = 1,
     }
     
     colnames(data) <- toupper(colnames(data))
-    colnames(initial.data) <- toupper(colnames(initial.data))
     conditions <- toupper(conditions)
     outcome <- toupper(outcome)
-    
-    initial.data <- initial.data[, c(conditions, outcome)]
     
     if (neg.out) {
         data[, outcome] <- 1 - data[, outcome]
@@ -268,9 +266,11 @@ function(data, outcome = "", conditions = "", n.cut = 1,
         
     }
     
+    uppercols <- toupper(colnames(initial.data))
+    
     for (i in seq(length(conditions))) {
         if (!fuzzy.cc[i]) {
-            if (any(initial.data[, i] == dc.code)) {
+            if (any(initial.data[, match(conditions[i], uppercols)] == dc.code)) {
                 tt[, i][tt[, i] == max(tt[, i])] <- dc.code
                 data[, i][data[, i] == max(data[, i])] <- dc.code
                 noflevels[i] <- noflevels[i] - 1
@@ -325,12 +325,13 @@ function(data, outcome = "", conditions = "", n.cut = 1,
             tt$cases <- cases
         }
         
+    numerics <- unlist(lapply(initial.data, QCA::possibleNumeric))
+    colnames(initial.data)[!numerics] <- initialcols[!numerics]
     x <- list(tt = tt, indexes = rownstt, noflevels = as.vector(noflevels),
               initial.data = initial.data, recoded.data = data, cases = cases, 
               options = list(outcome = outcome.copy, conditions = conditions, neg.out = neg.out, n.cut = n.cut,
                              incl.cut = incl.cut, complete = complete, show.cases = show.cases,
-                             use.letters = use.letters, inf.test = statistical.testing,
-                             incl.cut1 = incl.cut[1], incl.cut0 = ifelse(length(incl.cut) == 2, incl.cut[2], incl.cut)))
+                             use.letters = use.letters, inf.test = statistical.testing))
     
     if (any(exclude)) {
         excluded$cases <- ""

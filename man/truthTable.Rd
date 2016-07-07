@@ -211,7 +211,7 @@ A User's Guide}. New York: Springer.
 \seealso{\code{\link{eqmcc}}}
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # -----
 # Lipset binary crisp data
@@ -280,6 +280,6 @@ data(RS)
 # truth table containing the "-" placeholder as a "don't care"
 truthTable(RS, "REC")
 
-}
+}}
 
 \keyword{functions}

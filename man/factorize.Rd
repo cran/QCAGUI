@@ -65,7 +65,7 @@ and quantitative strategies}, Berkeley: University of California Press
 \seealso{\code{\link{translate}}}
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # results presented in alphabetical order
 factorize("one*TWO*four + one*THREE + THREE*four")
@@ -91,6 +91,7 @@ factorize(pCVF)
 
 # using an object of class "deMorgan" produced with deMorgan()
 factorize(deMorgan(pCVF))
-}
+
+}}
 
 \keyword{functions}

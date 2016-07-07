@@ -56,7 +56,7 @@ Adrian Dusa
 \seealso{\code{\link{cutree}}, \code{\link{hclust}}, \code{\link{dist}}}
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # hypothetical list of country GDPs
 gdp <- c(460, 500, 900, 2000, 2100, 2400, 15000, 16000, 20000)
@@ -76,7 +76,7 @@ findTh(gdp, n = 2)
 findTh(gdp, n = 2, hclustm = "ward.D2", distm = "canberra")
 # 1450 8700
 
-}
+}}
 
 \keyword{functions}
 

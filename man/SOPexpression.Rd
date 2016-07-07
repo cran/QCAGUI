@@ -108,7 +108,7 @@ Jirka Lewandowski (2015) QCAtools: Helper functions for QCA in R. R package vers
 }
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 translate("A + B*C")
 
@@ -178,6 +178,6 @@ findRows("DEV*ind*STB", ttLC)
 
 
 findRows("DEV*ind*STB", ttLC, remainders = TRUE)
-}
+}}
 
 \keyword{functions}

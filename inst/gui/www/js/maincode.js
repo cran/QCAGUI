@@ -5,8 +5,7 @@ $('#main_menu').smartmenus({
     subMenusSubOffsetY: -8
 });
 
-var theData = "";
-var dataCoords = "";
+var responseR = false;
 
 var divid = 0;
 
@@ -22,32 +21,47 @@ var gridset, datacover;
 
 var deheight = 400, dewidth = 659;
 
-var scrollvh = [0, 0, visiblerows, visiblecols];
-
 var tempdirfile = "";
-var imported_filename = "";
 var dirfile = "";
 var dirfile_chosen = ["dir", "~", ""];
 var rects_width;
 var canvas_height;
 var tempdatainfo = {ncols: 0, nrows: 0, colnames: [], rownames: []};
-var datainfo = {ncols: 0, nrows: 0, colnames: [], rownames: []};
+
+var info = {data: null, tt: null, qmc: null};
+
 var ovBox, input; 
 
 var tastaRcommand = "";
 var tasta = "enter";
 
-var import_open = "";
-    import_open.obj = ["dir", ""];
-
-var outres = new Array(); 
+var outres;
+function reset_outres() {
+    outres = {
+        error: null,
+        warning: null,
+        output: null,
+        tt: null,
+        infobjs: null
+    }
+}
+reset_outres();
 
 var Rcommand = {
     "counter": 0,
     "command": "",
     "brackets": [],
-    "thinfo": {}
+    "thinfo": {},
+    "scrollvh": {}
 }
+
+var scrollobj = {
+    "counter": 0,
+    "scrollvh": [],
+    "dataset": ""
+}
+
+var scrolleftop = {}
 
 var closeplot = 0;
 var plotopen = false;
@@ -73,6 +87,7 @@ var eqmcc2R, tt2R, calib2R;
 var colclicks = new Array();
 
 var current_command = "";
+
 var objname = "";
 
 var dataModif = {};
@@ -95,8 +110,9 @@ var dirfilist = {
 
 var thinfo = {
     "counter": 0,
+    "dataset": "",
     "condition": "",
-    "th": false,
+    "findth": false,
     "nth": 1
 };
 
@@ -104,10 +120,11 @@ var ths = new Array(6);
 
 var thsetter_content; 
 var poinths = {
-    "message": "noresponse",
-    "vals": [],
-    "thvals": []
+    "message": "",
+    "vals": new Array(),
+    "thvals": new Array()
 }
+
 var thsetter_jitter = new Array();
 var lastvals = new Array();
 
@@ -120,161 +137,377 @@ var ttfromR = new Array();
 
 var papers = {}; 
 
-var read_table, importobj, exportobj, saveRplot, eqmcc, tt, calibrate, recode, xyplot;
+var commobj = {}
 
-function reset_read_table() {
-    var rtcounter = (read_table == void 0)?0:read_table.counter;
-    read_table = {
-        "counter": rtcounter,
-        "stdir": "",
-        "filename": "",
-        "sep": ",",
-        "dec": ".",
-        "header": true,
-        "row_names": ""
-    };
-};
+var settings = {
+    import: {
+        name:      "import",
+        title:     "Import from text file",
+        position:  {my: "left top", at: "left+5px top+33px", of: window, collision: "flip"},
+        resizable: false,
+        width:     680,
+        height:    433,
+        inside:    {
+            
+            path: {border: true, left: 270, top:  62, width: 400, height:  40},
+            dirs: {border: true, left: 264, top:  80, width: 400, height: 300},
+            cols: {border: true, left:  14, top: 260, width: 235, height: 120}
+        },
+        reset: function(x) {
+            x = (x == "import")?"read_table":x;
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "stdir": "",
+                "objname": "",
+                "sep": ",",
+                "dec": ".",
+                "header": true,
+                "row_names": "",
+                "nameit": true,
+                "customname": false
+            }
+        }
+    },
+    export: {
+        name:      "export",
+        title:     "Export to text file",
+        position:  {my: "left top", at: "left+5px top+33px", of: window, collision: "flip"},
+        resizable: false,
+        width:     655,
+        height:    375,
+        inside: {
+            
+            dataset: {border: true, left:  18, top: 238, width: 195, height:  80},
+            path:    {border: true, left: 240, top:  60, width: 400, height:  40},
+            dirs:    {border: true, left: 240, top:  78, width: 400, height: 240}
+        },
+        reset: function(x) {
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "dataset": "", 
+                "filename": "",
+                "sep": ",",
+                "dec": ".",
+                "header": true,
+                "caseid": "cases",
+                "newfile": false
+            };
+        }
+    },
+    data_editor: {
+        name:      "data_editor",
+        title:     "Data editor",
+        position:  {my: "left top", at: "left+" + testX + "px top+" + testY + "px", of: window, collision: "flip"},
+        resizable: true,
+        width:     200, 
+        height:    150, 
+        inside:    {
+            topleft:  {border: false, left:  0, top: 20, width: 70, height: 20},
+            colnames: {border: false, left: 70, top: 20, width: (visiblecols + 1)*70, height: 20},
+            rownames: {border: false, left:  0, top: 40, width: 70, height: (visiblerows + 1)*20},
+            body:     {border: false, left: 70, top: 40, width: (visiblecols + 1)*70, height: (visiblerows + 1)*20}
+        },
+        reset: function(x) {
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "dataset": "" 
+            }
+        }
+    },
+    calibrate: {
+        name:      "calibrate",
+        title:     "Calibrate",
+        position:  {my: "left top", at: "left+80px top+33px", of: window, collision: "flip"},
+        resizable: true,
+        width:     490,
+        height:    340,
+        inside:    {
+            dataset: {border: true, left: 15, top: 52, width: 120, height: 80},
+            x:       {border: true, left: 15, top: 162, width: 120, height: 120, dependency: "dataset"}
+        },
+        reset: function(x) {
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "dataset": "", 
+                "x": "",
+                "type": "crisp",
+                "thresholds": new Array(1), 
+                "thnames": new Array(),
+                "thscopycrp": ["", "", ""],
+                "thscopyfuz": ["", "", "", "", "", ""],
+                "include": true,
+                "logistic": true,
+                "idm": "0.95",
+                "ecdf": false,
+                "below": "1",
+                "above": "1",
+                "same": true,
+                "newvar": "",
+                "increasing": true,
+                "end": true,
+                "findth": false,
+                "thsetter": false,
+                "thsettervar": "",
+                "scrollvh": {},
+                "jitter": false
+            };
+            
+        }
+    },
+    recode: {
+        name:      "recode",
+        title:     "Recode",
+        position:  {my: "left top", at: "left+80px top+33px", of: window, collision: "flip"},
+        resizable: false,
+        width:     515,
+        height:    340,
+        inside: {
+            dataset: {border: true, left: 14, top:  52, width: 120, height: 80},
+            x:       {border: true, left: 14, top:  162, width: 120, height: 120, dependency: "dataset"},
+            rules:   {border: true, left: 325, top: 202, width: 170, height: 80}
+        },
+        reset: function(x) {
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "dataset": "", 
+                "x": "",
+                "same": true,
+                "newvar": "",
+                "oldv": new Array(),
+                "newv": new Array(),
+                "scrollvh": {}
+            };
+        }
+    },
+    tt: {
+        name:      "tt",
+        title:     "Truth table",
+        position:  {my: "left top", at: "left+170px top+33px", of: window, collision: "flip"},
+        resizable: false,
+        width:     464,
+        height:    360,
+        inside: {
+            dataset:    {border: true, left:  14, top:  47, width: 138, height: 120},
+            outcome:    {border: true, left: 162, top:  47, width: 138, height: 120, dependency: "dataset"},
+            conditions: {border: true, left: 310, top:  47, width: 138, height: 120, dependency: "dataset"}
+        },
+        reset: function(x) {
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "objname": "", 
+                "nameit": false,
+                "dataset": "", 
+                "outcome": new Array(1),
+                "conditions": new Array(),
+                "neg_out": false,
+                "n_cut": "1",
+                "ic1": "1",
+                "ic0": "",
+                "complete": false,
+                "show_cases": false,
+                "sort_by": {"out": true, "incl": true, "n": true},
+                "sort_sel": {"out": false, "incl": false, "n": false},
+                "decreasing": true,
+                "use_letters": false,
+                "inf_test": "",
+                "PRI": true
+            };
+        }
+    },
+    eqmcc: {
+        name:       "eqmcc",
+        title:      "Quine-McCluskey minimization",
+        position:   {my: "left top", at: "left+170px top+33px", of: window, collision: "flip"},
+        resizable:  false,
+        width:      464,
+        height:     442,
+        inside: {
+            dataset:    {border: true, left:  14, top:  47, width: 138, height: 120},
+            outcome:    {border: true, left: 162, top:  47, width: 138, height: 120, dependency: "dataset"},
+            conditions: {border: true, left: 310, top:  47, width: 138, height: 120, dependency: "dataset"},
+            direxp:     {border: true, left:  14, top: 315, width: 120, height:  82}
+        },
+        reset: function(x) {
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "objname": "", 
+                "nameit": false,
+                "dataset": "", 
+                "outcome": new Array(),
+                "conditions": new Array(),
+                "neg_out": false,
+                "relation": "suf",
+                "n_cut": "1",
+                "ic1": "1",
+                "ic0": "",
+                "explain": ["1"],
+                "include": new Array(),
+                "row_dom": false,
+                "all_sol": false,
+                "omit": "",
+                "dir_exp": new Array(),
+                "details": false,
+                "show_cases": false,
+                "inf_test": "",
+                "use_tilde": false,
+                "use_letters": false,
+                "PRI": true,
+                "source": "data" 
+            };
+        }
+    },
+    xyplot: {
+        name:      "xyplot",
+        title:     "XY plot",
+        position:  {my: "left top", at: "left+240px top+33px", of: window, collision: "flip"},
+        resizable: true,
+        width:     720,
+        height:    567,
+        inside: { 
+            dataset: {border: true, left: 13, top:   50, width: 150, height: 80},
+            x:       {border: true, left: 13, top:  165, width: 150, height: 80, dependency: "dataset"},
+            y:       {border: true, left: 13, top:  280, width: 150, height: 80, dependency: "dataset"}
+            
+        },
+        reset: function(x) {
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "dataset": "", 
+                "x": "",
+                "y": "",
+                "sufnec": "sufficiency",
+                "pof": true,
+                "mdguides": true,
+                "labels": false,
+                "fill": true,
+                "jitter": false,
+                "negy": false,
+                "negx": false
+            };
+            xyplotdata = new Array();
+        }
+    },
+    venn: {
+        name:      "venn",
+        title:     "Venn diagram",
+        position:  {my: "left top", at: "left+240px top+33px", of: window, collision: "flip"},
+        resizable: true,
+        width:     430, 
+        height:    500
+    },
+    saveRplot: {
+        name:       "saveRplot",
+        title:      "Save R plot window",
+        position:   {my: "left top", at: "left+5px top+33px", of: window, collision: "flip"},
+        resizable:  false,
+        width:      655,
+        height:     400,
+        inside: {
+            
+            preview: {border: false, left:   0, top:  20, width: 240, height: 250},
+            path:    {border: false, left: 240, top:  62, width: 400, height:  40},
+            dirs:    {border: true,  left: 240, top:  80, width: 400, height: 260}
+        },
+        reset: function(x) {
+            if (commobj[x] === void 0) {
+                commobj[x] = {};
+            }
+            
+            commobj[x] = {
+                "counter": (commobj[x].counter === void 0)?0:commobj[x].counter,
+                "filename": "",
+                "type": "png"
+            };
+        }
+    },
+    about: {
+        name:       "about",
+        title:      "About this software",
+        position:   {my: "left top", at: "left+300px top+33px", of: window, collision: "flip"},
+        resizable:  false,
+        width:      470,
+        height:     405 + 10*(navigator.browserType == "Firefox")
+    },
+    changes: {
+        name:       "changes",
+        title:      "Change log",
+        position:   {my: "left top", at: "left+300px top+33px", of: window, collision: "flip"},
+        resizable:  false,
+        width:      550,
+        height:     420 + 10*(navigator.browserType == "Firefox")
+    },
+    command: {
+        name:      "command",
+        title:     "Command constructor",
+        position:  {my: "right top", at: "right-10px top+33px", of: window, collision: "fitflip"},
+        resizable: true,
+        width:     665, 
+        height:    commandHeight, 
+        closable: false
+    },
+    result: {
+        name:      "result",
+        title:     "R console",
+        position:  {my: "left top", at: "left bottom+4px", of: "#command", collision: "fitflip"},
+        resizable: true,
+        width:     665, 
+        height:    resultHeight, 
+        closable: false
+    },
+    plotdiv: {
+        name:      "plotdiv",
+        title:     "R plot window",
+        position:  {my: "right top", at: "left-10px top", of: "#command", collision: "fitflip"},
+        resizable: true,
+        width:     550,
+        height:    570,
+        closable: true
+    }
+}
 
-function reset_export() {
-    var excounter = (exportobj == void 0)?0:exportobj.counter;
-    exportobj = {
-        "counter": excounter,
-        "filename": "",
-        "sep": ",",
-        "dec": ".",
-        "header": true,
-        "caseid": "cases",
-        "newfile": false
-    };
-};
+function scanReset() {
+    var toscan = getKeys(settings);
+    for (var i = 0; i < toscan.length; i++) {
+        var dialogobjs = getKeys(settings[toscan[i]]);
+        if (any(dialogobjs, " == \"reset\"")) {
+            settings[toscan[i]].reset(toscan[i]);
+        }
+    }
+}
 
-function reset_eqmcc() {
-    var eqcounter = (eqmcc == void 0)?0:eqmcc.counter;
-    eqmcc = {
-        "counter": eqcounter,
-        "eqmcname": "",
-        "outcome": new Array(),
-        "neg_out": false,
-        "conditions": new Array(),
-        "relation": "suf",
-        "n_cut": "1",
-        "ic1": "1",
-        "ic0": "",
-        "explain": ["1"],
-        "include": new Array(),
-        "row_dom": false,
-        "all_sol": false,
-        "omit": "",
-        "dir_exp": new Array(),
-        "details": false,
-        "show_cases": false,
-        "inf_test": "",
-        "use_tilde": false,
-        "use_letters": false,
-        "PRI": true
-    };
-};
-
-function reset_tt() {
-    var ttcounter = (tt == void 0)?0:tt.counter;
-    tt = {
-        "counter": ttcounter,
-        "ttname": "tt", 
-        "outcome": new Array(1),
-        "neg_out": false,
-        "conditions": new Array(),
-        "n_cut": "1",
-        "ic1": "1",
-        "ic0": "",
-        "complete": false,
-        "show_cases": false,
-        "sort_by": {"out": true, "incl": true, "n": true},
-        "sort_sel": {"out": false, "incl": false, "n": false},
-        "decreasing": true,
-        "use_letters": false,
-        "inf_test": "",
-        "PRI": true
-    };
-};
-
-function reset_calibrate() {
-    var calcounter = (calibrate == void 0)?0:calibrate.counter;
-    calibrate = {
-        "counter": calcounter,
-        "x": new Array(),
-        "type": "crisp",
-        "thresholds": new Array(1), 
-        "thnames": new Array(),
-        "thscopycrp": ["", "", ""],
-        "thscopyfuz": ["", "", "", "", "", ""],
-        "include": true,
-        "logistic": true,
-        "idm": "0.95",
-        "ecdf": false,
-        "below": "1",
-        "above": "1",
-        "same": true,
-        "newvar": "",
-        "increasing": true,
-        "end": true,
-        "findth": false,
-        "thsetter": false,
-        "thsettervar": "",
-        "scrollvh": new Array(4),
-        "jitter": false
-    };
-    
-};
-
-function reset_recode() {
-    var recounter = (recode == void 0)?0:recode.counter;
-    recode = {
-        "counter": recounter,
-        "x": "",
-        "same": true,
-        "newvar": "",
-        "oldv": new Array(),
-        "newv": new Array(),
-        "scrollvh": new Array(4)
-    };
-};
-
-function reset_xyplot() {
-    var xycounter = (xyplot == void 0)?0:xyplot.counter;
-    xyplot = {
-        "counter": xycounter,
-        "x": "",
-        "y": "",
-        "sufnec": "sufficiency",
-        "pof": true,
-        "mdguides": true,
-        "labels": false,
-        "fill": true,
-        "jitter": false,
-        "negy": false,
-        "negx": false
-    };
-    xyplotdata = new Array();
-    
-};
-
-function reset_saveRplot() {
-    var savecounter = (saveRplot == void 0)?0:saveRplot.counter;
-    saveRplot = {
-        "counter": savecounter,
-        "filename": "",
-        "type": "png"
-    };
-};
-
-reset_read_table(); 
-reset_export(); 
-reset_eqmcc();
-reset_tt();
-reset_calibrate();
-reset_recode();
-reset_xyplot();
-reset_saveRplot();
+scanReset();
 
 var pingobj = 0;
 var pingstarted = false;
@@ -287,103 +520,141 @@ Shiny.addCustomMessageHandler("ping",
 
 Shiny.addCustomMessageHandler("tempdirfile",
     function(object) {
+        responseR = true;
         tempdirfile = object;
     }
 );
 
 Shiny.addCustomMessageHandler("tempdatainfo",
     function(object) {
+        responseR = true;
         tempdatainfo = object;
     }
 );
 
 Shiny.addCustomMessageHandler("dirfile",
     function(object) {
+        responseR = true;
         dirfile = object;
     }
 );
 
-Shiny.addCustomMessageHandler("datainfo",
+Shiny.addCustomMessageHandler("fullinfo",
     function(object) {
-        datainfo = object[0];
-        theData = object[1];
-        dataCoords = object[2];
+        responseR = true;
+        
+            info = object.infobjs;
+            if ($("#eqmcc").length) {
+                refresh_cols("eqmcc");
+                checkeqtt();
+                filldirexp();
+            }
+        
+        if (commobj.read_table.objname !== "") {
+            click_col("data_editor", "dataset", commobj.read_table.objname, others = false);
+        }
+        
+        scrolleftop[commobj["data_editor"].dataset] = {"vertical": 0, "horizontal": 0};
+        
+        print_data();
+        
+        outres.console = object.console;
         
     }
 );
 
-Shiny.addCustomMessageHandler("theData", 
+Shiny.addCustomMessageHandler("scrollData", 
     function(object) {
-        theData = object[0];
-        dataCoords = object[1];
-    }
-);
-
-Shiny.addCustomMessageHandler("eqmcc",
-    function(object) {
-        outres = object[0];
-        if (object[1] != null) {
-            ttfromR = object[1][0]; 
-            if ($("#venn").length) {
-                papers["venn_main"].customtext = "";
-            }
-            draw_venn(papers["venn_main"]);
-            
+        
+        var datasets = getKeys(object);
+        
+        for (var i = 0; i < datasets.length; i++) {
+            info["data"][datasets[i]].theData = object[datasets[i]].theData;
+            info["data"][datasets[i]].scrollvh = object[datasets[i]].scrollvh;
+            info["data"][datasets[i]].dataCoords = object[datasets[i]].dataCoords;
         }
+        
+        responseR = true;
     }
 );
 
-Shiny.addCustomMessageHandler("tt",
+Shiny.addCustomMessageHandler("tt_eq",
     function(object) {
-        outres = object[0];
-        if (object[1] != null) {
-            ttfromR = object[1];
+        responseR = true;
+        outres = copyObject(object, exclude = ["infobjs", "tt"]);
+        
+        if (object.tt !== null) {
+            ttfromR = object.tt;
             if ($("#venn").length) {
-                papers["venn_main"].customtext = "";
+                papers["venn"]["main"].customtext = "";
+                draw_venn(papers["venn"]["main"]);
             }
-            draw_venn(papers["venn_main"]);
+        }
+        
+        if (object.infobjs !== null) {
+            var tomodify;
+            var objtype = ["data", "tt", "qmc"];
+            for (var i = 0; i < 3; i++) {
+                if (info[objtype[i]] === null) {
+                    info[objtype[i]] = new Array();
+                }
+                
+                if (object.infobjs[objtype[i]] !== null) {
+                    tomodify = getKeys(object.infobjs[objtype[i]]);
+                    for (var j = 0; j < tomodify.length; j++) {
+                        info[objtype[i]][tomodify[j]] = object.infobjs[objtype[i]][tomodify[j]];
+                    }
+                }
+            }
         }
     }
 );
 
 Shiny.addCustomMessageHandler("calibrate",
     function(object) {
+        responseR = true;
         outres = object;
     }
 );
  
 Shiny.addCustomMessageHandler("recode",
     function(object) {
+        responseR = true;
         outres = object;
     }
 );
 
 Shiny.addCustomMessageHandler("dataPoints",
     function(object) {
+        responseR = true;
         poinths = object;
     }
 );
 
 Shiny.addCustomMessageHandler("xyplot",
     function(object) {
+        responseR = true;
         xyplotdata = object;
     }
 );
 
 Shiny.addCustomMessageHandler("Rcommand",
     function(object) {
+        responseR = true;
         outres = object;
     }
 );
 
 Shiny.addCustomMessageHandler("getChanges",
     function(object) {
+        responseR = true;
         outres = object;
     }
 );
 
 Shiny.addCustomMessageHandler("resizePlot",
     function(object) {
+        responseR = true;
         outres = object;
     }
 );
@@ -416,18 +687,18 @@ function createCommandPromptInRconsole(prompt) {
         prompt = ">"
     }
     
-    $("#result_main").append("<div id = 'tempdiv' style='width:" + $("#result_main").width() + "px'><span style='color:#932192'>" + prompt + " </span></div>");
+    $("#result_main").append("<div id = 'tempdiv'><span style='color:#932192'>" + prompt + " </span></div>");
     
-    $("#tempdiv").css({"border-color": "#b4d395", 
+    $("#tempdiv").css({"width": $("#result_main").width() + "px",
+                       "border-color": "#b4d395", 
                        "border-width": "1px", 
                        "border-style": "solid"});
     
     $("#tempdiv").click(function(event) {
+        showDialogToFront(settings["result"]);
         event.stopPropagation();
         
         $("#tempdiv").css({"border": "none"});
-        
-        var container = this.parentNode;
         
         var oStyles = {
             background: 'none',
@@ -454,11 +725,12 @@ function createCommandPromptInRconsole(prompt) {
         input.value = "";
         input.setAttribute("style", sStyles);
         input.id = "txtarea";
-        container.appendChild(input);
         
         var position = $("#tempdiv").position();
         
-        $("#txtarea").position({my: "left top", at: "left+15px top", of: $("#tempdiv"), collision: "fitflip"});
+        $("#result_main").append(input);
+        
+        $("#txtarea").position({my: "left top", at: "left+" + (position.left + 15) + "px top+" + position.top + "px", of: $("#result"), collision: "fitflip"});
         
         var crpos;
         
@@ -502,76 +774,147 @@ function createCommandPromptInRconsole(prompt) {
             
         input.addEventListener("blur", function(e) {
             if (tastaRcommand == "enter") {
+                pingit();
                 
                 if (input.value.slice(0, 1) == "\n") {
                     input.value = input.value.slice(1);
                 }
                 
-                input.value = input.value.replace(/\r\n?/g, '\n');
+                var inputext = input.value.replace(/\r\n?/g, '\n');
                 
-                history[(histindex < history.length)?history.length:histindex] = input.value;
-                histindex = history.length;
+                $("#tempdiv").remove();
+                input.remove();
                 
-                var test = parseCommand(tempcommand + input.value);
-                
-                if (test == "ok") {
-                    if (input.value.slice(0, 1) == "\n") {
-                        input.value = input.value.slice(1);
-                    }
+                if (inputext !== "") {
                     
-                    var sequence = input.value.split("\n");
-                    var fromto = [[0, 0]]; 
-                    if (sequence.length > 1) {
-                        var fromtoline = 0;
-                        var check = rep(false, sequence.length)
+                    history[(histindex < history.length)?history.length:histindex] = inputext;
+                    histindex = history.length;
+                    
+                    var test = parseCommand(tempcommand + inputext);
+                    
+                    if (test == "ok") {
+                        if (inputext.slice(0, 1) == "\n") {
+                            inputext = inputext.slice(1);
+                        }
                         
-                        while (!all(check, " == true")) {
-                            for (var i = fromto[fromtoline][0]; i < sequence.length; i++) {
-                                check[i] = true;
-                                test = parseCommand(paste(sequence, fromto[fromtoline][0], i, ";"), brackets = false)
-                                if (test == "ok") {
-                                    fromto[fromtoline][1] = i;
-                                    fromtoline += 1;
-                                    if (!all(check, " == true")) {
-                                        fromto[fromtoline] = new Array(2);
-                                        fromto[fromtoline][0] = i + 1;
+                        var sequence = inputext.split("\n");
+                        sequence = copyArray(sequence, exclude = [""]);
+                        
+                        var temp;
+                        for (var i = sequence.length - 1; i >= 0; i--) {
+                            temp = sequence[i];
+                            if (temp.substring(0, 4) == "View") {
+                                temp = temp.substring(4, temp.length).split("");
+                                if (temp[0] == "(" && temp[temp.length - 1] == ")") {
+                                    
+                                    sequence.splice(i, 1);
+                                    
+                                    temp.splice(temp.length - 1, 1);
+                                    temp.splice(0, 1).join("");
+                                    temp = temp.join("");
+                                    if (info["data"] != null) {
+                                        if (getKeys(info["data"]).indexOf(temp) >= 0) {
+                                            openDataEditor(temp);
+                                        }
                                     }
                                 }
                             }
                         }
+                        
+                        $("#tempdiv").remove();
+                        input.remove();
+                        
+                        var fromto = [[0, 0]]; 
+                        
+                        if (sequence.length > 0) {
+                            if (sequence.length > 1) {
+                                var fromtoline = 0;
+                                var check = rep(false, sequence.length)
+                                
+                                while (!all(check, " == true")) {
+                                    for (var i = fromto[fromtoline][0]; i < sequence.length; i++) {
+                                        check[i] = true;
+                                        test = parseCommand(paste(sequence, fromto[fromtoline][0], i, ";"), brackets = false)
+                                        if (test == "ok") {
+                                            fromto[fromtoline][1] = i;
+                                            fromtoline += 1;
+                                            if (!all(check, " == true")) {
+                                                fromto[fromtoline] = new Array(2);
+                                                fromto[fromtoline][0] = i + 1;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            Rcommand.counter = 1 - Rcommand.counter;
+                            Rcommand.command = tempcommand + inputext;
+                            Rcommand.brackets = fromto;
+                            Rcommand.thinfo = thinfo; 
+                            
+                            if (info["data"] !== null) {
+                                var datasets = getKeys(info["data"]);
+                                for (var i = 0; i < datasets.length; i++) {
+                                    Rcommand.scrollvh[datasets[i]] = info["data"][datasets[i]].scrollvh;
+                                }
+                            }
+                            
+                            string_command = inputext;
+                            
+                            outres = new Array();
+                            
+                            responseR = false;
+                            Shiny.onInputChange("Rcommand", Rcommand);
+                            
+                            updatecounter = 0;
+                            
+                            printRcommand();
+                        }
+                        else {
+                            var sc = inputext.split("\n");
+                            
+                            var header;
+                            
+                            for (var i = 0; i < sc.length; i++) {
+                                
+                                    header = strwrap(sc[i].replace(/\s/g, "∞"), 74, "  ").replace(/∞/g, " ");
+                                    if (i == 0) {
+                                        $("#result_main").append("<span style='color:#932192'>" + ((tempcommand == "")?">":"+") + " </span><span style='color:blue'>" + header + "</span><br><br>");
+                                    }
+                                    else {
+                                        $("#result_main").append("<span style='color:blue'>&nbsp;&nbsp;" + header + "</span><br><br>");
+                                    }
+                                
+                            }
+                            
+                            createCommandPromptInRconsole();
+                        }
                     }
-                    
-                    Rcommand.counter = 1 - Rcommand.counter;
-                    Rcommand.command = tempcommand + input.value;
-                    Rcommand.brackets = fromto;
-                    Rcommand.thinfo = thinfo; 
-                    
-                    string_command = input.value;
-                    outres = new Array();
-                    outres.result = "listen2R";
-                    Shiny.onInputChange("Rcommand", Rcommand);
-                    
-                    updatecounter = 0;
-                    printRcommand();
-                    
-                    $("#tempdiv").remove();
-                    input.remove();
+                    else if (test == "+") {
+                        
+                        tempcommand += input.value;
+                        
+                        var header = strwrap(input.value, 74, "  ");
+                        
+                        $("#tempdiv").remove();
+                        $("#result_main").append("<span style='color:#932192'>" + ((prompt == ">")?">":"+") + " </span><span style='color:blue'>" + header + "</span><br>");
+                        
+                        input.remove();
+                        
+                        createCommandPromptInRconsole(test);
+                        
+                        $("#tempdiv").click();
+                        
+                    }
                 }
-                else if (test == "+") {
-                    
-                    tempcommand += input.value;
-                    
-                    var header = strwrap(input.value, 74, "  ");
-                    
+                else {
                     $("#tempdiv").remove();
-                    $("#result_main").append("<span style='color:#932192'>" + ((prompt == ">")?">":"+") + " </span><span style='color:blue'>" + header + "</span><br>");
-                    
                     input.remove();
-                    
+            
+                    $("#result_main").append("<span style='color:#932192'>" + ((tempcommand == "")?">":"+") + " </span><br><br>");
+                    tempcommand = "";
                     createCommandPromptInRconsole(test);
-                    
                     $("#tempdiv").click();
-                    
                 }
             }
             else if (tastaRcommand == "escape") {
@@ -601,6 +944,34 @@ function createCommandPromptInRconsole(prompt) {
     });
 }
 
+function adjustDataEditorSize() {
+    var vscrollbar = false, hscrollbar = false;
+    var dataset = commobj["data_editor"].dataset;
+    if (dataset != "" && info["data"] !== null) {
+        vscrollbar = info["data"][dataset].nrows - 1 > visiblerows;
+        hscrollbar = info["data"][dataset].ncols - 1 > visiblecols;
+    }
+    
+    $("#data_editor").width( (visiblecols + 2)*70 + 1*(vscrollbar?scrollbarsWH:0));
+    $("#data_editor").height((visiblerows + 3)*20 + 1*(hscrollbar?scrollbarsWH:0));
+    
+    $("#data_editor_main").width($("#data_editor").width());
+    $("#data_editor_main").height($("#data_editor").height() - 20);
+    
+    $("#data_editor_colnames").width((visiblecols + 1)*70);
+    $("#data_editor_rownames").height((visiblerows + 1)*20);
+    
+    $("#data_editor_body").width((visiblecols + 1)*70 + 1*(vscrollbar?scrollbarsWH:0));
+    $("#data_editor_body").height((visiblerows + 1)*20 + 1*(hscrollbar?scrollbarsWH:0));
+    
+    if (dataset != "" && info["data"] !== null) {
+        $(papers["data_editor"]["body"].canvas).width(70*info["data"][dataset].ncols);
+        $(papers["data_editor"]["body"].canvas).height(20*info["data"][dataset].nrows);
+        $(papers["data_editor"]["rownames"].canvas).height(20*info["data"][dataset].nrows);
+        $(papers["data_editor"]["colnames"].canvas).width(70*info["data"][dataset].ncols);
+    }
+}
+
 function console_command(type) {
     
     current_command = type;
@@ -611,27 +982,30 @@ function console_command(type) {
         
         if (dirfile.filepath != "") {
             
-            string_command = ((read_table.filename != "")?read_table.filename:dirfile.filename) + " <- ";
-            if (read_table.sep == ",") {
+            if (commobj.read_table.objname != "") {
+                string_command = commobj.read_table.objname + " <- ";
+            }
+            
+            if (commobj.read_table.sep == ",") {
                 string_command = string_command + "read.csv(\"" + 
                 
                 dirfile.filepath[0][0].replace(/\s/g, "≠") + "\"" + 
-                (!read_table.header?", header = FALSE":"") + 
-                ((read_table.dec == ",")?", dec = \",\"":"");
+                (commobj.read_table.header?"":", header = FALSE") + 
+                ((commobj.read_table.dec == ",")?", dec = \",\"":"");
             }
             else {
                 string_command = string_command + "read.table(\"" + 
                 dirfile.filepath[0][0].replace(/\s/g, "≠") + "\", sep = \"" +
-                ((read_table.sep == "tab")?"\\t":read_table.sep) + "\"" +
-                (read_table.header?", header = TRUE":"") + 
-                ((read_table.dec == ",")?", dec = \",\"":"");
+                ((commobj.read_table.sep == "tab")?"\\t":commobj.read_table.sep) + "\"" +
+                (commobj.read_table.header?", header = TRUE":"") + 
+                ((commobj.read_table.dec == ",")?", dec = \",\"":"");
             }
             
             string_command = string_command +
             (
-                (read_table.row_names.length == 0)?")":(
+                (commobj.read_table.row_names.length == 0)?")":(
                     ", row.names = " + (
-                        (read_table.row_names % 2 >= 0)?(read_table.row_names + ")"):("\"" + read_table.row_names + "\")")
+                        (commobj.read_table.row_names % 2 >= 0)?(commobj.read_table.row_names + ")"):("\"" + commobj.read_table.row_names + "\")")
                     )
                 )
             );
@@ -639,160 +1013,49 @@ function console_command(type) {
     }
     else {
         
-        if (datainfo.rownames != "" && imported_filename != "" && !dirfilist.refresh) {
+        if (info["data"] !== null) {
             
-            if (type == "export") {
-                if (exportobj.filename != "") {
-                    string_command = "export(" + ((read_table.filename != "")?read_table.filename:imported_filename) + ", file = ";
-                    
-                    if (exportobj.newfile) {
-                        string_command += "\"" + (dirfile.wd + "/" + exportobj.filename).replace(/\s/g, "≠") + "\"";
-                    }
-                    else {
-                        string_command += "\"" + (dirfile.wd + "/" + exportobj.filename).replace(/\s/g, "≠") + "\"";
-                    }
-                    
-                    if (exportobj.sep != ",") {
-                        string_command += ", sep = \"" + ((exportobj.sep == "tab")?"\\t":exportobj.sep) + "\"";
-                    }
-                    
-                    if (!exportobj.header) {
-                        string_command += ", col.names = FALSE";
-                    }
-                    else {
-                        if (exportobj.caseid != "cases") {
-                            string_command += ", caseid = \"" + exportobj.caseid + "\"";
-                        }
-                    }
-                    
-                    string_command += ")"
+            if (type == "export" && commobj["export"].filename != "") {
+                string_command = "export(" + commobj.export.dataset + ", file = ";
+                
+                if (commobj["export"].newfile) {
+                    string_command += "\"" + (dirfile.wd + "/" + commobj["export"].filename).replace(/\s/g, "≠") + "\"";
                 }
-            }
-            
-            if (type == "eqmcc") {
+                else {
+                    string_command += "\"" + (dirfile.wd + "/" + commobj["export"].filename).replace(/\s/g, "≠") + "\"";
+                }
                 
-                var outcome = getTrueKeys(colclicks.eqmcc.outcome);
-                var conditions = getTrueKeys(colclicks.eqmcc.conditions);
-                objname <- "qmc";
-                string_command = "eqmcc(" + ((read_table.filename != "")?read_table.filename:imported_filename);
+                if (commobj["export"].sep != ",") {
+                    string_command += ", sep = \"" + ((commobj["export"].sep == "tab")?"\\t":commobj["export"].sep) + "\"";
+                }
                 
-                if (outcome.length > 0) {
-                    string_command += ", outcome = \"";
-                    
-                    if (eqmcc.neg_out) {
-                        string_command += "~";
-                    }
-                    
-                    for (var i = 0; i < outcome.length; i++) {
-                        string_command += outcome[i] + ((i == outcome.length - 1)?"\"":", ");
+                if (!commobj["export"].header) {
+                    string_command += ", col.names = FALSE";
+                }
+                else {
+                    if (commobj["export"].caseid != "cases") {
+                        string_command += ", caseid = \"" + commobj["export"].caseid + "\"";
                     }
                 }
                 
-                if (conditions.length > 0) {
-                    
-                    string_command += ", conditions = \"";
-                    
-                    for (var i = 0; i < conditions.length; i++) {
-                        string_command += conditions[i] + ((i == conditions.length - 1)?"\"":", ");
-                    }
-                }
-                
-                if (eqmcc.relation != "suf") {
-                    string_command += ", relation = \"sufnec\"";
-                }
-                
-                if (eqmcc.n_cut != "1") {
-                    string_command += ", n.cut = " + eqmcc.n_cut;
-                }
-                
-                if (eqmcc.ic1 != "1") {
-                    if (eqmcc.ic0 == "") {
-                        string_command += ", incl.cut = " + eqmcc.ic1;
-                    }
-                    else {
-                        string_command += ", incl.cut = \"" + eqmcc.ic1 + ", " + eqmcc.ic0 + "\"";
-                    }
-                }
-                
-                if (eqmcc.explain.length > 0) {
-                    
-                    if (eqmcc.explain.length == 1) {
-                        if (eqmcc.explain[0] != "1") {
-                            string_command += ", explain = \"" + eqmcc.explain + "\"";
-                        }
-                    }
-                    else {
-                        string_command += ", explain = \"";
-                        for (var i = 0; i < eqmcc.explain.length; i++) {
-                            string_command += eqmcc.explain[i] + ((i == eqmcc.explain.length - 1)?"\"":", ");
-                        }
-                    }
-                }
-                
-                if (eqmcc.include.length > 0) {
-                    string_command += ", include = \"";
-                    
-                    for (var i = 0; i < eqmcc.include.length; i++) {
-                        string_command += eqmcc.include[i] + ((i == eqmcc.include.length - 1)?"\"":", ");
-                    }
-                }
-                
-                if (eqmcc.row_dom) {
-                    string_command += ", row.dom = TRUE";
-                }
-                
-                if (eqmcc.all_sol) {
-                    string_command += ", all.sol = TRUE";
-                }
-                
-                if (eqmcc.dir_exp.length > 0) {
-                    var alldash = true;
-                    for (var i = 0; i < eqmcc.dir_exp.length; i++) {
-                        if (eqmcc.dir_exp[i] != "-") {
-                            alldash = false;
-                        }
-                    }
-                    if (!alldash) {
-                        string_command += ", dir.exp = \"";
-                        for (var i = 0; i < eqmcc.dir_exp.length; i++) {
-                            string_command += eqmcc.dir_exp[i] + ((i < eqmcc.dir_exp.length - 1)?",":"");
-                        }
-                        string_command += "\"";
-                    }
-                }
-                
-                if (eqmcc.details) {
-                    string_command += ", details = TRUE";
-                }
-                
-                if (eqmcc.show_cases) {
-                    string_command += ", show.cases = TRUE";
-                }
-                
-                if (eqmcc.use_tilde) {
-                    string_command += ", use.tilde = TRUE";
-                }
-                
-                if (eqmcc.use_letters) {
-                    string_command += ", use.letters = TRUE";
-                }
-                
-                string_command += ")";
-                
+                string_command += ")"
             }
             
             if (type == "tt") {
                 
                 var outcome = getTrueKeys(colclicks.tt.outcome);
                 var conditions = getTrueKeys(colclicks.tt.conditions);
-                objname = "tt";
                 
-                string_command = objname + " <- " + "truthTable(" + ((read_table.filename != "")?read_table.filename:imported_filename);
+                if (commobj.tt.nameit && commobj.tt.objname !== "") {
+                    string_command += commobj.tt.objname + " <- ";
+                }
+                
+                string_command += "truthTable(" + commobj.tt.dataset;
                 
                 if (outcome.length > 0) {
                     string_command += ", outcome = \"";
                     
-                    if (tt.neg_out) {
+                    if (commobj.tt.neg_out) {
                         string_command += "~";
                     }
                     
@@ -808,28 +1071,28 @@ function console_command(type) {
                     }
                 }
                 
-                if (tt.n_cut != "1") {
-                    string_command += ", n.cut = " + tt.n_cut;
+                if (commobj.tt.n_cut != "1") {
+                    string_command += ", n.cut = " + commobj.tt.n_cut;
                 }
                 
-                if (tt.ic1 != "1") {
-                    if (tt.ic0 == "") {
-                        string_command += ", incl.cut = " + tt.ic1;
+                if (commobj.tt.ic1 != "1") {
+                    if (commobj.tt.ic0 == "") {
+                        string_command += ", incl.cut = " + commobj.tt.ic1;
                     }
                     else {
-                        string_command += ", incl.cut = \"" + tt.ic1 + ", " + tt.ic0 + "\"";
+                        string_command += ", incl.cut = \"" + commobj.tt.ic1 + ", " + commobj.tt.ic0 + "\"";
                     }
                 }
                 
-                if (tt.complete) {
+                if (commobj.tt.complete) {
                     string_command += ", complete = TRUE";
                 }
                 
-                if (tt.show_cases) {
+                if (commobj.tt.show_cases) {
                     string_command += ", show.cases = TRUE";
                 }
                 
-                var sorts = getTrueKeys(tt.sort_sel);
+                var sorts = getTrueKeys(commobj.tt.sort_sel);
                 
                 if (sorts.length > 0) {
                     
@@ -837,12 +1100,12 @@ function console_command(type) {
                     
                     for (var i = 0; i < sorts.length; i++) {
                         string_command += sorts[i] +
-                                          ((tt.sort_by[sorts[i]])?"":"+") +
+                                          ((commobj.tt.sort_by[sorts[i]])?"":"+") +
                                           ((i == sorts.length - 1)?"\"":", ");
                     }
                 }
                 
-                if (tt.use_letters) {
+                if (commobj.tt.use_letters) {
                     string_command += ", use.letters = TRUE";
                 }
                 
@@ -855,46 +1118,46 @@ function console_command(type) {
                 var col = (getKeys(colclicks).indexOf("calibrate") >= 0)?getTrueKeys(colclicks.calibrate.x):"";
                 
                 if (col.length > 0) { 
-                    if (!calibrate.same && calibrate.newvar != "") {
-                        string_command = ((read_table.filename != "")?read_table.filename:imported_filename) + "$" + calibrate.newvar;
+                    if (!commobj.calibrate.same && commobj.calibrate.newvar != "") {
+                        string_command = commobj.calibrate.dataset + "$" + commobj.calibrate.newvar;
                     }
                     else {
-                        string_command = ((read_table.filename != "")?read_table.filename:imported_filename) + "$" + col;
+                        string_command = commobj.calibrate.dataset + "$" + col;
                     }
                     
-                    string_command += " <- calibrate(" + ((read_table.filename != "")?read_table.filename:imported_filename) + "$" + col;
+                    string_command += " <- calibrate(" + commobj.calibrate.dataset + "$" + col;
                     
-                    if (calibrate.type == "fuzzy") {
+                    if (commobj.calibrate.type == "fuzzy") {
                         string_command += ", type = \"fuzzy\"";
                     }
                     
-                    if (calibrate.thresholds.length > 0) {
+                    if (commobj.calibrate.thresholds.length > 0) {
                         
                         var valid = new Array();
-                        for (var i = 0; i < calibrate.thresholds.length; i++) {
-                            if (calibrate.thresholds[i] != "" && calibrate.thresholds[i] != void 0) {
+                        for (var i = 0; i < commobj.calibrate.thresholds.length; i++) {
+                            if (commobj.calibrate.thresholds[i] != "" && commobj.calibrate.thresholds[i] != void 0) {
                                 valid.push(i);
                             }
                         }
                         
                         if (valid.length > 0) {
                             if (valid.length == 1) {
-                                if (calibrate.type == "crisp") {
-                                   string_command += ", thresholds = " + calibrate.thresholds[valid[0]];
+                                if (commobj.calibrate.type == "crisp") {
+                                   string_command += ", thresholds = " + commobj.calibrate.thresholds[valid[0]];
                                 }
                             }
                             else {
-                                if (calibrate.type == "crisp") {
+                                if (commobj.calibrate.type == "crisp") {
                                     string_command += ", thresholds = c(";
                                     for (var i = 0; i < valid.length; i++) {
-                                        string_command += calibrate.thresholds[valid[i]] + ((i < valid.length - 1)?", ":")");
+                                        string_command += commobj.calibrate.thresholds[valid[i]] + ((i < valid.length - 1)?", ":")");
                                     }
                                 }
                                 else {
-                                    if ((valid.length == 3 && calibrate.thnames[0].substring(1, 2) != "1") || valid.length == 6) {
+                                    if ((valid.length == 3 && commobj.calibrate.thnames[0].substring(1, 2) != "1") || valid.length == 6) {
                                         string_command += ", thresholds = \"";
                                         for (var i = 0; i < valid.length; i++) {
-                                            string_command += (calibrate.thnames[valid[i]] + "=") + calibrate.thresholds[valid[i]] + ((i == valid.length - 1)?"\"":", ");
+                                            string_command += (commobj.calibrate.thnames[valid[i]] + "=") + commobj.calibrate.thresholds[valid[i]] + ((i == valid.length - 1)?"\"":", ");
                                         }
                                     }
                                 }
@@ -902,32 +1165,32 @@ function console_command(type) {
                         }
                     }
                     
-                    if (calibrate.type == "crisp") {
-                        if (!calibrate.include) {
+                    if (commobj.calibrate.type == "crisp") {
+                        if (!commobj.calibrate.include) {
                             string_command += ", include = FALSE";
                         }
                     }
                     
-                    if (calibrate.type == "fuzzy") {
-                        if (calibrate.end) {
-                            if (!calibrate.logistic) {
+                    if (commobj.calibrate.type == "fuzzy") {
+                        if (commobj.calibrate.end) {
+                            if (!commobj.calibrate.logistic) {
                                 string_command += ", logistic = FALSE";
-                                if (calibrate.ecdf) {
+                                if (commobj.calibrate.ecdf) {
                                     string_command += ", ecdf = TRUE";
                                 }
                             }
-                            else if (calibrate.idm != "0.95") {
-                                string_command += ", idm = " + calibrate.idm;
+                            else if (commobj.calibrate.idm != "0.95") {
+                                string_command += ", idm = " + commobj.calibrate.idm;
                             }
                         }
                     }
                     
-                    if (calibrate.above != "1") {
-                        string_command += ", above = " + calibrate.above;
+                    if (commobj.calibrate.above != "1") {
+                        string_command += ", above = " + commobj.calibrate.above;
                     }
                     
-                    if (calibrate.below != "1") {
-                        string_command += ", below = " + calibrate.below;
+                    if (commobj.calibrate.below != "1") {
+                        string_command += ", below = " + commobj.calibrate.below;
                     }
                     
                     string_command += ")";
@@ -942,28 +1205,28 @@ function console_command(type) {
                 
                 var col = (getKeys(colclicks).indexOf("recode") >= 0)?getTrueKeys(colclicks.recode.x):"";
                 
-                var uniques = unique(recode.newv);
+                var uniques = unique(commobj.recode.newv);
                 
-                if (col.length > 0 && uniques.length > 0) {
+                if (col.length > 0) {
                     
-                    if (!recode.same && recode.newvar != "") {
-                        string_command = ((read_table.filename != "")?read_table.filename:imported_filename) + "$" + recode.newvar;
+                    if (!commobj.recode.same && commobj.recode.newvar != "") {
+                        string_command = commobj.recode.dataset + "$" + commobj.recode.newvar;
                     }
                     else {
-                        string_command = ((read_table.filename != "")?read_table.filename:imported_filename) + "$" + col;
+                        string_command = commobj.recode.dataset + "$" + col;
                     }
                     
-                    string_command += " <- recode(" + ((read_table.filename != "")?read_table.filename:imported_filename) + "$" + col + ", \"";
+                    string_command += " <- recode(" + commobj.recode.dataset + "$" + col + ", \"";
                     
-                    var nl = recode.newv.length; 
+                    var nl = commobj.recode.newv.length; 
                     var temp, oldvals;
                     for (var i = 0; i < uniques.length; i++) {
                         temp = new Array();
                         oldvals = "";
                         
                         for (var j = 0; j < nl; j++) {
-                            if (recode.newv[j] == uniques[i]) {
-                                temp.push(recode.oldv[j]);
+                            if (commobj.recode.newv[j] == uniques[i]) {
+                                temp.push(commobj.recode.oldv[j]);
                             }
                         }
                         for (j = 0; j < temp.length; j++) {
@@ -983,6 +1246,136 @@ function console_command(type) {
             }
             
         }
+        
+        if (info["data"] !== null || info["tt"] !== null) {
+            
+            if (type == "eqmcc") {
+                
+                var outcome = new Array();
+                var conditions = new Array();
+                
+                if (colclicks.eqmcc !== void 0) {
+                    if (colclicks.eqmcc.outcome !== void 0) {
+                        outcome = getTrueKeys(colclicks.eqmcc.outcome);
+                    }
+                    
+                    if (colclicks.eqmcc.conditions !== void 0) {
+                        conditions = getTrueKeys(colclicks.eqmcc.conditions);
+                    }
+                }
+                
+                if (commobj.eqmcc.objname !== "") {
+                    string_command += commobj.eqmcc.objname + " <- ";
+                }
+                
+                string_command += "eqmcc(" + commobj.eqmcc.dataset;
+                
+                if (outcome.length > 0 && commobj.eqmcc.source == "data") {
+                    string_command += ", outcome = \"";
+                    
+                    if (commobj.eqmcc.neg_out && outcome.length == 1) {
+                        string_command += "~";
+                    }
+                    
+                    for (var i = 0; i < outcome.length; i++) {
+                        string_command += outcome[i] + ((i == outcome.length - 1)?"\"":", ");
+                    }
+                }
+                
+                if (conditions.length > 0 && commobj.eqmcc.source == "data") {
+                    
+                    string_command += ", conditions = \"";
+                    
+                    for (var i = 0; i < conditions.length; i++) {
+                        string_command += conditions[i] + ((i == conditions.length - 1)?"\"":", ");
+                    }
+                }
+                
+                if (commobj.eqmcc.relation != "suf") {
+                    string_command += ", relation = \"sufnec\"";
+                }
+                
+                if (commobj.eqmcc.n_cut != "1") {
+                    string_command += ", n.cut = " + commobj.eqmcc.n_cut;
+                }
+                
+                if (commobj.eqmcc.ic1 != "1") {
+                    if (commobj.eqmcc.ic0 == "") {
+                        string_command += ", incl.cut = " + commobj.eqmcc.ic1;
+                    }
+                    else {
+                        string_command += ", incl.cut = \"" + commobj.eqmcc.ic1 + ", " + commobj.eqmcc.ic0 + "\"";
+                    }
+                }
+                
+                if (commobj.eqmcc.explain.length > 0) {
+                    
+                    if (commobj.eqmcc.explain.length == 1) {
+                        if (commobj.eqmcc.explain[0] != "1") {
+                            string_command += ", explain = \"" + commobj.eqmcc.explain + "\"";
+                        }
+                    }
+                    else {
+                        string_command += ", explain = \"";
+                        for (var i = 0; i < commobj.eqmcc.explain.length; i++) {
+                            string_command += commobj.eqmcc.explain[i] + ((i == commobj.eqmcc.explain.length - 1)?"\"":", ");
+                        }
+                    }
+                }
+                
+                if (commobj.eqmcc.include.length > 0) {
+                    string_command += ", include = \"";
+                    
+                    for (var i = 0; i < commobj.eqmcc.include.length; i++) {
+                        string_command += commobj.eqmcc.include[i] + ((i == commobj.eqmcc.include.length - 1)?"\"":", ");
+                    }
+                }
+                
+                if (commobj.eqmcc.row_dom) {
+                    string_command += ", row.dom = TRUE";
+                }
+                
+                if (commobj.eqmcc.all_sol) {
+                    string_command += ", all.sol = TRUE";
+                }
+                
+                if (commobj.eqmcc.dir_exp.length > 0) {
+                    var alldash = true;
+                    for (var i = 0; i < commobj.eqmcc.dir_exp.length; i++) {
+                        if (commobj.eqmcc.dir_exp[i] != "-") {
+                            alldash = false;
+                        }
+                    }
+                    if (!alldash) {
+                        string_command += ", dir.exp = \"";
+                        for (var i = 0; i < commobj.eqmcc.dir_exp.length; i++) {
+                            string_command += commobj.eqmcc.dir_exp[i] + ((i < commobj.eqmcc.dir_exp.length - 1)?",":"");
+                        }
+                        string_command += "\"";
+                    }
+                }
+                
+                if (commobj.eqmcc.details) {
+                    string_command += ", details = TRUE";
+                }
+                
+                if (commobj.eqmcc.show_cases) {
+                    string_command += ", show.cases = TRUE";
+                }
+                
+                if (commobj.eqmcc.use_tilde) {
+                    string_command += ", use.tilde = TRUE";
+                }
+                
+                if (commobj.eqmcc.use_letters) {
+                    string_command += ", use.letters = TRUE";
+                }
+                
+                string_command += ")";
+                
+            }
+        }
+        
     }
     
     string_command = string_command.replace("csv(", "£");
@@ -993,21 +1386,74 @@ function console_command(type) {
     $("#command_main").html(strwrap(string_command, 78).replace(/£|§|∞|≠/g, function(x) {return crev[x]}));
 }
 
-function print_cols(paper, options) {
-                                
-    var dialog = options.dialog;
-    var identifier = options.identifier;
+function click_col(dialog, identifier, col, others = true) {
+    if (getKeys(colclicks).indexOf(dialog) < 0) {
+        colclicks[dialog] = new Array();
+    }
+    
+    if (getKeys(colclicks[dialog]).indexOf(identifier) < 0) {
+        colclicks[dialog][identifier] = new Array();
+    }
+    else {
+        if (!others) {
+            others = getKeys(colclicks[dialog][identifier]);
+            for (var i = 0; i < others.length; i++) {
+                colclicks[dialog][identifier][others[i]] = false;
+            }
+        }
+    }
+    
+    colclicks[dialog][identifier][col] = true;
+    
+    commobj[dialog][identifier] = col;
+    
+}
+
+function checkeqtt() {
+    if ($("#eqmcc").length) {
+        if (commobj.eqmcc.source == "data") {
+            papers["eqmcc"]["main"].frequency.attr({"text": commobj.eqmcc.n_cut});
+            papers["eqmcc"]["main"].inclcut1.attr({"text": commobj.eqmcc.ic1});
+            papers["eqmcc"]["main"].inclcut0.attr({"text": commobj.eqmcc.ic0});
+            papers["eqmcc"]["main"].neg_out.refresh(commobj.eqmcc.neg_out);
+            papers["eqmcc"]["main"].use_letters.refresh(commobj.eqmcc.use_letters);
+        }
+        else if (commobj.eqmcc.source == "tt" && commobj.eqmcc.dataset != "") {
+            
+            if (info["tt"][commobj.eqmcc.dataset] !== void 0) {
+                papers["eqmcc"]["main"].neg_out.refresh(info["tt"][commobj.eqmcc.dataset].options["neg.out"]);
+                papers["eqmcc"]["main"].use_letters.refresh(info["tt"][commobj.eqmcc.dataset].options["use.letters"]);
+                papers["eqmcc"]["main"].frequency.attr({"text": info["tt"][commobj.eqmcc.dataset].options["n.cut"]});
+                papers["eqmcc"]["main"].inclcut1.attr({"text": info["tt"][commobj.eqmcc.dataset].options["incl.cut"][0]});
+                papers["eqmcc"]["main"].inclcut0.attr({"text": ""});
+                if (info["tt"][commobj.eqmcc.dataset].options["incl.cut"].length == 2) {
+                    papers["eqmcc"]["main"].inclcut0.attr({"text": info["tt"][commobj.eqmcc.dataset].options["incl.cut"][1]});
+                }
+            }
+        }
+    }
+}
+
+function print_cols(dialog, identifier, options) {
     var selection = options.selection;
     var cols = options.cols;
     var selectable = options.selectable;
-    var numerics = options.numerics;
-    var calibrated = options.calibrated;
-    var grey;
+    var objtype = (dialog == "eqmcc")?(commobj["eqmcc"].source):"data";
     
+    var paper = papers[dialog][identifier];
     paper.clear();
+    var numerics, calibrated;
+    
     if (cols.length > 0) {
         
-        if (selection == void 0) {
+        if (commobj[dialog] !== void 0) {
+            if (commobj[dialog].dataset != "") {
+                numerics = info[objtype][commobj[dialog].dataset].numerics;
+                calibrated = info[objtype][commobj[dialog].dataset].calibrated; 
+            }
+        }
+        
+        if (selection === void 0) {
             selection = "single";
         }
         
@@ -1030,6 +1476,30 @@ function print_cols(paper, options) {
             }
         }
         
+        if (dialog == "eqmcc" && commobj["eqmcc"].source == "tt") {
+            if (identifier != "dataset") {
+                var ocheck = getTrueKeys(colclicks[dialog][identifier]);
+                if (ocheck.length > 0) {
+                    for (var i = 0; i < ocheck.length; i++) {
+                        colclicks[dialog][identifier][ocheck[i]] = false;
+                    }
+                }
+            }
+            
+            if (identifier == "outcome") {
+                var outcome = info["tt"][commobj[dialog].dataset].options.outcome;
+                colclicks[dialog][identifier][outcome] = true;
+                commobj[dialog].outcome = [outcome];
+            }
+            else if (identifier == "conditions") {
+                var conditions = info["tt"][commobj[dialog].dataset].options.conditions;
+                for (var i = 0; i < conditions.length; i++) {
+                    colclicks[dialog][identifier][conditions[i]] = true;
+                }
+                commobj[dialog].conditions = conditions;
+            }
+        }
+        
         canvas_height = cols.length * 20;
         
         var rects_back = new Array(cols.length);
@@ -1043,7 +1513,9 @@ function print_cols(paper, options) {
             
             if (Array.isArray(cols)) {
                 for (var i = 0; i < cols.length; i++) {
-                    colset.push(sat(paper.text(10, 10 + i*20, cols[i])));
+                    
+                    colset.push(paper.rect(0, i*20 + 0.5, 220, 19).attr({fill: colclicks[dialog][identifier][cols[i]]?"#79a74c":"#ffffff", stroke: "none"}));
+                    colset.push(paper.text(10, 10 + i*20, cols[i]).attr({"text-anchor": "start", "font-size": "14px", fill: colclicks[dialog][identifier][cols[i]]?"white":"black"}));
                 }
             }
             else {
@@ -1052,15 +1524,15 @@ function print_cols(paper, options) {
             
             var colsetbox = colset.getBBox();
             
-            $(paper.canvas).width(colsetbox.width + 20);
-            
-            canvas_height = colsetbox.height + 4.5;
+            $(paper.canvas).width(colsetbox.width + 20); 
             
         }
         else {
-                if (datainfo.rownames != "") { 
+            
+            if (info[objtype] !== null) {
                 
                 for (var i = 0; i < cols.length; i++) {
+                    
                     rects_back[i] = paper.rect(0, i*20 + 0.5, 220, 19).attr({fill: colclicks[dialog][identifier][cols[i]]?"#79a74c":"#ffffff", stroke: "none"});
                     texts[i] = paper.text(10, 10 + i*20, cols[i]).attr({"text-anchor": "start", "font-size": "14px", fill: colclicks[dialog][identifier][cols[i]]?"white":"black"});
                     
@@ -1079,134 +1551,171 @@ function print_cols(paper, options) {
                     
                     rects[i] = paper.rect(0, i*20, 220, 20).attr({fill: "#333333", stroke: "none", "fill-opacity": opacity});
                     rects[i].selectable = (opacity == 0);
-                    rects[i].click(function(event) {
-                        if (selection == "multiple") {
-                            if (event.shiftKey) {
-                                                            
-                                if (clicks[0] > -1) {
-                                    var x1 = clicks[0];
-                                    var x2 = this.id;
-                                    if (x1 > x2) {
-                                        x1 = this.id;
-                                        x2 = clicks[0];
+                    rects[i].id = i;
+                    rects[i].name = cols[i];
+                    if (rects[i].selectable) {
+                        rects[i].click(function(event) {
+                            if (selection == "multiple") {
+                                if (event.shiftKey) {
+                                                                
+                                    if (clicks[0] > -1) {
+                                        var x1 = clicks[0];
+                                        var x2 = this.id;
+                                        if (x1 > x2) {
+                                            x1 = this.id;
+                                            x2 = clicks[0];
+                                        }
+                                        
+                                        var firstvar = rects[clicks[0]].name;
+                                        for (var k = x1; k < x2 + 1; k++) {
+                                            if (rects[k].selectable) {
+                                                rects_back[k].attr({fill: colclicks[dialog][identifier][firstvar]?"#79a74c":"#ffffff", stroke: "none"});
+                                                texts[k].attr({"text-anchor": "start", "font-size": "14px", fill: colclicks[dialog][identifier][firstvar]?"white":"black"});
+                                                colclicks[dialog][identifier][rects[k].name] = colclicks[dialog][identifier][firstvar];
+                                            }
+                                        }
+                                        
                                     }
-                                    
-                                    var firstvar = rects[clicks[0]].name;
-                                    for (var k = x1; k < x2 + 1; k++) {
-                                        rects_back[k].attr({fill: colclicks[dialog][identifier][firstvar]?"#79a74c":"#ffffff", stroke: "none"});
-                                        texts[k].attr({"text-anchor": "start", "font-size": "14px", fill: colclicks[dialog][identifier][firstvar]?"white":"black"});
-                                        colclicks[dialog][identifier][rects[k].name] = colclicks[dialog][identifier][firstvar];
+                                    else {
+                                        clicks[0] = this.id;
+                                        rects_back[this.id].attr({fill: "#79a74c", stroke: "none"});
+                                        texts[this.id].attr({"text-anchor": "start", "font-size": "14px", fill: "white"});
+                                        colclicks[dialog][identifier][this.name] = true;
+                                        
+                                        if (dialog == "recode") {
+                                            checkRecodeSelections(colclicks, papers["recode"]["main"]);
+                                        }
                                         
                                     }
                                     
                                 }
-                                else {
+                                else { 
+                                    
                                     clicks[0] = this.id;
-                                    rects_back[this.id].attr({fill: "#79a74c", stroke: "none"});
-                                    texts[this.id].attr({"text-anchor": "start", "font-size": "14px", fill: "white"});
-                                    colclicks[dialog][identifier][this.name] = true;
+                                    colclicks[dialog][identifier][this.name] = !colclicks[dialog][identifier][this.name];
+                                    
+                                    rects_back[this.id].attr({fill: colclicks[dialog][identifier][this.name]?"#79a74c":"#ffffff", stroke: "none"});
+                                    texts[this.id].attr({"text-anchor": "start", "font-size": "14px", fill: colclicks[dialog][identifier][this.name]?"white":"black"});
+                                    
                                     if (dialog == "recode") {
-                                        checkRecodeSelections(colclicks, papers["recode_main"]);
+                                        checkRecodeSelections(colclicks, papers["recode"]["main"]);
                                     }
                                     
                                 }
                                 
-                            }
-                            else { 
-                                
-                                clicks[0] = this.id;
-                                colclicks[dialog][identifier][this.name] = !colclicks[dialog][identifier][this.name];
-                                
-                                rects_back[this.id].attr({fill: colclicks[dialog][identifier][this.name]?"#79a74c":"#ffffff", stroke: "none"});
-                                texts[this.id].attr({"text-anchor": "start", "font-size": "14px", fill: colclicks[dialog][identifier][this.name]?"white":"black"});
-                                
-                                if (dialog == "recode") {
-                                    checkRecodeSelections(colclicks, papers["recode_main"]);
-                                }
-                                
-                            }
-                            
-                            if (dialog == "eqmcc") {
-                                filldirexp();
-                            }
-                            
-                            console_command(dialog);
-                            
-                        }
-                        else if (selection == "single") {
-                            
-                            if (this.selectable) {
-                                if (!colclicks[dialog][identifier][this.name]) {
-                                    for (var k = 0; k < cols.length; k++) {
-                                        rects_back[k].attr({fill: "#ffffff", stroke: "none"});
-                                        texts[k].attr({"text-anchor": "start", "font-size": "14px", fill: "black"});
-                                        colclicks[dialog][identifier][rects[k].name] = false;
-                                    }
-                                    
-                                    colclicks[dialog][identifier][this.name] = true;
-                                    rects_back[this.id].attr({fill: "#79a74c", stroke: "none"});
-                                    texts[this.id].attr({"text-anchor": "start", "font-size": "14px", fill: "white"});
-                                    
-                                    if (dialog == "calibrate") {
-                                        
-                                        calibrate.x[0] = this.name;
-                                        thinfo.condition = this.name;
-                                        
-                                        for (var i = 0; i < calibrate.thresholds.length; i++) {
-                                            ths[i].attr({"text": ""});
-                                            calibrate.thresholds[i] = "";
-                                        }
-                                        
-                                        updatecounter = 0;
-                                        poinths.message = "noresponse";
-                                        thinfo.counter = 1 - thinfo.counter; 
-                                        Shiny.onInputChange("thinfo", thinfo);
-                                        doWhenDataPointsAreReturned();
-                                        
-                                    }
-                                    else if (dialog == "xyplot") {
-                                        xyplot[identifier] = this.name;
-                                        
-                                        if (xyplot.x != "" && xyplot.y != "") {
-                                            
-                                            updatecounter = 0;
-                                            xyplot.counter += 1;
-                                            lastvals = xyplotdata;
-                                            
-                                            Shiny.onInputChange("xyplot", xyplot);
-                                            doWhenXYplotPointsAreReturned();
-                                            
-                                        }
-                                        
-                                    }
-                                    
-                                }
-                                else {
-                                    colclicks[dialog][identifier][this.name] = false;
-                                    rects_back[this.id].attr({fill: "#ffffff", stroke: "none"});
-                                    texts[this.id].attr({"text-anchor": "start", "font-size": "14px", fill: "black"});
-                                    
-                                    if (dialog == "calibrate") {
-                                        
-                                        for (var i = 0; i < calibrate.thresholds.length; i++) {
-                                            ths[i].attr({"text": ""});
-                                            calibrate.thresholds[i] = "";
-                                        }
-                                        
-                                        thsetter_content.remove();
-                                    }
-                                    
+                                if (dialog == "eqmcc") {
+                                    filldirexp();
                                 }
                                 
                                 console_command(dialog);
+                                
+                            }
+                            else if (selection == "single") {
+                                if (this.selectable) {
+                                    if (!colclicks[dialog][identifier][this.name]) {
+                                        
+                                        for (var k = 0; k < cols.length; k++) {
+                                            rects_back[k].attr({fill: "#ffffff", stroke: "none"});
+                                            texts[k].attr({"text-anchor": "start", "font-size": "14px", fill: "black"});
+                                            colclicks[dialog][identifier][rects[k].name] = false;
+                                        }
+                                        
+                                        colclicks[dialog][identifier][this.name] = true;
+                                        rects_back[this.id].attr({fill: "#79a74c", stroke: "none"});
+                                        texts[this.id].attr({"text-anchor": "start", "font-size": "14px", fill: "white"});
+                                        
+                                        if (dialog == "calibrate") {
+                                            if (identifier == "x") {
+                                                commobj["calibrate"].x = this.name;
+                                                thinfo.dataset = commobj["calibrate"].dataset;
+                                                thinfo.condition = this.name;
+                                                
+                                                for (var i = 0; i < commobj.calibrate.thresholds.length; i++) {
+                                                    ths[i].attr({"text": ""});
+                                                    commobj.calibrate.thresholds[i] = "";
+                                                }
+                                                
+                                                updatecounter = 0;
+                                                responseR = false;
+                                                thinfo.counter = 1 - thinfo.counter; 
+                                                
+                                                thinfo.findth = commobj["calibrate"].findth;
+                                                
+                                                Shiny.onInputChange("thinfo", thinfo);
+                                                doWhenDataPointsAreReturned();
+                                            }
+                                        }
+                                        else if (dialog == "export") {
+                                            commobj.export.dataset = this.name;
+                                        }
+                                        else if (dialog == "xyplot") {
+                                            
+                                            if (identifier !== "dataset") {
+                                                
+                                                commobj.xyplot[identifier] = this.name;
+                                            
+                                                if (commobj.xyplot.x != "" && commobj.xyplot.y != "") {
+                                                    
+                                                    updatecounter = 0;
+                                                    commobj.xyplot.counter += 1;
+                                                    lastvals = xyplotdata;
+                                                    responseR = false;
+                                                    
+                                                    Shiny.onInputChange("xyplot", commobj.xyplot);
+                                                    doWhenXYplotPointsAreReturned();
+                                                    
+                                                }
+                                            }
+                                        }
+                                        else if (dialog == "data_editor") {
+                                            if (commobj["data_editor"]["dataset"] != this.name) {
+                                                commobj["data_editor"]["dataset"] = this.name;
+                                                print_data();
+                                            }
+                                        }
+                                    }
+                                    
+                                    if (dialog == "data_editor") {
+                                        $("#data_editor_dataset_border").remove();
+                                    }
+                                    
+                                    if (identifier == "dataset" && (
+                                             dialog == "eqmcc" || dialog == "tt" ||
+                                             dialog == "calibrate" || dialog == "recode" ||
+                                             dialog == "xyplot")
+                                        ) {
+                                        
+                                        if (commobj[dialog][identifier] != this.name) {
+                                            var identifiers = getKeys(colclicks[dialog]);
+                                            for (var i = 0; i < identifiers.length; i++) {
+                                                if (identifiers[i] !== "dataset") {
+                                                    colclicks[dialog][identifiers[i]] = new Array();
+                                                    $("#" + dialog + "_" + identifiers[i]).scrollTop(0);
+                                                }
+                                            }
+                                        }
+                                        
+                                        if (dialog == "xyplot") {
+                                            xyplotdata = new Array();
+                                            commobj.xyplot.x = "";
+                                            commobj.xyplot.y = "";
+                                            draw_xyplot(papers["xyplot"]["main"]);
+                                        }
+                                        
+                                        commobj[dialog][identifier] = this.name;
+                                        refresh_cols(dialog);
+                                        filldirexp();
+                                        checkeqtt();
+                                    }
+                                    
+                                    console_command(dialog);
+                                    
+                                }
+                                
                             }
                             
-                        }
-                        
-                    });
-                    
-                    rects[i].id = i;
-                    rects[i].name = cols[i];
+                        });
+                    }
                 }
             }
             else {
@@ -1286,55 +1795,79 @@ function getTrimmedText(text, width) {
 function print_data() {
     
     if ($("#data_editor").length) {
-        if (papers["data_topleft"].constant == void 0) {
-            papers["data_topleft"].constant = papers["data_topleft"].rect(0, 0, 70, 20).attr({fill: "#f2f2f2", stroke: "#d7d7d7", "fill-opacity": 1});
-            papers["data_topleft"].colsrect = -100;
-            papers["data_topleft"].colsrect_show = false;
-            papers["data_topleft"].rowsrect = -100;
-            papers["data_topleft"].rowsrect_show = false;
-            papers["data_topleft"].bodyrect = [-100, -100];
-            papers["data_topleft"].bodyrect_show = false;
+        adjustDataEditorSize();
+        if (papers["data_editor"]["topleft"].constant === void 0) {
+            papers["data_editor"]["topleft"].constant = papers["data_editor"]["topleft"].rect(0, 0, 70, 20).attr({fill: "#f2f2f2", stroke: "#d7d7d7", "fill-opacity": 1});
+            papers["data_editor"]["topleft"].colsrect = -100;
+            papers["data_editor"]["topleft"].colsrect_show = false;
+            papers["data_editor"]["topleft"].rowsrect = -100;
+            papers["data_editor"]["topleft"].rowsrect_show = false;
+            papers["data_editor"]["topleft"].bodyrect = [-100, -100];
+            papers["data_editor"]["topleft"].bodyrect_show = false;
+            
+            papers["data_editor"]["topleft"].constant.attr({"fill-opacity": 1, "stroke": "#d7d7d7"})
+            sat(papers["data_editor"]["topleft"].text(11, 10, "Choose"), {size: 12, "font-weight": "bold", "color": "#cb2626"});
+            var choose = sat(papers["data_editor"]["topleft"].rect(0, 0, 70, 20), {"stroke": "#000", "sw": 2});
+            
+            var data = {border: true,  left:  0, top: 40, width: (70 + scrollbarsWH), height: 100};
+            choose.click(function() {
+                if ($("#data_editor_dataset_border").length) {
+                    $("#data_editor_dataset_border").remove();
+                }
+                else {
+                    addDiv("data_editor", "dataset", data);
+                    papers["data_editor"]["dataset"] = Raphael("data_editor_dataset", data.width, data.height);
+                    refresh_cols("data_editor");
+                }
+            });
         }
         
-        papers["data_topleft"].constant.attr({"fill-opacity": 1, "stroke": "#d7d7d7"})
-        
-        if (theData != "" && datainfo.rownames != "error!") {
-            papers["data_body"    ].setSize(70*datainfo.ncols, 20*datainfo.nrows);
-            papers["data_rownames"].setSize(70               , 20*datainfo.nrows);
-            papers["data_colnames"].setSize(70*datainfo.ncols, 20);
+        var dataset = commobj["data_editor"].dataset;
+        if (dataset != "") {
+            papers["data_editor"]["body"].setSize(70*info["data"][dataset].ncols, 20*info["data"][dataset].nrows);
+            papers["data_editor"]["rownames"].setSize(70                        , 20*info["data"][dataset].nrows);
+            papers["data_editor"]["colnames"].setSize(70*info["data"][dataset].ncols, 20);
         }
         else {
-            papers["data_body"    ].setSize(70*8, 20*17);
-            papers["data_rownames"].setSize(70  , 20*17);
-            papers["data_colnames"].setSize(70*8, 20   );
+            papers["data_editor"]["body"].setSize(70*(visiblecols + 1), 20*(visiblerows + 1));
+            papers["data_editor"]["rownames"].setSize(70                  , 20*(visiblerows + 1));
+            papers["data_editor"]["colnames"].setSize(70*(visiblecols + 1), 20                  );
         }
+        
             update_data();
         
     }
 }
 
 function update_data() {
-    
     if ($("#data_editor").length) {
-        papers["data_colnames"].clear();
-        papers["data_rownames"].clear();
-        papers["data_body"].clear();
         
-        var Xshift = Math.floor($("#data_body").scrollLeft()/70);
-        var Yshift = Math.floor($("#data_body").scrollTop()/20);
+        papers["data_editor"]["colnames"].clear();
+        papers["data_editor"]["rownames"].clear();
+        papers["data_editor"]["body"].clear();
+        
+        if (scrolleftop[commobj["data_editor"].dataset] !== void 0) {
+            $("#data_editor_rownames").scrollTop(scrolleftop[commobj["data_editor"].dataset].vertical);
+            $("#data_editor_colnames").scrollLeft(scrolleftop[commobj["data_editor"].dataset].horizontal);
+            $("#data_editor_body").scrollTop(scrolleftop[commobj["data_editor"].dataset].vertical);
+            $("#data_editor_body").scrollLeft(scrolleftop[commobj["data_editor"].dataset].horizontal);
+        }
+        
+        var Xshift = Math.floor($("#data_editor_body").scrollLeft()/70);
+        var Yshift = Math.floor($("#data_editor_body").scrollTop()/20);
         
         var temp, tocompare, textToPrint, tobe, temprect;
         
-        var bodyrect = papers["data_body"].rect(-100, 0, 70, 20);
-        var colsrect = papers["data_body"].rect(-100, 0, 70, 20);
-        var rowsrect = papers["data_body"].rect(-100, 0, 70, 20);
+        var bodyrect = papers["data_editor"]["body"].rect(-100, 0, 70, 20);
+        var colsrect = papers["data_editor"]["body"].rect(-100, 0, 70, 20);
+        var rowsrect = papers["data_editor"]["body"].rect(-100, 0, 70, 20);
         
         var bodygridtext = "", colgridtext = "", rowgridtext = "";
         
-        papers["data_colnames"].rect(70*(Xshift - 25), 0, 70*(Xshift + 60), 20)
+        papers["data_editor"]["colnames"].rect(70*(Xshift - 25), 0, 70*(Xshift + 60), 20)
         .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
         
-        papers["data_rownames"].rect(0, 20*(Yshift - 50), 70, 20*(Yshift + 120))
+        papers["data_editor"]["rownames"].rect(0, 20*(Yshift - 50), 70, 20*(Yshift + 120))
         .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
         
         for (var i = Xshift - 25; i < Xshift + 60; i++) { 
@@ -1347,22 +1880,22 @@ function update_data() {
         for (var i = Yshift - 50; i < Yshift + 120; i++) { 
             
             bodygridtext += "M" + 70*(Xshift - 25) + "," + 20*i + "L" + 70*(Xshift + 60) + "," + 20*i;
-            papers["data_rownames"].path("M" + 0 + "," + 20*i + "L 70" + "," + 20*i).attr({stroke: "#d7d7d7"});
+            papers["data_editor"]["rownames"].path("M" + 0 + "," + 20*i + "L 70" + "," + 20*i).attr({stroke: "#d7d7d7"});
         }
         
-        gridset = papers["data_body"].path(bodygridtext).attr({stroke: "#d7d7d7"});
-        papers["data_colnames"].path(colgridtext).attr({stroke: "#d7d7d7"});
+        gridset = papers["data_editor"]["body"].path(bodygridtext).attr({stroke: "#d7d7d7"});
+        papers["data_editor"]["colnames"].path(colgridtext).attr({stroke: "#d7d7d7"});
         
         var getCoords = function(event) {
             
-            var scrollX = $("#data_body").scrollLeft()%70;
-            var scrollY = $("#data_body").scrollTop()%20;
+            var scrollX = $("#data_editor_body").scrollLeft()%70;
+            var scrollY = $("#data_editor_body").scrollTop()%20;
             
             var mouseX = Math.floor((event.clientX + $(window).scrollLeft() - testX - 70 + scrollX)/70);
             var mouseY = Math.floor((event.clientY + $(window).scrollTop() - 3*(navigator.browserType == "Firefox") - testY - 40 + scrollY)/20);
             
-            var Xshift = Math.floor($("#data_body").scrollLeft()/70);
-            var Yshift = Math.floor($("#data_body").scrollTop()/20);
+            var Xshift = Math.floor($("#data_editor_body").scrollLeft()/70);
+            var Yshift = Math.floor($("#data_editor_body").scrollTop()/20);
             
             var mX = mouseX - Math.round(scrollX/70);
             var mY = mouseY - Math.round(scrollY/20);
@@ -1379,54 +1912,70 @@ function update_data() {
             });
         }
         
-        if (theData != "" && datainfo.rownames != "error!") {
+        var dataset = commobj["data_editor"].dataset;
+        var scrollvh = [0, 0, visiblerows, visiblecols];
+        
+        if (info["data"] !== null) {
+            scrollvh[0] = info["data"][dataset].scrollvh[0];
+            scrollvh[1] = info["data"][dataset].scrollvh[1];
+            scrollvh[2] = Math.min(visiblerows, info["data"][dataset].nrows - 1);
+            scrollvh[3] = Math.min(visiblecols, info["data"][dataset].ncols - 1);
+        }
+        
+        var column;
+        
+        if (dataset != "") {
             for (var i = 0; i < scrollvh[3] + 1; i++) {
-                sat(papers["data_colnames"].text(5 + 70*(i + scrollvh[1]), 10, datainfo.colnames[i + scrollvh[1]]),
+                sat(papers["data_editor"]["colnames"].text(5 + 70*(i + scrollvh[1]), 10, info["data"][dataset].colnames[i + scrollvh[1]]),
                     {"clip": (70*(i + scrollvh[1])) + ", 0, 68, 20"});
             }
             
             for (var j = 0; j < scrollvh[2] + 1; j++) { 
-                 sat(papers["data_rownames"].text(5, 10 + 20*(j + scrollvh[0]), datainfo.rownames[j + scrollvh[0]]),
+                 sat(papers["data_editor"]["rownames"].text(5, 10 + 20*(j + scrollvh[0]), info["data"][dataset].rownames[j + scrollvh[0]]),
                     {"clip": "0, " + 20*(j + scrollvh[0]) + ", 68, 20"});
             }
             
-            for (i = 0; i < theData.length; i++) {
-                for (j = 0; j < theData[0].length; j++) {
-                    if (theData[i][j] != undefined) {
-                        sat(papers["data_body"].text(5 + 70*(i + scrollvh[1]), 10 + 20*(j + scrollvh[0]), ("" + theData[i][j])), 
+            for (i = 0; i < scrollvh[3] + 1; i++) {
+                column = info["data"][dataset].theData[info["data"][dataset].colnames[i + scrollvh[1]]];
+                for (j = 0; j < column.length; j++) {
+                    if (column[j] != undefined) {
+                        sat(papers["data_editor"]["body"].text(5 + 70*(i + scrollvh[1]), 10 + 20*(j + scrollvh[0]), ("" + column[j])), 
                             {"clip": 70*(i + scrollvh[1]) + ", " + 20*(j + scrollvh[0]) + ", 68, 20"});
                     }
                     else {
-                        papers["data_body"].text(5 + 70*(i + scrollvh[1]), 10 + 20*(j + scrollvh[0]), "");
+                        papers["data_editor"]["body"].text(5 + 70*(i + scrollvh[1]), 10 + 20*(j + scrollvh[0]), "");
                     }
                     
                 }
             }
-        
-            var colnamescover = papers["data_colnames"].rect(0, 0, 70*datainfo.ncols, 20)
+            
+            var colnamescover = papers["data_editor"]["colnames"].rect(0, 0, 70*info["data"][dataset].ncols, 20)
             .attr({fill: "#ffffff", stroke: "none", "fill-opacity": 0})
             .click(function(event) {
                 var coords = getCoords(event);
                 bodyrect.hide();
                 rowsrect.hide();
                 colsrect.remove();
-                papers["data_topleft"].bodyrect_show = false;
-                papers["data_topleft"].rowsrect_show = false;
-                papers["data_topleft"].colsrect_show = true;
+                papers["data_editor"]["topleft"].bodyrect_show = false;
+                papers["data_editor"]["topleft"].rowsrect_show = false;
+                papers["data_editor"]["topleft"].colsrect_show = true;
                 
-                colsrect = papers["data_colnames"].rect(70*(coords.mouseX + coords.Xshift) + 1, 1, 68, 18).attr({"stroke-width": 1.3});
-                papers["data_topleft"].colsrect = 70*(coords.mouseX + coords.Xshift) + 1;
+                colsrect = papers["data_editor"]["colnames"].rect(70*(coords.mouseX + coords.Xshift) + 1, 1, 68, 18).attr({"stroke-width": 1.3});
+                papers["data_editor"]["topleft"].colsrect = 70*(coords.mouseX + coords.Xshift) + 1;
+                if ($("#data_editor_dataset_border").length) {
+                    $("#data_editor_dataset_border").remove();
+                }
             })
             .dblclick(function(event) {
                 
                 var coords = getCoords(event);
                 colsrect.hide();
                 
-                temp = datainfo.colnames[coords.mouseX + coords.Xshift];
+                temp = info["data"][dataset].colnames[coords.mouseX + coords.Xshift];
                 
-                tobe = sat(papers["data_colnames"].text(0, 0, temp));
+                tobe = sat(papers["data_editor"]["colnames"].text(0, 0, temp));
                 
-                papers["data_colnames"].inlineTextEditing(tobe);
+                papers["data_editor"]["colnames"].inlineTextEditing(tobe);
                 
                 input = tobe.inlineTextEditing.startEditing(
                     70*coords.mouseX - coords.scrollX + 70, 
@@ -1446,7 +1995,7 @@ function update_data() {
                     if (temp != tocompare) {
                         
                         colclicks = changeCol(colclicks, temp, tocompare);
-                        datainfo.colnames[coords.mouseX + coords.Xshift] = tocompare;
+                        info["data"][dataset].colnames[coords.mouseX + coords.Xshift] = tocompare;
                         
                         dataModif.row = null;
                         dataModif.col = coords.mouseX + coords.Xshift + 1;
@@ -1454,27 +2003,27 @@ function update_data() {
                         
                         Shiny.onInputChange("dataModif", dataModif);
                         
-                        refresh_cols("exclude", "import");
+                        refresh_cols("all", exclude = ["import"]);
                         
                         console_command(current_command);
                         
                         if ($("#xyplot").length) {
                             
-                            if (xyplot.x == temp) {
-                                xyplot.x = tocompare;
+                            if (commobj.xyplot.x == temp) {
+                                commobj.xyplot.x = tocompare;
                             }
                             
-                            if (xyplot.y == temp) {
-                                xyplot.y = tocompare;
+                            if (commobj.xyplot.y == temp) {
+                                commobj.xyplot.y = tocompare;
                             }
                             
-                            draw_xyplot(papers["xyplot_main"]);
+                            draw_xyplot(papers["xyplot"]["main"]);
                         }
                         
-                        papers["data_colnames"].rect(70*(coords.mouseX + coords.Xshift), 0, 70, 20)
+                        papers["data_editor"]["colnames"].rect(70*(coords.mouseX + coords.Xshift), 0, 70, 20)
                         .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
                         
-                        sat(papers["data_colnames"].text(5 + 70*(coords.mouseX + coords.Xshift), 10, tocompare),
+                        sat(papers["data_editor"]["colnames"].text(5 + 70*(coords.mouseX + coords.Xshift), 10, tocompare),
                             {"clip": 70*(coords.mouseX + coords.Xshift) + ", 0, 68, 20"});
                         
                     }
@@ -1489,7 +2038,7 @@ function update_data() {
                 colsrect.toFront();
             });
             
-            var rownamescover = papers["data_rownames"].rect(0, 0, 70, 20*datainfo.nrows)
+            var rownamescover = papers["data_editor"]["rownames"].rect(0, 0, 70, 20*info["data"][dataset].nrows)
             .attr({fill: "#ffffff", stroke: "none", "fill-opacity": "0"})
             .click(function(event) {
                 var coords = getCoords(event);
@@ -1497,23 +2046,26 @@ function update_data() {
                 bodyrect.hide();
                 rowsrect.remove();
                 colsrect.hide();
-                papers["data_topleft"].bodyrect_show = false;
-                papers["data_topleft"].rowsrect_show = true;
-                papers["data_topleft"].colsrect_show = false;
+                papers["data_editor"]["topleft"].bodyrect_show = false;
+                papers["data_editor"]["topleft"].rowsrect_show = true;
+                papers["data_editor"]["topleft"].colsrect_show = false;
                 
-                rowsrect = papers["data_rownames"].rect(1, 20*(coords.mouseY + coords.Yshift) + 1, 68, 18).attr({"stroke-width": 1.3});  
-                papers["data_topleft"].rowsrect = 20*(coords.mouseY + coords.Yshift) + 1;
+                rowsrect = papers["data_editor"]["rownames"].rect(1, 20*(coords.mouseY + coords.Yshift) + 1, 68, 18).attr({"stroke-width": 1.3});  
+                papers["data_editor"]["topleft"].rowsrect = 20*(coords.mouseY + coords.Yshift) + 1;
+                if ($("#data_editor_dataset_border").length) {
+                    $("#data_editor_dataset_border").remove();
+                }
             })
             .dblclick(function(event) {
                 
                 var coords = getCoords(event);
                 rowsrect.hide();
                 
-                temp = datainfo.rownames[coords.mouseY + coords.Yshift];
+                temp = info["data"][dataset].rownames[coords.mouseY + coords.Yshift];
                 
-                tobe = sat(papers["data_rownames"].text(0, 0, temp));
+                tobe = sat(papers["data_editor"]["rownames"].text(0, 0, temp));
                 
-                papers["data_rownames"].inlineTextEditing(tobe);
+                papers["data_editor"]["rownames"].inlineTextEditing(tobe);
                 
                 input = tobe.inlineTextEditing.startEditing(
                     0,
@@ -1530,7 +2082,7 @@ function update_data() {
                     tocompare = tobe.attr("text");
                     
                     if (temp != tocompare) {
-                        datainfo.rownames[coords.mouseY + coords.Yshift] = tocompare;
+                        info["data"][dataset].rownames[coords.mouseY + coords.Yshift] = tocompare;
                         
                         dataModif.row = coords.mouseY + coords.Yshift + 1;
                         dataModif.col = null;
@@ -1541,14 +2093,14 @@ function update_data() {
                         if ($("#xyplot").length) {
                             if (xyplotdata.length > 0) {
                                 xyplotdata[0][xyplotdata[0].indexOf(temp)] = tocompare;
-                                draw_xyplot(papers["xyplot_main"]);
+                                draw_xyplot(papers["xyplot"]["main"]);
                             }
                         }
                         
-                        papers["data_rownames"].rect(0, 20*(coords.mouseY + coords.Yshift), 70, 20)
+                        papers["data_editor"]["rownames"].rect(0, 20*(coords.mouseY + coords.Yshift), 70, 20)
                         .attr({fill: "#f2f2f2", stroke: "#d7d7d7"});
                         
-                        sat(papers["data_rownames"].text(5, 10 + 20*(coords.mouseY + coords.Yshift), tocompare).toFront(),
+                        sat(papers["data_editor"]["rownames"].text(5, 10 + 20*(coords.mouseY + coords.Yshift), tocompare).toFront(),
                             {"clip": "0, " + 20*(coords.mouseY + coords.Yshift) + ", 68, 20"});
                         
                     }
@@ -1562,33 +2114,35 @@ function update_data() {
                 rowsrect.toFront();
             })
             
-            var datacover = papers["data_body"].rect(0, 0, 70*datainfo.ncols, 20*datainfo.nrows)
+            var datacover = papers["data_editor"]["body"].rect(0, 0, 70*info["data"][dataset].ncols, 20*info["data"][dataset].nrows)
             .attr({fill: "#aedaca", stroke: "none", "fill-opacity": 0})
             .click(function(event) {
                 var coords = getCoords(event);
                 bodyrect.remove();
                 rowsrect.hide();
                 colsrect.hide();
-                papers["data_topleft"].bodyrect_show = true;
-                papers["data_topleft"].rowsrect_show = false;
-                papers["data_topleft"].colsrect_show = false;
+                papers["data_editor"]["topleft"].bodyrect_show = true;
+                papers["data_editor"]["topleft"].rowsrect_show = false;
+                papers["data_editor"]["topleft"].colsrect_show = false;
                 
-                bodyrect = papers["data_body"].rect(70*(coords.mouseX + coords.Xshift) + 1, 20*(coords.mouseY + coords.Yshift) + 1, 68, 18)
+                bodyrect = papers["data_editor"]["body"].rect(70*(coords.mouseX + coords.Xshift) + 1, 20*(coords.mouseY + coords.Yshift) + 1, 68, 18)
                 .attr({"stroke-width": 1.3});
-                papers["data_topleft"].bodyrect[0] = 70*(coords.mouseX + coords.Xshift) + 1;
-                papers["data_topleft"].bodyrect[1] = 20*(coords.mouseY + coords.Yshift) + 1;
+                papers["data_editor"]["topleft"].bodyrect[0] = 70*(coords.mouseX + coords.Xshift) + 1;
+                papers["data_editor"]["topleft"].bodyrect[1] = 20*(coords.mouseY + coords.Yshift) + 1;
+                if ($("#data_editor_dataset_border").length) {
+                    $("#data_editor_dataset_border").remove();
+                }
             })  
             .dblclick(function(event) {
                 var coords = getCoords(event);
                 
                 bodyrect.hide();
-                
-                temp = "" + theData[coords.mX][coords.mY];
+                temp = "" + info["data"][dataset].theData[info["data"][dataset].colnames[coords.mX + coords.Xshift]][coords.mY];
                 temp = (temp == "null")?"":temp;
                 
-                tobe = sat(papers["data_body"].text(0, 0, temp));
+                tobe = sat(papers["data_editor"]["body"].text(0, 0, temp));
                 
-                papers["data_body"].inlineTextEditing(tobe);
+                papers["data_editor"]["body"].inlineTextEditing(tobe);
                 
                 input = tobe.inlineTextEditing.startEditing(
                     70*coords.mouseX - coords.scrollX + 70 + 1, 
@@ -1606,24 +2160,26 @@ function update_data() {
                             tocompare = 1*tocompare;
                         }
                         
-                        theData[coords.mX][coords.mY] = tocompare;
+                        info["data"][dataset].theData[info["data"][dataset].colnames[coords.mX + coords.Xshift]][coords.mY] = tocompare;
                         
                         dataModif.row = coords.mouseY + coords.Yshift + 1;
                         dataModif.col = coords.mouseX + coords.Xshift + 1;
                         dataModif.val = tocompare;
+                        dataModif.dataset = commobj["data_editor"].dataset;
                         
                         Shiny.onInputChange("dataModif", dataModif);
                         
-                        papers["data_body"].rect(70*(coords.mouseX + coords.Xshift), 20*(coords.mouseY + coords.Yshift), 70, 20)
+                        papers["data_editor"]["body"].rect(70*(coords.mouseX + coords.Xshift), 20*(coords.mouseY + coords.Yshift), 70, 20)
                         .attr({fill: "#ffffff", stroke: "none"});
                         
-                        sat(papers["data_body"].text(5 + 70*(coords.mouseX + coords.Xshift), 10 + 20*(coords.mouseY + coords.Yshift), tocompare));
+                        sat(papers["data_editor"]["body"].text(5 + 70*(coords.mouseX + coords.Xshift), 10 + 20*(coords.mouseY + coords.Yshift), tocompare));
                         
                         if ($("#calibrate").length) {
                             
                             updatecounter = 0;
-                            poinths.message = "noresponse";
+                            responseR = false;
                             thinfo.counter = 1 - thinfo.counter; 
+                            
                             Shiny.onInputChange("thinfo", thinfo);
                             doWhenDataPointsAreReturned();
                         }
@@ -1631,10 +2187,10 @@ function update_data() {
                         if ($("#xyplot").length) {
                             
                             updatecounter = 0;
-                            xyplot.counter += 1;
+                            commobj.xyplot.counter += 1;
                             lastvals = xyplotdata;
                             
-                            Shiny.onInputChange("xyplot", xyplot);
+                            Shiny.onInputChange("xyplot", commobj.xyplot);
                             doWhenXYplotPointsAreReturned();
                         }
                     }
@@ -1650,24 +2206,48 @@ function update_data() {
                 
             });
         }
+        else {
+            var colnamescover = papers["data_editor"]["colnames"].rect(0, 0, 70*(visiblecols + 1), 20)
+                .attr({fill: "#ffffff", stroke: "none", "fill-opacity": 0})
+                .click(function(event) {
+                    if ($("#data_editor_dataset_border").length) {
+                        $("#data_editor_dataset_border").remove();
+                    }
+                });
+            var rownamescover = papers["data_editor"]["rownames"].rect(0, 0, 70, 20*(visiblerows + 1))
+                .attr({fill: "#ffffff", stroke: "none", "fill-opacity": "0"})
+                .click(function(event) {
+                    if ($("#data_editor_dataset_border").length) {
+                        $("#data_editor_dataset_border").remove();
+                    }
+                });
+            var datacover = papers["data_editor"]["body"].rect(0, 0, 70*(visiblecols + 1), 20*(visiblerows + 1))
+                .attr({fill: "#aedaca", stroke: "none", "fill-opacity": 0})
+                .click(function(event) {
+                    if ($("#data_editor_dataset_border").length) {
+                        $("#data_editor_dataset_border").remove();
+                    }
+                });
+        }
         
         gridset.toFront();
-        if (theData != "" && datainfo.rownames != "error!") {
+        if (dataset != "") {
             datacover.toFront();
         }
         
-        if (papers["data_topleft"].rowsrect_show) {
-            rowsrect = papers["data_rownames"].rect(1, papers["data_topleft"].rowsrect, 68, 18).attr({"stroke-width": 1.3});
+        if (papers["data_editor"]["topleft"].rowsrect_show) {
+            rowsrect = papers["data_editor"]["rownames"].rect(1, papers["data_editor"]["topleft"].rowsrect, 68, 18).attr({"stroke-width": 1.3});
         }
         
-        if (papers["data_topleft"].colsrect_show) {
-            colsrect = papers["data_colnames"].rect(papers["data_topleft"].colsrect, 1, 68, 18).attr({"stroke-width": 1.3});
+        if (papers["data_editor"]["topleft"].colsrect_show) {
+            colsrect = papers["data_editor"]["colnames"].rect(papers["data_editor"]["topleft"].colsrect, 1, 68, 18).attr({"stroke-width": 1.3});
         }
         
-        if (papers["data_topleft"].bodyrect_show) {
-            bodyrect = papers["data_body"].rect(papers["data_topleft"].bodyrect[0], papers["data_topleft"].bodyrect[1], 68, 18).attr({"stroke-width": 1.3});
+        if (papers["data_editor"]["topleft"].bodyrect_show) {
+            bodyrect = papers["data_editor"]["body"].rect(papers["data_editor"]["topleft"].bodyrect[0], papers["data_editor"]["topleft"].bodyrect[1], 68, 18).attr({"stroke-width": 1.3});
         }
     }
+    
 }
 
 function refresh_dirs() {
@@ -1694,7 +2274,6 @@ function refresh_dirs() {
 }
 
 function draw_import(paper) {
-    
     paper.clear();
     
     var stx = 13;
@@ -1705,28 +2284,30 @@ function draw_import(paper) {
     var radios = paper.radio(stx + 11, sty + 40, 0, ["comma", "space", "tab", "other, please specify:"]);
     
     radios.cover[0].click(function() {
-        read_table.sep = ",";
-        Shiny.onInputChange("read_table", read_table);
+        commobj.read_table.sep = ",";
+        
         if (dirfile.filename != "") {
             console_command("import");
             tempdatainfo.nrows = 0;
+            Shiny.onInputChange("read_table", commobj.read_table);
             checkIfDataLoadedInR();
         }
     });
     
     radios.cover[1].click(function() {
-        read_table.sep = " ";
-        Shiny.onInputChange("read_table", read_table);
+        commobj.read_table.sep = " ";
+        
         if (dirfile.filename != "") {
             console_command("import");
             tempdatainfo.nrows = 0;
+            Shiny.onInputChange("read_table", commobj.read_table);
             checkIfDataLoadedInR();
         }
     });
     
     radios.cover[2].click(function() {
-        read_table.sep = "tab";
-        Shiny.onInputChange("read_table", read_table);
+        commobj.read_table.sep = "tab";
+        Shiny.onInputChange("read_table", commobj.read_table);
         if (dirfile.filename != "") {
             console_command("import");
             tempdatainfo.nrows = 0;
@@ -1735,11 +2316,12 @@ function draw_import(paper) {
     });
     
     radios.cover[3].click(function() {
-        read_table.sep = other.attr("text");
-        Shiny.onInputChange("read_table", read_table);
+        commobj.read_table.sep = other.attr("text");
+        
         if (dirfile.filename != "") {
             console_command("import");
             tempdatainfo.nrows = 0;
+            Shiny.onInputChange("read_table", commobj.read_table);
             checkIfDataLoadedInR();
         }
     });
@@ -1760,12 +2342,13 @@ function draw_import(paper) {
         input.addEventListener("blur", function() {
             other.inlineTextEditing.stopEditing(tasta);
             if (other.attr("text") != temp) {
-                read_table.sep = other.attr("text");
-                Shiny.onInputChange("read_table", read_table);
+                commobj.read_table.sep = other.attr("text");
+                
                 radios.moveTo(3);
                 if (dirfile.filename != "") {
                     console_command("import");
                     tempdatainfo.nrows = 0;
+                    Shiny.onInputChange("read_table", commobj.read_table);
                     checkIfDataLoadedInR();
                 }
             }
@@ -1789,38 +2372,42 @@ function draw_import(paper) {
     var decimal = paper.radio(stx + 150, sty + 40, 0, ["dot", "comma"]);
     
     decimal.cover[0].click(function() {
-        read_table.dec = ".";
-        Shiny.onInputChange("read_table", read_table);
+        commobj.read_table.dec = ".";
+        
         if (dirfile.filename != "") {
             console_command("import");
             tempdatainfo.nrows = 0;
+            Shiny.onInputChange("read_table", commobj.read_table);
             checkIfDataLoadedInR();
         }
     });
     
     decimal.cover[1].click(function() {
-        read_table.dec = ",";
-        Shiny.onInputChange("read_table", read_table);
+        commobj.read_table.dec = ",";
+        
         if (dirfile.filename != "") {
             console_command("import");
             tempdatainfo.nrows = 0;
+            Shiny.onInputChange("read_table", commobj.read_table);
             checkIfDataLoadedInR();
         }
     });
     
-    var header = paper.checkBox(stx + 5, sty + 142, read_table.header, "Column names in the file header");
+    var header = paper.checkBox(stx + 5, sty + 142, commobj.read_table.header, "Column names in the file header");
     header.cover.click(function() {
-        read_table.header = !header.isChecked;
-        Shiny.onInputChange("read_table", read_table);
+        commobj.read_table.header = header.isChecked;
+        
         if (dirfile.filename != "") {
+            console.log("header");
             console_command("import");
             tempdatainfo.nrows = 0;
+            Shiny.onInputChange("read_table", commobj.read_table);
             checkIfDataLoadedInR();
         }
     });
     
     var row_names = paper.rect(stx + 5, sty + 173, 70, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
-    row_names.text = sat(paper.text(stx + 10, sty + 183, read_table.row_names),
+    row_names.text = sat(paper.text(stx + 10, sty + 183, commobj.read_table.row_names),
                         {"clip": (stx + 5) + ", " + (sty + 173) + ", 68, 20"});
     
     sat(paper.text(stx + 80, sty + 175, "No./name of column"));
@@ -1842,9 +2429,9 @@ function draw_import(paper) {
             
             if (row_names.text.attr("text") != temp) {
             
-                read_table.row_names = row_names.text.attr("text");
+                commobj.read_table.row_names = row_names.text.attr("text");
                 
-                Shiny.onInputChange("read_table", read_table);
+                Shiny.onInputChange("read_table", commobj.read_table);
                 
                 if (dirfile.filename != "") {
                     console_command("import");
@@ -1860,7 +2447,7 @@ function draw_import(paper) {
     sat(paper.text(stx + 5, sty + 218, "Preview column names:"));
     
     sat(paper.text(stx + 251, sty + 15, "Directory:"));
-    paper.stdir_text = sat(paper.text(stx + 320, sty + 15, read_table.row_names),
+    paper.stdir_text = sat(paper.text(stx + 320, sty + 15, commobj.read_table.row_names),
                         {"clip": (stx + 315) + ", " + (sty + 5) + ", 337, 20"});
     
     paper.inlineTextEditing(paper.stdir_text);
@@ -1906,7 +2493,7 @@ function draw_import(paper) {
     
     sat(paper.text(stx + 595, sty + 378.5, "Import"));
     
-    import_open = paper.rect(stx + 577, sty + 366, 75, 25)
+    var import_open = paper.rect(stx + 577, sty + 366, 75, 25)
         .attr({"stroke-width": 1.25, fill: "#ffffff", "fill-opacity": 0})
         .click(function(e) {
             e.stopPropagation();
@@ -1914,46 +2501,20 @@ function draw_import(paper) {
             if (dirfile.filename != "" && tempdatainfo.rownames != "error!") {
                 dirfilist.refresh = false;
                 
-                var cr = {"£": "csv(", "§": "table(", "∞":" ", "≠": " "};
-                
-                history[(histindex < history.length)?history.length:histindex] = string_command.replace(/£|§|∞|≠/g, function(x) {return cr[x]});
-                histindex = history.length;
-                var header = strwrap(string_command, 74, "  ").replace(/£|§|∞|≠/g, function(x) {return cr[x]});
-                
-                $("#tempdiv").remove();
-                $("#result_main").append("<span style='color:#932192'>> </span><span style='color:blue'>" + header + "</span><br><br>");
-                
-                createCommandPromptInRconsole();
-                
                 function littleWait() {
                     updatecounter += 1;
                     
                     if (updatecounter < 101) { 
-                        
-                        if (datainfo.nrows > 0) {
-                            
-                            colclicks = new Array();
-                            refresh_cols("all");
-                            filldirexp();
-                            
-                            if (poinths.thvals.length > 0) {
-                                drawPointsAndThresholds();
-                            }
-                            
-                            if ($("#data_editor").length) {
-                                scrollvh = [0, 0, 16, 7];
-                                $("#data_body").scrollTop(0);
-                                $("#data_body").scrollLeft(0);
-                                print_data();
-                            }
-                            
-                            imported_filename = dirfile.filename;
-                            
-                            $("#import").remove();
-                            
-                            refresh_dirs();
+                        if (responseR) {
                             
                             updatecounter = 0; 
+                            printWhenOutputChanges(); 
+                            
+                            tempdatainfo.nrows = 0;
+                            $("#import").remove();
+                            
+                            refresh_dirs(); 
+                            
                         }
                         else {
                             setTimeout(littleWait, 50);
@@ -1961,13 +2522,14 @@ function draw_import(paper) {
                     }
                 }
                 
-                if (importobj != read_table) {
-                    importobj = copyObject(read_table);
+                if (commobj.importobj != commobj.read_table) {
+                    commobj.importobj = copyObject(commobj.read_table);
                 }
                 
-                datainfo.nrows = 0;
+                responseR = false;
                 updatecounter = 0;
-                Shiny.onInputChange("import", importobj);
+                
+                Shiny.onInputChange("import", commobj.importobj);
                 
                 littleWait();
                 
@@ -1987,47 +2549,58 @@ function draw_import(paper) {
             }
         })
     
-    import_open.obj = ["", ""];
-    import_open.value = 0;
-    
-    var fname = paper.checkBox(stx + 5, sty + 373, read_table.filename, "Name the R object");
-    fname.cover.click(function() {
+    var objname = paper.checkBox(stx + 1, sty + 373, commobj.read_table.nameit, "Assign");
+    objname.cover.click(function() {
         if (this.isChecked) {
-            fname.label[0].attr({"text": "Name of the R object:"});
-            read_table.filename = fnametext.attr("text");
-            fnameset.show();
+            objname.label[0].attr({"text": "Assign to:"});
+            if (paper.objnametext.attr("text") == "") {
+                commobj.read_table.customname = false;
+                paper.objnametext.attr({"text": dirfile.filename});
+            }
+            commobj.read_table.objname = paper.objnametext.attr("text");
+            commobj.read_table.nameit = true;
+            objnameset.show();
         }
         else {
-            fname.label[0].attr({"text": "Name the R object"});
-            read_table.filename = "";
-            fnameset.hide();
+            objname.label[0].attr({"text": "Assign"});
+            commobj.read_table.objname = "";
+            commobj.read_table.nameit = false;
+            objnameset.hide();
         }
         console_command("import");
     });
     
-    var fnameset = paper.set();
-    var fnametext = sat(paper.text(stx + 170, sty + 378, ""),
-                    {"clip": (stx + 165) + ", " + (sty + 368) + ", 250, 20"});
-    var fname_rect = paper.rect(stx + 165, sty + 368, 250, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
-    paper.inlineTextEditing(fnametext);
+    var objnameset = paper.set();
+    paper.objnametext = sat(paper.text(stx + 100, sty + 378, commobj.read_table.objname),
+                    {"clip": (stx + 95) + ", " + (sty + 368) + ", 250, 20"});
+    var objname_rect = paper.rect(stx + 95, sty + 368, 250, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
+    paper.inlineTextEditing(paper.objnametext);
     
-    fname_rect.click(function(e) {
+    objname_rect.click(function(e) {
         var me = this;
         e.stopPropagation();
-        var temp = fnametext.attr("text");
+        var temp = paper.objnametext.attr("text");
         ovBox = this.getBBox();
-        input = fnametext.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
+        input = paper.objnametext.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
         input.addEventListener("blur", function() {
-            fnametext.inlineTextEditing.stopEditing(tasta);
-            if (fnametext.attr("text") != temp) {
-                read_table.filename = fnametext.attr("text").replace(/[^A-Za-z0-9]/g, '');
-                if (isNumeric(read_table.filename[0])) {
-                    read_table.filename = "x" + read_table.filename;
+            paper.objnametext.inlineTextEditing.stopEditing(tasta);
+            if (paper.objnametext.attr("text") != temp) {
+                commobj.read_table.objname = paper.objnametext.attr("text").replace(/[^A-Za-z0-9]/g, '');
+                if (isNumeric(commobj.read_table.objname[0])) {
+                    commobj.read_table.objname = "x" + commobj.read_table.objname;
                 }
-                fnametext.attr({"text": read_table.filename});
-                if (dirfile.filename != "") {
-                    console_command("import");
+                paper.objnametext.attr({"text": commobj.read_table.objname});
+                
+                if (commobj.read_table.objname == "") {
+                    commobj.read_table.customname = false;
+                    paper.objnametext.attr({"text": dirfile.filename});
+                    commobj.read_table.objname = dirfile.filename;
                 }
+                else {
+                    commobj.read_table.customname = true;
+                }
+                
+                console_command("import");
             }
             me.toFront();
             
@@ -2035,9 +2608,18 @@ function draw_import(paper) {
         }, true);
     });
     
-    fnameset.push(fnametext, fname_rect);
-    fnameset.hide();
+    objnameset.push(paper.objnametext, objname_rect);
     
+    if (objname.isChecked) {
+        objname.label[0].attr({"text": "Assign to:"});
+        commobj.read_table.objname = paper.objnametext.attr("text");
+        objnameset.show();
+    }
+    else {
+        objnameset.hide();
+    }
+    
+    console_command("import");
     refresh_dirs();
 }
 
@@ -2049,28 +2631,28 @@ function draw_export(paper) {
         var stx = 13;
         var sty = 10;
     
-        sat(paper.text(stx + 5, sty + 15, "Separator:"));
+        sat(paper.text(stx + 5, sty + 10, "Separator:"));
         
-        var radios = paper.radio(stx + 11, sty + 40, 0, ["comma", "space", "tab", "other, please specify:"]);
+        var radios = paper.radio(stx + 11, sty + 35, 0, ["comma", "space", "tab", "other, please specify:"]);
         
         radios.cover[0].click(function() {
-            exportobj.sep = ",";
+            commobj["export"].sep = ",";
             console_command("export");
         });
         
         radios.cover[1].click(function() {
-            exportobj.sep = " ";
+            commobj["export"].sep = " ";
             console_command("export");
         });
         
         radios.cover[2].click(function() {
-            exportobj.sep = "tab";
+            commobj["export"].sep = "tab";
             console_command("export");
         });
         
-        var other = sat(paper.text(stx + 170, sty + 116, ""),
+        var other = sat(paper.text(stx + 170, sty + 111, ""),
                         {"clip": (stx + 165) + "," + (sty + 106) + ",35,20"});
-        var other_rect = paper.rect(stx + 165, sty + 106, 37, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
+        var other_rect = paper.rect(stx + 165, sty + 101, 37, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
         paper.inlineTextEditing(other);
         
         var other_clicked = false;
@@ -2083,7 +2665,7 @@ function draw_export(paper) {
             input.addEventListener("blur", function(e) {
                 other.inlineTextEditing.stopEditing(tasta);
                 
-                exportobj.sep = other.attr("text");
+                commobj["export"].sep = other.attr("text");
                 radios.moveTo(3);
                 
                 me.toFront();
@@ -2102,18 +2684,24 @@ function draw_export(paper) {
             this.attr({'cursor':''});
         });
         
-        var header = paper.checkBox(stx + 5, sty + 145, exportobj.header, "Write column names");
+        var header = paper.checkBox(stx + 5, sty + 140, commobj["export"].header, "Write column names");
         header.cover.click(function() {
-            exportobj.header = header.isChecked;
+            commobj["export"].header = header.isChecked;
             console_command("export");
+            if (header.isChecked) {
+                caseidset.show();
+            }
+            else {
+                caseidset.hide();
+            }
         });
         
         var caseidset = paper.set();
         
-        caseidset.push(sat(paper.text(stx + 25, sty + 180, "case id:")));
-        var caseid = sat(paper.text(stx + 110, sty + 180, exportobj.caseid),
-                         {"clip": (stx + 110) + ", " + (sty + 170) + ", 98, 20"});
-        var caseid_rect = paper.rect(stx + 105, sty + 170, 100, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
+        caseidset.push(sat(paper.text(stx + 30, sty + 170, "Cases ID:")));
+        var caseid = sat(paper.text(stx + 107, sty + 170, commobj["export"].caseid),
+                         {"clip": (stx + 107) + ", " + (sty + 160) + ", 98, 20"});
+        var caseid_rect = paper.rect(stx + 102, sty + 160, 100, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
         paper.inlineTextEditing(caseid);
         
         caseid_rect.click(function(e) {
@@ -2123,7 +2711,7 @@ function draw_export(paper) {
             input = caseid.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
             input.addEventListener("blur", function(e) {
                 caseid.inlineTextEditing.stopEditing(tasta);
-                exportobj.caseid = caseid.attr("text");
+                commobj["export"].caseid = caseid.attr("text");
                 console_command("export");
                 
                 me.toFront();
@@ -2134,15 +2722,13 @@ function draw_export(paper) {
         
         caseidset.push(caseid, caseid_rect);
         
+        sat(paper.text(stx + 5, sty + 198, "Dataset:"));
+        
         sat(paper.text(stx + 5, sty + 317, "New file:"));
         
-        if (exportobj.filename == "") {
-            exportobj.filename = ((read_table.filename != "")?read_table.filename:imported_filename) + ((dirfile.extension == "")?"":".") + dirfile.extension;
-        }
-        
-        paper.newname = sat(paper.text(stx + 74, sty + 318, exportobj.filename),
-                            {"clip": (stx + 69) + ", " + (sty + 308) + ", 448, 20"});
-        var newname_rect = paper.rect(stx + 69, sty + 308, 450, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
+        paper.newname = sat(paper.text(stx + 74, sty + 318, commobj["export"].filename),
+                            {"clip": (stx + 69) + ", " + (sty + 308) + ", 188, 20"});
+        var newname_rect = paper.rect(stx + 69, sty + 308, 190, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
         paper.inlineTextEditing(paper.newname);
         
         newname_rect.click(function(e) {
@@ -2153,9 +2739,9 @@ function draw_export(paper) {
             input.addEventListener("blur", function(e) {
                 paper.newname.inlineTextEditing.stopEditing(tasta);
                 
-                exportobj.filename = paper.newname.attr("text");
+                commobj["export"].filename = paper.newname.attr("text");
                 
-                if (dirfile.files.indexOf(exportobj.filename) >= 0) {
+                if (dirfile.files.indexOf(commobj["export"].filename) >= 0) {
                     paper.ovr.showIt();
                 }
                 else {
@@ -2170,22 +2756,22 @@ function draw_export(paper) {
             }, true);
         });
         
-        paper.ovr = paper.checkBox(stx + 70, sty + 287, 1, "Overwrite?");
+        paper.ovr = paper.checkBox(stx + 270, sty + 312, 1, "Overwrite?");
         paper.ovr.hideIt();
         
-        if (dirfile.files.indexOf(exportobj.filename) >= 0) {
+        if (dirfile.files.indexOf(commobj["export"].filename) >= 0) {
             paper.ovr.showIt();
         }
         
         paper.ovr.cover.click(function() {
             paper.newname.attr({"text": ""});
-            exportobj.filename = "";
+            commobj["export"].filename = "";
             paper.ovr.check();
             paper.ovr.hideIt();
             console_command("export");
         });
         
-        sat(paper.text(stx + 257, sty + 15, "Set working directory:"));
+        sat(paper.text(stx + 257, sty + 10, "Set working directory:"));
         
         sat(paper.text(stx + 570, sty + 318.5, "Export"));
         
@@ -2206,8 +2792,8 @@ function draw_export(paper) {
                 
                 createCommandPromptInRconsole();
                 
-                exportobj.counter += 1;
-                Shiny.onInputChange("exportobj", exportobj);
+                commobj["export"].counter += 1;
+                Shiny.onInputChange("exportobj", commobj["export"]);
                 
                 $("#export").remove();
             })
@@ -2227,131 +2813,120 @@ function draw_saveRplot(paper) {
         var sty = 10;
         
         if (plotopen) {
-            $("#preview").css({
+            $("#saveRplot_preview").css({
                 "background-image": "url('css/images/plot.svg?" + new Date().getTime() + "')", 
                 "background-size": "100% 100%"
             });
         }
         
-        var noplot = sat(paper.text(stx + 55, sty + 105, "No R plot window"));
+        var noplot = sat(paper.text(stx + 55, sty + 125, "No R plot window"));
+        var filetypes = ["PNG", "BMP", "JPEG", "TIFF", "SVG", "PDF"];
         
-        sat(paper.text(stx + 10, sty + 230, "Type:"));
-        var radios = paper.radio(stx + 60, sty + 230, 0,
-                                 ["PNG", "BMP", "JPEG", "TIFF", "SVG", "PDF"],
+        sat(paper.text(stx + 10, sty + 253, "Type:"));
+        var radios = paper.radio(stx + 60, sty + 253, 0, filetypes,
                                  vertspace = [0, 25, 50, 0, 25, 50], horspace = [0, 0, 0, 75, 75, 75]);
         
         radios.cover[0].click(function() {
-            saveRplot.type = "png";
-            if (saveRplot.filename !== "") {
-                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            commobj.saveRplot.type = "png";
+            if (commobj.saveRplot.filename !== "") {
+                paper.filename.text.attr({"text": commobj.saveRplot.filename + "." + commobj.saveRplot.type})
             }
-            
-            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
-                paper.ovr.showIt();
-            }
-            else {
-                paper.ovr.hideIt();
-            }
+            checkOvr();
         });
         
         radios.cover[1].click(function() {
-            saveRplot.type = "bmp";
-            if (saveRplot.filename !== "") {
-                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            commobj.saveRplot.type = "bmp";
+            if (commobj.saveRplot.filename !== "") {
+                paper.filename.text.attr({"text": commobj.saveRplot.filename + "." + commobj.saveRplot.type})
             }
-            
-            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
-                paper.ovr.showIt();
-            }
-            else {
-                paper.ovr.hideIt();
-            }
+            checkOvr();
         });
         
         radios.cover[2].click(function() {
-            saveRplot.type = "jpeg";
-            if (saveRplot.filename !== "") {
-                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            commobj.saveRplot.type = "jpeg";
+            if (commobj.saveRplot.filename !== "") {
+                paper.filename.text.attr({"text": commobj.saveRplot.filename + "." + commobj.saveRplot.type})
             }
-            
-            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
-                paper.ovr.showIt();
-            }
-            else {
-                paper.ovr.hideIt();
-            }
+            checkOvr();
         });
         
         radios.cover[3].click(function() {
-            saveRplot.type = "tiff";
-            if (saveRplot.filename !== "") {
-                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            commobj.saveRplot.type = "tiff";
+            if (commobj.saveRplot.filename !== "") {
+                paper.filename.text.attr({"text": commobj.saveRplot.filename + "." + commobj.saveRplot.type})
             }
-            
-            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
-                paper.ovr.showIt();
-            }
-            else {
-                paper.ovr.hideIt();
-            }
+            checkOvr();
         });
         
         radios.cover[4].click(function() {
-            saveRplot.type = "svg";
-            if (saveRplot.filename !== "") {
-                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            commobj.saveRplot.type = "svg";
+            if (commobj.saveRplot.filename !== "") {
+                paper.filename.text.attr({"text": commobj.saveRplot.filename + "." + commobj.saveRplot.type})
             }
-            
-            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
-                paper.ovr.showIt();
-            }
-            else {
-                paper.ovr.hideIt();
-            }
+            checkOvr();
         });
         
         radios.cover[5].click(function() {
-            saveRplot.type = "pdf";
-            if (saveRplot.filename !== "") {
-                paper.filename.attr({"text": saveRplot.filename + "." + saveRplot.type})
+            commobj.saveRplot.type = "pdf";
+            if (commobj.saveRplot.filename !== "") {
+                paper.filename.text.attr({"text": commobj.saveRplot.filename + "." + commobj.saveRplot.type})
             }
-            
-            if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+            checkOvr();
+        });
+        
+        var checkOvr = function() {
+            if (dirfile.files.indexOf(commobj.saveRplot.filename + "." + commobj.saveRplot.type) >= 0) {
                 paper.ovr.showIt();
             }
             else {
                 paper.ovr.hideIt();
             }
-        });
+        }
         
         sat(paper.text(stx, sty + 342, "File name:"));
         
-        paper.filename = sat(paper.text(stx + 74, sty + 343, saveRplot.filename),
-                            {"clip": (stx + 69) + ", " + (sty + 333) + ", 448, 20"});
-        var filename_rect = paper.rect(stx + 69, sty + 333, 450, 20, 3).attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"});
-        paper.inlineTextEditing(paper.filename);
+        var splitext = function(text) {
+            return(result = {
+                filename: (text.length > 1)?(copyArray(text).splice(0, text.length - 1).join(".")):(text[0]),
+                extension: (text.length > 1)?(text[text.length - 1]):("")
+            })
+        }
         
-        filename_rect.click(function(e) {
+        var filename = (commobj.saveRplot.filename == "")?"":(commobj.saveRplot.filename + "." + commobj.saveRplot.type);
+        
+        paper.filename = textbox(paper, {x: stx + 74, y: sty + 343, width: 155, height: 20, text: filename});
+        
+        paper.inlineTextEditing(paper.filename.text);
+        
+        paper.filename.rect.click(function(e) {
             e.stopPropagation();
             var me = this;
             ovBox = this.getBBox();
-            input = paper.filename.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
+            input = paper.filename.text.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
             input.addEventListener("blur", function(e) {
-                paper.filename.inlineTextEditing.stopEditing(tasta);
+                paper.filename.text.inlineTextEditing.stopEditing(tasta);
                 
-                var checkext = paper.filename.attr("text").split(".");
-                var filename = (checkext.length > 1)?(copyArray(checkext).splice(0, checkext.length - 1).join(".")):(checkext[0]);
-                var extension = (checkext.length > 1)?(checkext[checkext.length - 1]):("");
+                var checkext = splitext(paper.filename.text.attr("text").split("."));
+                var position = filetypes.indexOf(checkext.extension.toUpperCase());
                 
-                if (extension !== saveRplot.type) {
-                    saveRplot.filename = paper.filename.attr("text");
-                    paper.filename.attr({"text": paper.filename.attr("text") + "." + saveRplot.type});
+                if (checkext.extension !== commobj.saveRplot.type) {
+                    
+                    if (position >= 0) {
+                        radios.moveTo(position);
+                        commobj.saveRplot.filename = checkext.filename;
+                        commobj.saveRplot.type = checkext.extension.toLowerCase();
+                    }
+                    else {
+                        commobj.saveRplot.filename = paper.filename.text.attr("text");
+                        paper.filename.text.attr({"text": paper.filename.text.attr("text") + "." + commobj.saveRplot.type});
+                    }
                 }
                 else {
-                    saveRplot.filename = filename;
+                    commobj.saveRplot.filename = checkext.filename;
+                    commobj.saveRplot.type = checkext.extension.toLowerCase();
                 }
                 
-                if (dirfile.files.indexOf(saveRplot.filename + "." + saveRplot.type) >= 0) {
+                if (dirfile.files.indexOf(commobj.saveRplot.filename + "." + commobj.saveRplot.type) >= 0) {
                     paper.ovr.showIt();
                 }
                 else {
@@ -2364,22 +2939,17 @@ function draw_saveRplot(paper) {
             }, true);
         });
         
-        paper.ovr = paper.checkBox(stx + 70, sty + 312, 1, "Overwrite?");
-        paper.ovr.hideIt();
-        
-        if (dirfile.files.indexOf(saveRplot.filename) >= 0) {
-            paper.ovr.showIt();
-        }
+        paper.ovr = paper.checkBox(stx + 236, sty + 338, 1, "Overwrite?");
         
         paper.ovr.cover.click(function() {
-            paper.filename.attr({"text": ""});
-            saveRplot.filename = "";
+            paper.filename.text.attr({"text": ""});
+            commobj.saveRplot.filename = "";
             paper.ovr.check();
             paper.ovr.hideIt();
             
         });
         
-        sat(paper.text(stx + 257, sty + 15, "Set working directory:"));
+        sat(paper.text(stx + 257, sty + 17, "Set working directory:"));
         
         sat(paper.text(stx + 574, sty + 343.5, "Save"));
         
@@ -2388,9 +2958,9 @@ function draw_saveRplot(paper) {
             .click(function(e) {
                 e.stopPropagation();
                 
-                if (saveRplot.filename !== "" && plotopen) {
-                    saveRplot.counter += 1;
-                    Shiny.onInputChange("saveRplot", saveRplot);
+                if (commobj.saveRplot.filename !== "" && plotopen) {
+                    commobj.saveRplot.counter += 1;
+                    Shiny.onInputChange("saveRplot", commobj.saveRplot);
                     
                     $("#saveRplot").remove();
                     
@@ -2403,135 +2973,294 @@ function draw_saveRplot(paper) {
 
 }
 
-function refresh_cols(include, exclude) {
-    
-    var allwindows = ["import", "eqmcc", "tt", "calibrate", "recode", "xyplot"];
-    
-    if (include == "all") {
-        include = copyArray(allwindows);
-    }
-    else if (include == "exclude") {
+function refresh_cols(dialogs, exclude) {
+    if (dialogs == "all") {
         
-        include = copyArray(allwindows, allwindows.indexOf(exclude));
+        dialogs = ["import", "export", "eqmcc", "tt", "calibrate", "recode", "xyplot"];
+        if (exclude !== void 0) {
+            
+            dialogs = copyArray(dialogs, exclude);
+        }
     }
     else {
-        include = [include];
+        dialogs = [dialogs];
     }
     
-    for (var i = 0; i < include.length; i++) {
+    var datasets = [], tts = [];
+    if (info !== void 0) { 
+        if (info["data"] !== null) { 
+            datasets = getKeys(info["data"]);
+        }
         
-        if (include[i] == "import") {
+        if (info["tt"] !== null) {
+            tts = getKeys(info["tt"]);
+        }
+    }
+    
+    for (var i = 0; i < dialogs.length; i++) {
+        
+        if (dialogs[i] == "import") {
             if ($("#import").length) {
-                print_cols(papers["importcols"],
+                print_cols("import", "cols",
                            {
-                                "dialog": "import",
-                                "identifier": "importcols",
                                 "selection": "none",
                                 "cols": tempdatainfo.colnames,
                                 "selectable": ["all"] 
                            });
+                
+                if (tempdatainfo.colnames.length == 1) {
+                    papers["import"]["cols"].setSize(240, 20);
+                }
+                
             }
         }
         
-        if (include[i] == "eqmcc") {
+        if (dialogs[i] == "export") {
+            if ($("#export").length) {
+                if (datasets.length) {
+                    var cols = getKeys(info["data"]);
+                    if (cols.length == 1) {
+                        click_col(dialogs[i], "dataset", cols[0], others = false);
+                    }
+                    
+                    print_cols("export", "dataset",
+                               {
+                                    "selection": "single",
+                                    "cols": cols,
+                                    "selectable": ["all"]
+                               });
+                }
+                else {
+                    papers["export"]["dataset"].clear();
+                    $(papers["export"]["dataset"].canvas).height(0);
+                }
+            }
+        }
+        
+        if (dialogs[i] == "data_editor") {
+            if ($("#data_editor").length && datasets.length) {
+                print_cols("data_editor", "dataset",
+                           {
+                                "selection": "single",
+                                "cols": datasets,
+                                "selectable": ["all"]
+                           });
+            }
+        }
+        
+        if (dialogs[i] == "eqmcc") {
             if ($("#eqmcc").length) {
-                print_cols(papers["eqcols1"],
-                           {
-                                "dialog": "eqmcc",
-                                "identifier": "outcome",
-                                "selection": "multiple",
-                                "cols": datainfo.colnames,
-                                "selectable": ["all"]
-                           });
-                print_cols(papers["eqcols2"],
-                           {
-                                "dialog": "eqmcc",
-                                "identifier": "conditions",
-                                "selection": "multiple",
-                                "cols": datainfo.colnames,
-                                "selectable": ["all"]
-                           });
+                if (datasets.length || tts.length) {
+                    var cols = getKeys(info[commobj[dialogs[i]].source]);
+                    if (cols.length == 1) {
+                        click_col(dialogs[i], "dataset", cols[0], others = false);
+                    }
+                    
+                    print_cols("eqmcc", "dataset",
+                               {
+                                    "selection": "single",
+                                    "cols": cols,
+                                    "selectable": ["all"]
+                               });
+                    
+                    if (commobj[dialogs[i]].dataset !== "" && info[commobj[dialogs[i]].source] !== null) {
+                        cols = info[commobj[dialogs[i]].source][commobj[dialogs[i]].dataset].colnames;
+                        
+                        print_cols("eqmcc", "outcome",
+                               {
+                                    "selection": (commobj[dialogs[i]].source == "data")?"multiple":"none",
+                                    "cols": cols,
+                                    "selectable": ["numerics"]
+                               });
+                        print_cols("eqmcc", "conditions",
+                               {
+                                    "selection": (commobj[dialogs[i]].source == "data")?"multiple":"none",
+                                    "cols": cols,
+                                    "selectable": ["numerics"]
+                               });
+                        
+                    }
+                    else {
+                        papers["eqmcc"]["outcome"].clear();
+                        $(papers["eqmcc"]["outcome"].canvas).height(0);
+                        papers["eqmcc"]["conditions"].clear();
+                        $(papers["eqmcc"]["conditions"].canvas).height(0);
+                    }
+                }
+                else {
+                    papers["eqmcc"]["dataset"].clear();
+                    $(papers["eqmcc"]["dataset"].canvas).height(0);
+                    papers["eqmcc"]["outcome"].clear();
+                    $(papers["eqmcc"]["outcome"].canvas).height(0);
+                    papers["eqmcc"]["conditions"].clear();
+                    $(papers["eqmcc"]["conditions"].canvas).height(0);
+                }
             }
         }
         
-        if (include[i] == "tt") {
+        if (dialogs[i] == "tt") {
             if ($("#tt").length) {
-                print_cols(papers["ttcols1"],
-                           {
-                                "dialog": "tt",
-                                "identifier": "outcome",
-                                "selection": "single",
-                                "cols": datainfo.colnames,
-                                "selectable": ["all"]
-                           });
-                print_cols(papers["ttcols2"],
-                           {
-                                "dialog": "tt",
-                                "identifier": "conditions",
-                                "selection": "multiple",
-                                "cols": datainfo.colnames,
-                                "selectable": ["all"]
-                           });
+                if (datasets.length) {
+                    if (datasets.length == 1) {
+                        click_col(dialogs[i], "dataset", datasets[0]);
+                    }
+                    print_cols("tt", "dataset",
+                               {
+                                    "selection": "single",
+                                    "cols": datasets,
+                                    "selectable": ["all"]
+                               });
+                    if (commobj[dialogs[i]].dataset !== "") {
+                        print_cols("tt", "outcome",
+                                   {
+                                        "selection": "single",
+                                        "cols": info["data"][commobj[dialogs[i]].dataset].colnames,
+                                        "selectable": ["numerics"]
+                                   });
+                        print_cols("tt", "conditions",
+                                   {
+                                        "selection": "multiple",
+                                        "cols": info["data"][commobj[dialogs[i]].dataset].colnames,
+                                        "selectable": ["numerics"]
+                                   });
+                    }
+                    else {
+                        papers["tt"]["outcome"].clear();
+                        $(papers["tt"]["outcome"].canvas).height(0);
+                        papers["tt"]["conditions"].clear();
+                        $(papers["tt"]["conditions"].canvas).height(0);
+                    }
+                }
+                else {
+                    papers["tt"]["dataset"].clear();
+                    $(papers["tt"]["dataset"].canvas).height(0);
+                    papers["tt"]["outcome"].clear();
+                    $(papers["tt"]["outcome"].canvas).height(0);
+                    papers["tt"]["conditions"].clear();
+                    $(papers["tt"]["conditions"].canvas).height(0);
+                }
             }
         }
         
-        if (include[i] == "calibrate") {
+        if (dialogs[i] == "calibrate") {
             if ($("#calibrate").length) {
-                print_cols(papers["calibcols"],
+                if (datasets.length) {
+                    if (datasets.length == 1) {
+                        click_col(dialogs[i], "dataset", datasets[0]);
+                    }
+                    print_cols("calibrate", "dataset",
                            {
-                                "dialog": "calibrate",
-                                "identifier": "x",
                                 "selection": "single",
-                                "cols": datainfo.colnames,
-                                "selectable": ["numerics"],
-                                "numerics": datainfo.numerics
+                                "cols": datasets,
+                                "selectable": ["all"]
                            });
+                    if (commobj[dialogs[i]].dataset !== "") {
+                        print_cols("calibrate", "x",
+                           {
+                                "selection": "single",
+                                "cols": info["data"][commobj[dialogs[i]].dataset].colnames,
+                                "selectable": ["numerics"]
+                           });
+                    }
+                    else {
+                        papers["calibrate"]["x"].clear();
+                        $(papers["calibrate"]["x"].canvas).height(0);
+                    }
+                }
+                else {
+                    papers["calibrate"]["dataset"].clear();
+                    $(papers["calibrate"]["dataset"].canvas).height(0);
+                    papers["calibrate"]["x"].clear();
+                    $(papers["calibrate"]["x"].canvas).height(0);
+                }
             }
         }
         
-        if (include[i] == "recode") {
+        if (dialogs[i] == "recode") {
             if ($("#recode").length) {
-                print_cols(papers["recodecols"],
+                if (datasets.length) {
+                    if (datasets.length == 1) {
+                        click_col(dialogs[i], "dataset", datasets[0]);
+                    }
+                    print_cols("recode", "dataset",
                            {
-                                "dialog": "recode",
-                                "identifier": "x",
                                 "selection": "single",
-                                "cols": datainfo.colnames,
+                                "cols": datasets,
                                 "selectable": ["all"]
                            });
-                print_cols(papers["recrules"],
-                           {
-                                "dialog": "recode",
-                                "identifier": "rules",
-                                "selection": "multiple",
-                                "cols": makeRules(recode.oldv, recode.newv),
-                                "selectable": ["all"]
-                           });
+                    if (commobj[dialogs[i]].dataset !== "") {
+                        print_cols("recode", "x",
+                               {
+                                    "selection": "single",
+                                    "cols": info["data"][commobj[dialogs[i]].dataset].colnames,
+                                    "selectable": ["all"]
+                               });
+                        print_cols("recode", "rules",
+                               {
+                                    "selection": "multiple",
+                                    "cols": makeRules(commobj[dialogs[i]].oldv, commobj[dialogs[i]].newv),
+                                    "selectable": ["all"]
+                               });
+                    }
+                    else {
+                        papers["recode"]["x"].clear();
+                        $(papers["recode"]["x"].canvas).height(0);
+                    }
+                }
+                else {
+                    papers["recode"]["dataset"].clear();
+                    $(papers["recode"]["dataset"].canvas).height(0);
+                    papers["recode"]["x"].clear();
+                    $(papers["recode"]["x"].canvas).height(0);
+                }
             }
         }
         
-        if (include[i] == "xyplot") {
+        if (dialogs[i] == "xyplot") {
             if ($("#xyplot").length) {
-                print_cols(papers["xyplotcols1"],
-                           {
-                                "dialog": "xyplot",
-                                "identifier": "y",
-                                "selection": "single",
-                                "cols": datainfo.colnames,
-                                "selectable": ["numerics", "calibrated"],
-                                "numerics": datainfo.numerics,
-                                "calibrated": datainfo.calibrated
-                           });
-                print_cols(papers["xyplotcols2"],
-                           {
-                                "dialog": "xyplot",
-                                "identifier": "x",
-                                "selection": "single",
-                                "cols": datainfo.colnames,
-                                "selectable": ["numerics", "calibrated"],
-                                "numerics": datainfo.numerics,
-                                "calibrated": datainfo.calibrated
-                           });
+                if (datasets.length) {
+                    if (datasets.length == 1) {
+                        click_col(dialogs[i], "dataset", datasets[0]);
+                    }
+                    
+                    print_cols("xyplot", "dataset",
+                               {
+                                    "selection": "single",
+                                    "cols": datasets,
+                                    "selectable": ["all"]
+                               });
+                    
+                    if (commobj[dialogs[i]].dataset !== "") {
+                        print_cols("xyplot", "x",
+                                   {
+                                        "selection": "single",
+                                        "cols": info["data"][commobj["xyplot"].dataset].colnames,
+                                        "selectable": ["numerics", "calibrated"]
+                                   });
+                        print_cols("xyplot", "y",
+                                   {
+                                        "dialogs": "xyplot",
+                                        "identifier": "y",
+                                        "selection": "single",
+                                        "cols": info["data"][commobj["xyplot"].dataset].colnames,
+                                        "selectable": ["numerics", "calibrated"]
+                                   });
+                    }
+                    else {
+                        papers["xyplot"]["x"].clear();
+                        $(papers["xyplot"]["x"].canvas).height(0);
+                        papers["xyplot"]["y"].clear();
+                        $(papers["xyplot"]["y"].canvas).height(0);
+                    }
+                }
+                else {
+                    papers["xyplot"]["dataset"].clear();
+                    $(papers["xyplot"]["dataset"].canvas).height(0);
+                    papers["xyplot"]["x"].clear();
+                    $(papers["xyplot"]["x"].canvas).height(0);
+                    papers["xyplot"]["y"].clear();
+                    $(papers["xyplot"]["y"].canvas).height(0);
+                }
             }
         }
     }
@@ -2550,24 +3279,25 @@ if ($("#calibrate").length) {
     var thcovers = new Array(6);
     var increasing = false;
     
-    paper.thsetter_frame = paper.rect(152, 168.5, 320, 90).attr({stroke: "#d0d0d0"});
+    paper.thsetter_frame = paper.rect(152, 173.5, 320, 90).attr({stroke: "#d0d0d0"});
                                          
-    sat(paper.text(18, 24, "Choose condition:"));
+    sat(paper.text(18, 23, "Dataset:"));
+    sat(paper.text(18, 133, "Choose condition:"));
     
-    var stx = 153, sty = 27;
+    var stx = 153, sty = 32;
     
-    var crfuz = paper.radio(stx + 15, sty, 1*(calibrate.type == "fuzzy"), ["crisp", "fuzzy"]);
+    var crfuz = paper.radio(stx + 15, sty, 1*(commobj.calibrate.type == "fuzzy"), ["crisp", "fuzzy"]);
     
     crfuz.cover[0].click(function() {
         paper.crfuz = 0;
         changeLabels();
         
-        calibrate.thresholds = new Array(thinfo.nth);
-        calibrate.thnames = new Array(thinfo.nth);
+        commobj.calibrate.thresholds = new Array(thinfo.nth);
+        commobj.calibrate.thnames = new Array(thinfo.nth);
         
-        calibrate.thscopyfuz = new Array(6);
+        commobj.calibrate.thscopyfuz = new Array(6);
         for (var i = 0; i < 6; i++) {
-            calibrate.thscopyfuz[i] = ths[i].attr("text");
+            commobj.calibrate.thscopyfuz[i] = ths[i].attr("text");
             if (i > 0) {
                 thsets[i].hide();
             }
@@ -2575,16 +3305,16 @@ if ($("#calibrate").length) {
         }
         
         for (var i = 0; i < 3; i++) {
-            ths[i].attr({"text": calibrate.thscopycrp[i]});
+            ths[i].attr({"text": commobj.calibrate.thscopycrp[i]});
             if (i < thinfo.nth) {
-                calibrate.thresholds[i] = calibrate.thscopycrp[i];
-                calibrate.thnames[i] = "t" + i;
+                commobj.calibrate.thresholds[i] = commobj.calibrate.thscopycrp[i];
+                commobj.calibrate.thnames[i] = "t" + i;
             }
         }
         
         showCrisp();
         
-        calibrate.type = "crisp";
+        commobj.calibrate.type = "crisp";
         console_command("calibrate");
         drawPointsAndThresholds();
         
@@ -2594,28 +3324,28 @@ if ($("#calibrate").length) {
         paper.crfuz = 1;
         changeLabels();
         
-        calibrate.thresholds = new Array();
-        calibrate.thnames = new Array();
+        commobj.calibrate.thresholds = new Array();
+        commobj.calibrate.thnames = new Array();
         
         for (var i = 0; i < 3; i++) {
-            calibrate.thscopycrp[i] = ths[i].attr("text");
+            commobj.calibrate.thscopycrp[i] = ths[i].attr("text");
         }
         
         for (var i = 0; i < 6; i++) {
-            ths[i].attr({"text": calibrate.thscopyfuz[i]});
+            ths[i].attr({"text": commobj.calibrate.thscopyfuz[i]});
         }
         
-        calibrate.thresholds = new Array();
-        calibrate.thnames = new Array();
+        commobj.calibrate.thresholds = new Array();
+        commobj.calibrate.thnames = new Array();
         
         for (var i = 0; i < ((endmid.whichChecked == 0)?3:6); i++) {
-            calibrate.thresholds[i] = calibrate.thscopyfuz[i];
-            calibrate.thnames[i] = thlabels.sub(i) + ((endmid.whichChecked == 0)?"":((i < 3)?1:2));
+            commobj.calibrate.thresholds[i] = commobj.calibrate.thscopyfuz[i];
+            commobj.calibrate.thnames[i] = thlabels.sub(i) + ((endmid.whichChecked == 0)?"":((i < 3)?1:2));
         }
         
         showFuzzy();
         
-        calibrate.type = "fuzzy";
+        commobj.calibrate.type = "fuzzy";
         console_command("calibrate");
         
     });
@@ -2639,18 +3369,18 @@ if ($("#calibrate").length) {
             thinfo.nth = 3;
         }
         
-        calibrate.thresholds = new Array(thinfo.nth);
-        calibrate.thnames = new Array(thinfo.nth);
+        commobj.calibrate.thresholds = new Array(thinfo.nth);
+        commobj.calibrate.thnames = new Array(thinfo.nth);
         for (var i = 0; i < thinfo.nth; i++) {
-            calibrate.thresholds[i] = ths[i].attr("text");
-            calibrate.thnames[i] = thlabels.sub(i);
+            commobj.calibrate.thresholds[i] = ths[i].attr("text");
+            commobj.calibrate.thnames[i] = thlabels.sub(i);
         }
         
         showths();
         console_command("calibrate");
         
         if (findth.isChecked) {
-            poinths.message = "noresponse";
+            responseR = false;
             updatecounter = 0;
             Shiny.onInputChange("thinfo", thinfo);
             doWhenDataPointsAreReturned();
@@ -2666,18 +3396,18 @@ if ($("#calibrate").length) {
             thinfo.nth = 1;
         }
         
-        calibrate.thresholds = new Array(thinfo.nth);
-        calibrate.thnames = new Array(thinfo.nth);
+        commobj.calibrate.thresholds = new Array(thinfo.nth);
+        commobj.calibrate.thnames = new Array(thinfo.nth);
         for (var i = 0; i < thinfo.nth; i++) {
-            calibrate.thresholds[i] = ths[i].attr("text");
-            calibrate.thnames[i] = thlabels.sub(i);
+            commobj.calibrate.thresholds[i] = ths[i].attr("text");
+            commobj.calibrate.thnames[i] = thlabels.sub(i);
         }
         
         showths();
         console_command("calibrate");
         
         if (findth.isChecked) {
-            poinths.message = "noresponse";
+            responseR = false;
             updatecounter = 0;
             Shiny.onInputChange("thinfo", thinfo);
             doWhenDataPointsAreReturned();
@@ -2704,26 +3434,31 @@ if ($("#calibrate").length) {
         }
     }
     
-    var inclth = paper.checkBox(stx + 9, sty + 55, calibrate.include, "including thresholds");
+    var inclth = paper.checkBox(stx + 9, sty + 55, commobj.calibrate.include, "including thresholds");
     inclth.cover.click(function() {
-            calibrate.include = inclth.isChecked;
+            commobj.calibrate.include = inclth.isChecked;
             console_command("calibrate");
         });
     
-    var findth = paper.checkBox(stx + 9, sty + 80, calibrate.findth, "find thresholds");
+    var findth = paper.checkBox(stx + 9, sty + 80, commobj.calibrate.findth, "find thresholds");
     findth.cover.click(function() {
-        calibrate.findth = findth.isChecked;
+        commobj.calibrate.findth = findth.isChecked;
         
-        thinfo.th = findth.isChecked;
+        thinfo.findth = findth.isChecked;
         
         if (getKeys(colclicks).indexOf("calibrate") >= 0) {
             
-            calibrate.x[0] = getTrueKeys(colclicks.calibrate.x);
+            commobj.calibrate.x = getTrueKeys(colclicks.calibrate.x)[0];
+            if (commobj.calibrate.x === void 0) {
+                commobj.calibrate.x = "";
+            }
             
-            if (calibrate.findth && calibrate.x[0].length > 0) {
+            if (commobj.calibrate.findth && commobj.calibrate.x != "") {
                 thinfo.counter = 1 - thinfo.counter; 
                 updatecounter = 0;
-                poinths.message = "noresponse";
+                responseR = false;
+                thinfo.dataset = commobj.calibrate.dataset;
+                thinfo.condition = commobj.calibrate.x;
                 
                 Shiny.onInputChange("thinfo", thinfo);
                 doWhenDataPointsAreReturned();
@@ -2731,27 +3466,27 @@ if ($("#calibrate").length) {
         }
     });
     
-    var jitter = paper.checkBox(stx + 9, sty + 105, calibrate.findth, "jitter points");
+    var jitter = paper.checkBox(stx + 9, sty + 105, commobj.calibrate.jitter, "jitter points");
     jitter.cover.click(function() {
-        calibrate.jitter = jitter.isChecked;
+        commobj.calibrate.jitter = jitter.isChecked;
         
-        if (!calibrate.jitter) {
+        if (!commobj.calibrate.jitter) {
             thsetter_jitter = new Array();
         }
         
-        if (calibrate.x[0].length > 0) {
+        if (commobj.calibrate.x != "") {
             drawPointsAndThresholds();
         }
     });
     
-    var logistic = paper.checkBox(stx + 9, sty + 55, calibrate.logistic, "logistic");
+    var logistic = paper.checkBox(stx + 9, sty + 55, commobj.calibrate.logistic, "logistic");
     logistic.cover.click(function() {
-        calibrate.logistic = logistic.isChecked;
+        commobj.calibrate.logistic = logistic.isChecked;
         if (logistic.isChecked) {
             endmid.moveTo(0);
             idm.show();
             ecdf.uncheck();
-            calibrate.ecdf = false;
+            commobj.calibrate.ecdf = false;
             
             changeLabels();
         
@@ -2762,11 +3497,11 @@ if ($("#calibrate").length) {
             incdecshape3.show();
             
             changeLabels();
-            calibrate.thresholds = new Array();
-            calibrate.thnames = new Array();
+            commobj.calibrate.thresholds = new Array();
+            commobj.calibrate.thnames = new Array();
             for (var i = 0; i < 3; i++) {
-                calibrate.thresholds[i] = ths[i].attr("text");
-                calibrate.thnames[i] = thlabels.sub(i);
+                commobj.calibrate.thresholds[i] = ths[i].attr("text");
+                commobj.calibrate.thnames[i] = thlabels.sub(i);
             }
             
         }
@@ -2777,11 +3512,11 @@ if ($("#calibrate").length) {
         console_command("calibrate")
     });
     
-    var ecdf = paper.checkBox(stx + 9, sty + 80, calibrate.ecdf, "ecdf");
+    var ecdf = paper.checkBox(stx + 9, sty + 80, commobj.calibrate.ecdf, "ecdf");
     ecdf.cover.click(function() {
-        calibrate.ecdf = ecdf.isChecked;
+        commobj.calibrate.ecdf = ecdf.isChecked;
         
-        if (calibrate.ecdf) {
+        if (commobj.calibrate.ecdf) {
             endmid.moveTo(0);
             thsets[3].hide();
             thsets[4].hide();
@@ -2789,15 +3524,15 @@ if ($("#calibrate").length) {
             incdecshape6.hide();
             incdecshape3.show();
             logistic.uncheck();
-            calibrate.logistic = false;
+            commobj.calibrate.logistic = false;
             idm.hide();
             
             changeLabels();
-            calibrate.thresholds = new Array();
-            calibrate.thnames = new Array();
+            commobj.calibrate.thresholds = new Array();
+            commobj.calibrate.thnames = new Array();
             for (var i = 0; i < 3; i++) {
-                calibrate.thresholds[i] = ths[i].attr("text");
-                calibrate.thnames[i] = thlabels.sub(i);
+                commobj.calibrate.thresholds[i] = ths[i].attr("text");
+                commobj.calibrate.thnames[i] = thlabels.sub(i);
             }
         }
         
@@ -2808,7 +3543,7 @@ if ($("#calibrate").length) {
     var idm = paper.set();
     
     idm.push(sat(paper.text(stx + 92, sty + 38, "idm")));
-    var idmtext = sat(paper.text(stx + 85, sty + 60, calibrate.idm));
+    var idmtext = sat(paper.text(stx + 85, sty + 60, commobj.calibrate.idm));
     
     idm.push(idmtext);
     idm.push(sat(paper.rect(stx + 80, sty + 50, 50, 20, 3))
@@ -2820,7 +3555,7 @@ if ($("#calibrate").length) {
             input = idmtext.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
             input.addEventListener("blur", function(e) {
                 idmtext.inlineTextEditing.stopEditing(tasta);
-                calibrate.idm = idmtext.attr("text");
+                commobj.calibrate.idm = idmtext.attr("text");
                 me.toFront();
                 tasta = "enter";
                 console_command("calibrate");
@@ -2828,18 +3563,18 @@ if ($("#calibrate").length) {
         }));
     paper.inlineTextEditing(idmtext);
     
-    var incdec = paper.radio(stx + 15, sty + 130, 1 - calibrate.increasing, ["increasing", "decreasing"]);
+    var incdec = paper.radio(stx + 15, sty + 130, 1 - commobj.calibrate.increasing, ["increasing", "decreasing"]);
     
     incdec.cover[0].click(function() {
         
-        calibrate.increasing = true;
+        commobj.calibrate.increasing = true;
         
         changeLabels();
-        calibrate.thresholds = new Array();
-        calibrate.thnames = new Array();
+        commobj.calibrate.thresholds = new Array();
+        commobj.calibrate.thnames = new Array();
         for (var i = 0; i < ((endmid.whichChecked == 0)?3:6); i++) {
-            calibrate.thresholds[i] = ths[i].attr("text");
-            calibrate.thnames[i] = thlabels.sub(i) + ((endmid.whichChecked == 0)?"":((i < 3)?1:2));
+            commobj.calibrate.thresholds[i] = ths[i].attr("text");
+            commobj.calibrate.thnames[i] = thlabels.sub(i) + ((endmid.whichChecked == 0)?"":((i < 3)?1:2));
         }
         
         console_command("calibrate");
@@ -2847,25 +3582,25 @@ if ($("#calibrate").length) {
     
     incdec.cover[1].click(function() {
         
-        calibrate.increasing = false;
+        commobj.calibrate.increasing = false;
             
         changeLabels();
-        calibrate.thresholds = new Array();
-        calibrate.thnames = new Array();
+        commobj.calibrate.thresholds = new Array();
+        commobj.calibrate.thnames = new Array();
         for (var i = 0; i < ((endmid.whichChecked == 0)?3:6); i++) {
-            calibrate.thresholds[i] = ths[i].attr("text");
-            calibrate.thnames[i] = thlabels.sub(i) + ((endmid.whichChecked == 0)?"":((i < 3)?1:2))
+            commobj.calibrate.thresholds[i] = ths[i].attr("text");
+            commobj.calibrate.thnames[i] = thlabels.sub(i) + ((endmid.whichChecked == 0)?"":((i < 3)?1:2))
         }
         
         console_command("calibrate");
     });
     
-    var endmid = paper.radio(stx + 15, sty + 195, 1 - calibrate.end, ["s-shaped", "bell-shaped"]);
+    var endmid = paper.radio(stx + 15, sty + 195, 1 - commobj.calibrate.end, ["s-shaped", "bell-shaped"]);
     
     endmid.cover[0].click(function() {
         copyThs.show();
         copytext2.hide();
-        calibrate.end = true;
+        commobj.calibrate.end = true;
         
         logistic.showIt();
         if (logistic.isChecked) {
@@ -2880,11 +3615,11 @@ if ($("#calibrate").length) {
         incdecshape3.show();
         
         changeLabels();
-        calibrate.thresholds = new Array();
-        calibrate.thnames = new Array();
+        commobj.calibrate.thresholds = new Array();
+        commobj.calibrate.thnames = new Array();
         for (var i = 0; i < 3; i++) {
-            calibrate.thresholds[i] = ths[i].attr("text");
-            calibrate.thnames[i] = thlabels.sub(i);
+            commobj.calibrate.thresholds[i] = ths[i].attr("text");
+            commobj.calibrate.thnames[i] = thlabels.sub(i);
         }
         
         console_command("calibrate");
@@ -2892,7 +3627,7 @@ if ($("#calibrate").length) {
     
     endmid.cover[1].click(function() {
         copyThs.hide();
-        calibrate.end = false;
+        commobj.calibrate.end = false;
         
         logistic.hideIt();
         
@@ -2906,11 +3641,11 @@ if ($("#calibrate").length) {
         incdecshape3.hide();
         
         changeLabels();
-        calibrate.thresholds = new Array();
-        calibrate.thnames = new Array();
+        commobj.calibrate.thresholds = new Array();
+        commobj.calibrate.thnames = new Array();
         for (var i = 0; i < 6; i++) {
-            calibrate.thresholds[i] = ths[i].attr("text");
-            calibrate.thnames[i] = thlabels.sub(i) + ((i < 3)?1:2);
+            commobj.calibrate.thresholds[i] = ths[i].attr("text");
+            commobj.calibrate.thnames[i] = thlabels.sub(i) + ((i < 3)?1:2);
         }
         
         console_command("calibrate");
@@ -2988,13 +3723,13 @@ if ($("#calibrate").length) {
     }
     
     stx = 410;
-    sty = 45;
+    sty = 50;
     
     var thtitle = sat(paper.text(stx - 13, sty - 15, "Thresholds:"));
     
     for (var i = 0; i < 6; i++) {
         
-        ths[i] = sat(paper.text(stx + 15, sty + 10 + i*25, (calibrate.type == "crisp")?calibrate.thscopycrp[i]:calibrate.thscopyfuz[i]),
+        ths[i] = sat(paper.text(stx + 15, sty + 10 + i*25, (commobj.calibrate.type == "crisp")?commobj.calibrate.thscopycrp[i]:commobj.calibrate.thscopyfuz[i]),
                      {"clip": (stx + 10) + "," + (sty + i*25) + ", 47, 20"});
         thlabels[i] = sat(paper.text(stx, sty + 10 + i*25, thlabelscrp[i%3]), {"anchor": "end"});
         thcovers[i] = sat(paper.rect(stx + 10, sty + i*25, 50, 20, 3));
@@ -3015,7 +3750,7 @@ if ($("#calibrate").length) {
                 tobe.inlineTextEditing.stopEditing(tasta);
                 if (temp != tobe.attr("text")) {
                     findth.uncheck();
-                    calibrate.findth = false;
+                    commobj.calibrate.findth = false;
                     
                     var finaltext = tobe.attr("text");
                     if ($.isNumeric(finaltext)) { 
@@ -3037,21 +3772,21 @@ if ($("#calibrate").length) {
                     
                     ths[this.i].attr({"text": finaltext});
                     
-                    calibrate.thresholds[this.i] = finaltext;
+                    commobj.calibrate.thresholds[this.i] = finaltext;
                     
                     if (crfuz.whichChecked == 0) { 
-                        calibrate.thscopycrp[this.i] = finaltext;
+                        commobj.calibrate.thscopycrp[this.i] = finaltext;
                         drawPointsAndThresholds();
                     }
                     else { 
-                        calibrate.thscopyfuz[this.i] = finaltext;
+                        commobj.calibrate.thscopyfuz[this.i] = finaltext;
                     }
                     
                     if (endmid.whichChecked == 1) {
-                        calibrate.thnames[this.i] = thlabels.sub(this.i) + ((this.i < 3)?1:2);
+                        commobj.calibrate.thnames[this.i] = thlabels.sub(this.i) + ((this.i < 3)?1:2);
                     }
                     else {
-                        calibrate.thnames[this.i] = thlabels.sub(this.i);
+                        commobj.calibrate.thnames[this.i] = thlabels.sub(this.i);
                     }
                     
                     console_command("calibrate");
@@ -3090,7 +3825,7 @@ if ($("#calibrate").length) {
             input = avalue.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
             input.addEventListener("blur", function(e) {
                 avalue.inlineTextEditing.stopEditing(tasta);
-                calibrate.above = avalue.attr("text");
+                commobj.calibrate.above = avalue.attr("text");
                 me.toFront();
                 tasta = "enter";
                 console_command("calibrate");
@@ -3106,7 +3841,7 @@ if ($("#calibrate").length) {
             input = bvalue.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
             input.addEventListener("blur", function(e) {
                 bvalue.inlineTextEditing.stopEditing(tasta);
-                calibrate.below = bvalue.attr("text");
+                commobj.calibrate.below = bvalue.attr("text");
                 me.toFront();
                 tasta = "enter";
                 console_command("calibrate");
@@ -3123,18 +3858,18 @@ if ($("#calibrate").length) {
              for (var i = 0; i < 3; i++) {
                  if (crfuz.whichChecked == 0) {
                      
-                     calibrate.thscopycrp[i] = calibrate.thscopyfuz[i];
-                     ths[i].attr({"text": calibrate.thscopyfuz[i]});
+                     commobj.calibrate.thscopycrp[i] = commobj.calibrate.thscopyfuz[i];
+                     ths[i].attr({"text": commobj.calibrate.thscopyfuz[i]});
                      
                      if (i < thinfo.nth) {
-                         calibrate.thresholds[i] = calibrate.thscopyfuz[i];
+                         commobj.calibrate.thresholds[i] = commobj.calibrate.thscopyfuz[i];
                      }
                  }
                  else {
                      
-                     calibrate.thscopyfuz[i] = calibrate.thscopycrp[i];
-                     ths[i].attr({"text": calibrate.thscopycrp[i]});
-                     calibrate.thresholds[i] = calibrate.thscopycrp[i];
+                     commobj.calibrate.thscopyfuz[i] = commobj.calibrate.thscopycrp[i];
+                     ths[i].attr({"text": commobj.calibrate.thscopycrp[i]});
+                     commobj.calibrate.thresholds[i] = commobj.calibrate.thscopycrp[i];
                  }
              }
              
@@ -3229,10 +3964,10 @@ if ($("#calibrate").length) {
         abset.show();
     }
     
-    if (calibrate.type == "crisp") {
+    if (commobj.calibrate.type == "crisp") {
         showCrisp();
         
-        if (calibrate.thsetter) {
+        if (commobj.calibrate.thsetter) {
             thsetter_content.show();
         }
         else {
@@ -3245,17 +3980,17 @@ if ($("#calibrate").length) {
     
     changeLabels();
     
-    stx = 13, sty = 260;
+    stx = 13, sty = 265;
     
-    var newcond = paper.checkBox(stx + 3, sty + 20, !calibrate.same, "into new condition");
+    var newcond = paper.checkBox(stx + 3, sty + 25, !commobj.calibrate.same, "into new condition");
     
     newcond.label[0].remove();
     newcond.label = new Array(2);
-    newcond.label[0] = sat(paper.text(stx + 27, sty + 18, "calibrate into"));
-    newcond.label[1] = sat(paper.text(stx + 27, sty + 33, "new condition"));
+    newcond.label[0] = sat(paper.text(stx + 27, sty + 23, "calibrate into"));
+    newcond.label[1] = sat(paper.text(stx + 27, sty + 38, "new condition"));
     
     newcond.cover.click(function() {
-        calibrate.same = !newcond.isChecked;
+        commobj.calibrate.same = !newcond.isChecked;
         
         if (newcond.isChecked) {
             newname.show();
@@ -3269,13 +4004,12 @@ if ($("#calibrate").length) {
     
     var newname = paper.set();
     
-    newname.push(sat(paper.text(stx + 139, sty + 25, "new name:")));
-    var newnametext = sat(paper.text(stx + 220, sty + 25, calibrate.newvar),
-                          {"clip": (stx + 215) + "," + (sty + 16) + ", 79, 20"});
+    var newnametext = sat(paper.text(stx + 130, sty + 30, commobj.calibrate.newvar),
+                          {"clip": (stx + 125) + "," + (sty + 21) + ", 147, 20"});
     
     newname.push(newnametext);
     
-    newname.push(sat(paper.rect(stx + 215, sty + 15, 80, 20, 3))
+    newname.push(sat(paper.rect(stx + 125, sty + 20, 150, 20, 3))
         .click(function(e) {
             var me = this;
             e.stopPropagation();
@@ -3284,7 +4018,13 @@ if ($("#calibrate").length) {
             input = newnametext.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
             input.addEventListener("blur", function(e) {
                 newnametext.inlineTextEditing.stopEditing(tasta);
-                calibrate.newvar = newnametext.attr("text");
+                commobj.calibrate.newvar = newnametext.attr("text");
+                
+                if (isNumeric(commobj.calibrate.newvar[0])) {
+                    commobj.calibrate.newvar = "x" + commobj.calibrate.newvar;
+                }
+                newnametext.attr({"text": commobj.calibrate.newvar});
+                
                 me.toFront();
                 tasta = "enter";
                 console_command("calibrate");
@@ -3292,7 +4032,7 @@ if ($("#calibrate").length) {
         }));
     paper.inlineTextEditing(newnametext);
     
-    if (calibrate.same) {
+    if (commobj.calibrate.same) {
         newname.hide();
     }
     
@@ -3302,46 +4042,59 @@ if ($("#calibrate").length) {
     .attr({fill: "white", "fill-opacity": 0, 'stroke-width': 1.25})
     .click(function() {
         
-        if (datainfo.rownames != "") {
+        if (info["data"][commobj["calibrate"].dataset].rownames != "") {
+            
             var fuzcheck = true;
             
-            if (calibrate.type == "fuzzy") {
-                if (calibrate.logistic) {
+            if (commobj.calibrate.type == "fuzzy") {
+                if (commobj.calibrate.logistic) {
                     
-                    if (calibrate.idm == "") {
+                    if (commobj.calibrate.idm == "") {
                         fuzcheck = false;
                     }
                     else {
                         
-                        fuzcheck = fuzcheck && !isNaN(calibrate.idm);
+                        fuzcheck = fuzcheck && !isNaN(commobj.calibrate.idm);
                     }
                 }
                 
-                if (calibrate.below == "" || calibrate.above == "") {
+                if (commobj.calibrate.below == "" || commobj.calibrate.above == "") {
                     fuzcheck = false;
                 }
                 else {
                     
-                    fuzcheck = fuzcheck && !isNaN(calibrate.below) && !isNaN(calibrate.above)
+                    fuzcheck = fuzcheck && !isNaN(commobj.calibrate.below) && !isNaN(commobj.calibrate.above)
                 }
             }
             
-            calibrate.x[0] = getTrueKeys(colclicks.calibrate.x)[0];
+            commobj.calibrate.x = getTrueKeys(colclicks.calibrate.x)[0];
+            if (commobj.calibrate.x === void 0) {
+                commobj.calibrate.x = "";
+            }
             
-            if (calibrate.x[0] != "" && fuzcheck) {
+            if (commobj.calibrate.x != "" && fuzcheck) {
                 
-                calibrate.counter += 1;
+                commobj.calibrate.counter += 1;
                 
-                outres[0] = "listen2R";
-                calibrate.scrollvh = scrollvh;
+                outres = new Array();
+                responseR = false;
                 
-                Shiny.onInputChange("calibrate", calibrate);
+                commobj.calibrate.scrollvh = {};
+                commobj.calibrate.scrollvh[commobj["calibrate"].dataset] = info["data"][commobj["calibrate"].dataset].scrollvh;
+                
+                Shiny.onInputChange("calibrate", commobj.calibrate);
                 
                 updatecounter = 0;
                 doWhenRresponds();
             }
         }
     }));
+    
+    if (getKeys(colclicks).indexOf("calibrate") >= 0) {
+        if (commobj.calibrate.findth && commobj.calibrate.x != "") {
+            drawPointsAndThresholds();
+        }
+    }
     
 } 
 } 
@@ -3356,59 +4109,62 @@ if ($("#recode").length) {
     
     var stx = 13, sty = 10;
     
-    sat(paper.text(stx + 5, sty + 14, "Choose condition:"), {"text": 0});
+    sat(paper.text(stx + 5, sty + 13, "Dataset:"), {"text": 0});
+    sat(paper.text(stx + 5, sty + 123, "Choose condition:"), {"text": 0});
     
-    paper.newcond = paper.checkBox(stx + 3, sty + 250, !recode.same, "into new condition");
+    paper.newcond = paper.checkBox(stx + 1, sty + 280, !commobj.recode.same, "into new condition");
     
     paper.newcond.label[0].remove();
     paper.newcond.label = new Array(2);
-    paper.newcond.label[0] = sat(paper.text(stx + 27, sty + 248, "recode into"), {"text": 0});
-    paper.newcond.label[1] = sat(paper.text(stx + 27, sty + 263, "new condition"), {"text": 0});
+    paper.newcond.label[0] = sat(paper.text(stx + 25, sty + 278, "recode into"), {"text": 0});
+    paper.newcond.label[1] = sat(paper.text(stx + 25, sty + 293, "new condition"), {"text": 0});
     
     paper.newcond.cover.click(function() {
-        recode.same = !paper.newcond.isChecked;
+        commobj.recode.same = !paper.newcond.isChecked;
         
         if (paper.newcond.isChecked) {
-            paper.newname.show();
+            paper.newnameset.show();
         }
         else {
-            paper.newname.hide();
+            paper.newnameset.hide();
         }
         
         console_command("recode");
         
     });
     
-    paper.newname = paper.set();
+    paper.newnameset = paper.set();
+    paper.newname_TB = textbox(paper, {x: stx + 128, y: sty + 285, width: 150, height: 20, text: commobj.recode.newvar});
+    paper.inlineTextEditing(paper.newname_TB.text);
     
-    paper.newname.push(sat(paper.text(stx + 139, sty + 255, "new name:")));
-    paper.newnametext = sat(paper.text(stx + 220, sty + 255, recode.newvar),
-                           {"clip": (stx + 215) + "," + (sty + 246) + ", 79, 20"});
+    paper.newname_TB.rect.click(function(e) {
+        var me = this;
+        e.stopPropagation();
+        var temp = paper.newname_TB.text.attr("text");
+        ovBox = this.getBBox();
+        input = paper.newname_TB.text.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
+        input.addEventListener("blur", function() {
+            paper.newname_TB.text.inlineTextEditing.stopEditing(tasta);
+            commobj.recode.newvar = paper.newname_TB.text.attr("text");
+            
+            if (isNumeric(commobj.recode.newvar[0])) {
+                commobj.recode.newvar = "x" + commobj.recode.newvar;
+            }
+            paper.newname_TB.text.attr({"text": commobj.recode.newvar});
+            
+            me.toFront();
+            tasta = "enter";
+            console_command("recode");
+        }, true);
+    });
     
-    paper.newname.push(paper.newnametext);
-    
-    paper.newname.push(paper.rect(stx + 215, sty + 245, 80, 20, 3)
-        .attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
-        .click(function(e) {
-            e.stopPropagation();
-            var me = this;
-            var BBox = this.getBBox();
-            input = paper.newnametext.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
-            input.addEventListener("blur", function(e) {
-                paper.newnametext.inlineTextEditing.stopEditing(tasta);
-                recode.newvar = paper.newnametext.attr("text");
-                me.toFront();
-                tasta = "enter";
-                console_command("recode");
-            });
-        }));
-    paper.inlineTextEditing(paper.newnametext);
-    
-    if (recode.same) {
-        paper.newname.hide();
+    paper.newnameset.push(paper.newname_TB.text, paper.newname_TB.rect);
+        
+    if (commobj.recode.same) {
+        paper.newnameset.hide();
     }
     
-    var stx = 163, sty = 24, vertspace = 34.5;
+    var stx = 163, sty = 24, vertspace = 38;
     
     paper.oldv = new Array();
     paper.newv = new Array();
@@ -3422,8 +4178,8 @@ if ($("#recode").length) {
     
     paper.oldradio = paper.radio(stx, sty + vertspace, -1, [
             "value",
-            "\u00a0 \u00a0 \u00a0 \u00a0 \u00a0 \u00a0 to",
             "lowest to",
+            "\u00a0 \u00a0 \u00a0 \u00a0 \u00a0 \u00a0 to",
             "\u00a0 \u00a0 \u00a0 \u00a0 \u00a0 \u00a0 to highest",
             "missing",
             "all other values"
@@ -3434,12 +4190,12 @@ if ($("#recode").length) {
     });
     
     paper.oldradio.cover[1].click(function() {
-        paper.rules.oldv[0] = paper.oldv.texts.range.FROM.attr("text");
-        paper.rules.oldv[1] = paper.oldv.texts.range.TO.attr("text");
+        paper.rules.oldv = paper.oldv.texts.LOWESTTO.attr("text");
     });
     
     paper.oldradio.cover[2].click(function() {
-        paper.rules.oldv = paper.oldv.texts.LOWESTTO.attr("text");
+        paper.rules.oldv[0] = paper.oldv.texts.range.FROM.attr("text");
+        paper.rules.oldv[1] = paper.oldv.texts.range.TO.attr("text");
     });
     
     paper.oldradio.cover[3].click(function() {
@@ -3471,14 +4227,31 @@ if ($("#recode").length) {
     });
     paper.inlineTextEditing(paper.oldv.texts.VALUE);
     
+    paper.oldv.texts.LOWESTTO = paper.text(stx + 85, sty + 2*vertspace, "");
+    paper.oldv.covers.LOWESTTO = paper.rect(stx + 80, sty + 2*vertspace - 10, 40, 20, 3)
+    .click(function(e) {
+        e.stopPropagation();
+        var me = this;
+        paper.oldradio.moveTo(1);
+        var BBox = this.getBBox();
+        input = paper.oldv.texts.LOWESTTO.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
+        input.addEventListener("blur", function(e) {
+            paper.oldv.texts.LOWESTTO.inlineTextEditing.stopEditing(tasta);
+            paper.rules.oldv = paper.oldv.texts.LOWESTTO.attr("text");
+            me.toFront();
+            tasta = "enter";
+        });
+    });
+    paper.inlineTextEditing(paper.oldv.texts.LOWESTTO);
+    
     paper.oldv.texts.range = new Array();
     paper.oldv.covers.range = new Array();
     
-    paper.oldv.texts.range.FROM  = paper.text(stx + 19, sty + 2*vertspace, "");
-    paper.oldv.covers.range.FROM = paper.rect(stx + 14, sty + 2*vertspace - 10, 40, 20, 3)
+    paper.oldv.texts.range.FROM  = paper.text(stx + 19, sty + 3*vertspace, "");
+    paper.oldv.covers.range.FROM = paper.rect(stx + 14, sty + 3*vertspace - 10, 40, 20, 3)
     .click(function(e) {
         e.stopPropagation();
-        paper.oldradio.moveTo(1);
+        paper.oldradio.moveTo(2);
         paper.rules.oldv = new Array(2);
         paper.rules.oldv[0] = paper.oldv.texts.range.FROM.attr("text");
         paper.rules.oldv[1] = paper.oldv.texts.range.TO.attr("text");
@@ -3492,12 +4265,12 @@ if ($("#recode").length) {
     });
     paper.inlineTextEditing(paper.oldv.texts.range.FROM);
     
-    paper.oldv.texts.range.TO = paper.text(stx + 85, sty + 2*vertspace, "");
-    paper.oldv.covers.range.TO = paper.rect(stx + 80, sty + 2*vertspace - 10, 40, 20, 3)
+    paper.oldv.texts.range.TO = paper.text(stx + 85, sty + 3*vertspace, "");
+    paper.oldv.covers.range.TO = paper.rect(stx + 80, sty + 3*vertspace - 10, 40, 20, 3)
     .click(function(e) {
         e.stopPropagation();
         var me = this;
-        paper.oldradio.moveTo(1);
+        paper.oldradio.moveTo(2);
         paper.rules.oldv = new Array(2);
         paper.rules.oldv[0] = paper.oldv.texts.range.FROM.attr("text");
         paper.rules.oldv[1] = paper.oldv.texts.range.TO.attr("text");
@@ -3511,23 +4284,6 @@ if ($("#recode").length) {
         });
     });
     paper.inlineTextEditing(paper.oldv.texts.range.TO);
-    
-    paper.oldv.texts.LOWESTTO = paper.text(stx + 85, sty + 3*vertspace, "");
-    paper.oldv.covers.LOWESTTO = paper.rect(stx + 80, sty + 3*vertspace - 10, 40, 20, 3)
-    .click(function(e) {
-        e.stopPropagation();
-        var me = this;
-        paper.oldradio.moveTo(2);
-        var BBox = this.getBBox();
-        input = paper.oldv.texts.LOWESTTO.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
-        input.addEventListener("blur", function(e) {
-            paper.oldv.texts.LOWESTTO.inlineTextEditing.stopEditing(tasta);
-            paper.rules.oldv = paper.oldv.texts.LOWESTTO.attr("text");
-            me.toFront();
-            tasta = "enter";
-        });
-    });
-    paper.inlineTextEditing(paper.oldv.texts.LOWESTTO);
     
     paper.oldv.texts.TOHIGHEST = paper.text(stx + 19, sty + 4*vertspace, "");
     paper.oldv.covers.TOHIGHEST = paper.rect(stx + 14, sty + 4*vertspace - 10, 40, 20, 3)
@@ -3551,7 +4307,7 @@ if ($("#recode").length) {
     
     paper.path([ 
         ["M", stx + 140, sty + 15],
-        ["L", stx + 140, sty + 215]
+        ["L", stx + 140, sty + 240]
     ]).attr({stroke: "#a0a0a0"});
     
     paper.newradio = paper.radio(stx + 180, sty + vertspace, -1, [
@@ -3593,12 +4349,11 @@ if ($("#recode").length) {
     sat(paper.newv.texts, {"clip": paper.newv.covers});
     sat(paper.newv.covers);
     
-    paper.rect(stx + 159.5, sty + 151, 1, 6);
-    paper.rect(stx + 157, sty + 153.5, 6, 1);
+    sat(paper.text(stx + 177, sty + 142, "Add"), {size: 12});
+    sat(paper.text(stx + 225, sty + 142, "Remove"), {size: 12});
+    sat(paper.text(stx + 293, sty + 142, "Clear"), {size: 12});
     
-    paper.rect(stx + 157, sty + 173.5, 6, 1);
-    
-    sat(paper.rect(stx + 153, sty + 147, 14, 14), {"sw": 1.2}) 
+    sat(paper.rect(stx + 163, sty + 132, 50, 20), {"sw": 1})
     .click(function() {
         
         var rule;
@@ -3606,10 +4361,10 @@ if ($("#recode").length) {
         if (all(paper.rules.oldv, " != \"\"") && paper.rules.newv != "") {
             
             if (paper.oldradio.whichChecked == 1) { 
-                rule = paper.rules.oldv[0] + ":" + paper.rules.oldv[1];
+                rule = "lo:" + paper.rules.oldv;
             }
             else if (paper.oldradio.whichChecked == 2) {
-                rule = "lo:" + paper.rules.oldv;
+                rule = paper.rules.oldv[0] + ":" + paper.rules.oldv[1];
             }
             else if (paper.oldradio.whichChecked == 3) {
                 rule = paper.rules.oldv + ":hi";
@@ -3618,17 +4373,17 @@ if ($("#recode").length) {
                 rule = paper.rules.oldv;
             }
             
-            var idx = recode.oldv.indexOf(rule);
+            var idx = commobj.recode.oldv.indexOf(rule);
             if (idx >= 0) {
-                recode.newv[idx] = paper.rules.newv;
+                commobj.recode.newv[idx] = paper.rules.newv;
                 var selected = getTrueKeys(colclicks.recode.rules);
                 if (selected.length > 0) {
                     changeRule(colclicks, selected, rule + "=" + paper.rules.newv);
                 }
             }
             else {
-                recode.oldv.push(rule);
-                recode.newv.push(paper.rules.newv);
+                commobj.recode.oldv.push(rule);
+                commobj.recode.newv.push(paper.rules.newv);
             }
             
             if (colclicks.recode.rules != void 0) {
@@ -3637,12 +4392,12 @@ if ($("#recode").length) {
             
             eraseRecodeValues(paper);
             
-            print_cols(papers["recrules"],
+            print_cols("recode", "rules",
                        {
                             "dialog": "recode",
                             "identifier": "rules",
                             "selection": "multiple",
-                            "cols": makeRules(recode.oldv, recode.newv),
+                            "cols": makeRules(commobj.recode.oldv, commobj.recode.newv),
                             "selectable": ["all"]
                        });
         }
@@ -3650,29 +4405,29 @@ if ($("#recode").length) {
         console_command("recode");
     });
     
-    sat(paper.rect(stx + 153, sty + 167, 14, 14), {"sw": 1.2}) 
+    sat(paper.rect(stx + 218, sty + 132, 60, 20), {"sw": 1})
     .click(function() {
             
         var selected = getTrueKeys(colclicks.recode.rules);
         
         for (var i = 0; i < selected.length; i++) {
-            var idx = recode.oldv.indexOf(selected[i].split("=")[0]);
-            recode.oldv.splice(idx, 1);
-            recode.newv.splice(idx, 1);
+            var idx = commobj.recode.oldv.indexOf(selected[i].split("=")[0]);
+            commobj.recode.oldv.splice(idx, 1);
+            commobj.recode.newv.splice(idx, 1);
             
             deleteRule(colclicks, selected[i]);
         }
         
-        papers["recrules"].clear();
+        papers["recode"]["rules"].clear();
         eraseRecodeValues(paper);
         
-        if (recode.oldv.length > 0) {
-            print_cols(papers["recrules"],
+        if (commobj.recode.oldv.length > 0) {
+            print_cols("recode", "rules",
                        {
                             "dialog": "recode",
                             "identifier": "rules",
                             "selection": "multiple",
-                            "cols": makeRules(recode.oldv, recode.newv),
+                            "cols": makeRules(commobj.recode.oldv, commobj.recode.newv),
                             "selectable": ["all"]
                        });
         }
@@ -3681,22 +4436,36 @@ if ($("#recode").length) {
         
     });
     
-    sat(paper.text(455, 265, "Run"));
-    paper.rect(455 - 20, 265 - 13, 70, 25).attr({fill: "white", "fill-opacity": 0, 'stroke-width': 1.25})
+    sat(paper.rect(stx + 283, sty + 132, 50, 20), {"sw": 1})
+    .click(function() {
+        papers["recode"]["rules"].clear();
+        eraseRecodeValues(paper);
+        commobj.recode.oldv = new Array();
+        commobj.recode.newv = new Array();
+        console_command("recode");
+    });
+    
+    sat(paper.text(445, 295, "Run"));
+    paper.rect(445 - 20, 295 - 13, 70, 25).attr({fill: "white", "fill-opacity": 0, 'stroke-width': 1.25})
          .click(function() {
-             if (datainfo.rownames != "") {
-                 recode.x = getTrueKeys(colclicks.recode.x)[0];
-                 if (recode.x == void 0) {
-                     recode.x = "";
+             if (info["data"][commobj["recode"].dataset].rownames != "") {
+                 commobj.recode.x = getTrueKeys(colclicks.recode.x)[0];
+                 if (commobj.recode.x === void 0) {
+                     commobj.recode.x = "";
                  }
                  
-                 if (recode.x != "" && recode.newv.length > 0) {
-                     recode.counter = 1 - recode.counter;
+                 if (commobj.recode.x != "" && commobj.recode.newv.length > 0) {
+                     commobj.recode.counter = 1 - commobj.recode.counter;
                      
-                     outres[0] = "listen2R";
-                     recode.scrollvh = scrollvh;
+                     outres = new Array();
+                     responseR = false;
                      
-                     Shiny.onInputChange("recode", recode);
+                     commobj.recode.scrollvh = {};
+                     commobj.recode.scrollvh[commobj["recode"].dataset] = info["data"][commobj["recode"].dataset].scrollvh;
+                     
+                     console.log(commobj.recode);
+                     
+                     Shiny.onInputChange("recode", commobj.recode);
                      
                      updatecounter = 0;
                      doWhenRresponds();
@@ -3739,8 +4508,9 @@ if ($("#xyplot").length) {
     
     var stx = 13, sty = 10;
     
-    sat(paper.text(stx, sty + 14 , "Condition X:"));
-    sat(paper.text(stx, sty + 170, "Outcome Y:"));
+    sat(paper.text(stx, sty + 10, "Dataset:"));
+    sat(paper.text(stx, sty + 125, "Condition X:"));
+    sat(paper.text(stx, sty + 240, "Outcome Y:"));
     
     paper.scale = scale;
     paper.sx = 230;
@@ -3749,41 +4519,41 @@ if ($("#xyplot").length) {
     paper.offset = 8;
     paper.rdim = paper.dim - 2*paper.offset;
     
-    paper.negx = paper.checkBox(stx + 89, sty + 9, xyplot.negx, "negate");
-    paper.negy = paper.checkBox(stx + 89, sty + 165, xyplot.negy, "negate");
+    paper.negx = paper.checkBox(stx + 89, sty + 120, commobj.xyplot.negx, "negate");
+    paper.negy = paper.checkBox(stx + 89, sty + 235, commobj.xyplot.negy, "negate");
     paper.index = 0;
     var powersof2 = 2;
     
     paper.negy.cover.click(function() {
-        xyplot.negy = this.isChecked;
+        commobj.xyplot.negy = this.isChecked;
         powersof2 = Math.pow(2, (this.isChecked)?3:0) + Math.pow(2, (paper.negx.isChecked)?2:0);
         paper.index = [2, 5, 9, 12].indexOf(powersof2);
-        paper.x = xyplot.x;
-        paper.y = xyplot.y;
+        paper.x = commobj.xyplot.x;
+        paper.y = commobj.xyplot.y;
         scaleplot(paper);
         createLabels(paper);
     });
     
     paper.negx.cover.click(function() {
-        xyplot.negx = this.isChecked;
+        commobj.xyplot.negx = this.isChecked;
         powersof2 = Math.pow(2, (paper.negy.isChecked)?3:0) + Math.pow(2, (this.isChecked)?2:0);
         paper.index = [2, 5, 9, 12].indexOf(powersof2);
-        paper.x = xyplot.x;
-        paper.y = xyplot.y;
+        paper.x = commobj.xyplot.x;
+        paper.y = commobj.xyplot.y;
         scaleplot(paper);
         createLabels(paper);
     });
     
-    paper.sufnec = paper.radio(stx + 7, sty + 325, ["sufficiency", "necessity"].indexOf(xyplot.sufnec), ["sufficiency", "necessity"]);
+    paper.sufnec = paper.radio(stx + 7, sty + 355, ["sufficiency", "necessity"].indexOf(commobj.xyplot.sufnec), ["sufficiency", "necessity"]);
     
-    paper.pof = paper.checkBox(stx + 1, sty + 375, xyplot.pof, "parameters of fit");
-    paper.mdguides = paper.checkBox(stx + 1, sty + 400, xyplot.mdguides, "show middle guides");
-    paper.fill = paper.checkBox(stx + 1, sty + 425, xyplot.fill, "fill points");
-    paper.jitter = paper.checkBox(stx + 1, sty + 450, xyplot.jitter, "jitter points");
-    paper.labels = paper.checkBox(stx + 1, sty + 475, xyplot.labels, "show case labels");
+    paper.pof = paper.checkBox(stx + 1, sty + 405, commobj.xyplot.pof, "parameters of fit");
+    paper.mdguides = paper.checkBox(stx + 1, sty + 430, commobj.xyplot.mdguides, "show middle guides");
+    paper.fill = paper.checkBox(stx + 1, sty + 455, commobj.xyplot.fill, "fill");
+    paper.jitter = paper.checkBox(stx + 50, sty + 455, commobj.xyplot.jitter, "jitter points");
+    paper.labels = paper.checkBox(stx + 1, sty + 480, commobj.xyplot.labels, "show case labels");
     
     paper.sufnec.cover[0].click(function() {
-        xyplot.sufnec = "sufficiency";
+        commobj.xyplot.sufnec = "sufficiency";
         if (xyplotdata.length > 0) {
             paper.incl.attr({"text": ("Inclusion: " + xyplotdata[3][paper.index][0])});
             paper.cov.attr({"text": ("Coverage: " + xyplotdata[3][paper.index][1])});
@@ -3794,7 +4564,7 @@ if ($("#xyplot").length) {
     });
     
     paper.sufnec.cover[1].click(function() {
-        xyplot.sufnec = "necessity";
+        commobj.xyplot.sufnec = "necessity";
         if (xyplotdata.length > 0) {
             paper.incl.attr({"text": ("Inclusion: " + xyplotdata[4][paper.index][0])});
             paper.cov.attr({"text": ("Coverage: " + xyplotdata[4][paper.index][1])});
@@ -3813,16 +4583,16 @@ if ($("#xyplot").length) {
     paper.measures.push(paper.incl, paper.cov, paper.PRI, paper.ron);
     paper.measures.hide();
     
-    if (xyplot.pof && xyplotdata.length > 0) {
+    if (commobj.xyplot.pof && xyplotdata.length > 0) {
         paper.measures.show();
-        if (xyplot.sufnec == "sufficiency") {
+        if (commobj.xyplot.sufnec == "sufficiency") {
             paper.ron.hide();
         }
     }
     
     paper.mdguides.cover.click(function() {
-        xyplot.mdguides = paper.mdguides.isChecked;
-        if (xyplot.mdguides) {
+        commobj.xyplot.mdguides = paper.mdguides.isChecked;
+        if (commobj.xyplot.mdguides) {
             paper.mdlines.show();
         }
         else {
@@ -3832,7 +4602,7 @@ if ($("#xyplot").length) {
     });
     
     paper.jitter.cover.click(function() {
-        xyplot.jitter = this.isChecked;
+        commobj.xyplot.jitter = this.isChecked;
         if (paper.xyplotdata.length > 0) {
             paper.randomjitter.x = new Array(paper.xyplotdata[0].length);
             paper.randomjitter.y = new Array(paper.xyplotdata[0].length);
@@ -3854,8 +4624,8 @@ if ($("#xyplot").length) {
     });
     
     paper.fill.cover.click(function() {
-        xyplot.fill = paper.fill.isChecked;
-        if (xyplot.fill) {
+        commobj.xyplot.fill = paper.fill.isChecked;
+        if (commobj.xyplot.fill) {
             paper.pointsset.attr({"fill-opacity": 1});
         }
         else {
@@ -3865,10 +4635,10 @@ if ($("#xyplot").length) {
     });    
     
     paper.pof.cover.click(function() {
-        xyplot.pof = this.isChecked;
-        if (xyplot.pof && xyplotdata.length > 0) {
+        commobj.xyplot.pof = this.isChecked;
+        if (commobj.xyplot.pof && xyplotdata.length > 0) {
             paper.measures.show();
-            if (xyplot.sufnec == "sufficiency") {
+            if (commobj.xyplot.sufnec == "sufficiency") {
                 paper.ron.hide();
             }
         }
@@ -3879,8 +4649,8 @@ if ($("#xyplot").length) {
     });
     
     paper.labels.cover.click(function() {
-        xyplot.labels = paper.labels.isChecked;
-        if (xyplot.labels) {
+        commobj.xyplot.labels = paper.labels.isChecked;
+        if (commobj.xyplot.labels) {
             paper.labelsset.show();
             paper.thsetter.show();
         }
@@ -3891,10 +4661,10 @@ if ($("#xyplot").length) {
     });
     
     paper.thsetter = paper.set();
-    paper.thsetter.push(sat(paper.text(stx + 20, sty + 505, "rotate")));
-    paper.thsetter.push(paper.path("M" + (stx + 70) + "," + (sty + 505) + "L" + (stx + 145) + "," + (sty + 505)));
+    paper.thsetter.push(sat(paper.text(stx + 20, sty + 510, "rotate")));
+    paper.thsetter.push(paper.path("M" + (stx + 70) + "," + (sty + 510) + "L" + (stx + 145) + "," + (sty + 510)));
     
-    paper.th = paper.path("M" + (stx + 70 + paper.labelRotation) + "," + (sty + 505) + "L" + (stx + 70 + paper.labelRotation - 5) + "," + (sty + 512) + "L" + (stx + 70 + paper.labelRotation + 5) + "," + (sty + 512) + "L" + (stx + 70 + paper.labelRotation) + "," + (sty + 505)).attr({"stroke-width": 1.5, fill: "#cb2626", stroke: "#cb2626"});
+    paper.th = paper.path("M" + (stx + 70 + paper.labelRotation) + "," + (sty + 510) + "L" + (stx + 70 + paper.labelRotation - 5) + "," + (sty + 517) + "L" + (stx + 70 + paper.labelRotation + 5) + "," + (sty + 517) + "L" + (stx + 70 + paper.labelRotation) + "," + (sty + 510)).attr({"stroke-width": 1.5, fill: "#cb2626", stroke: "#cb2626"});
     paper.th.min = 0; 
     paper.th.max = 45; 
     paper.th.left = stx + 70;
@@ -3905,15 +4675,15 @@ if ($("#xyplot").length) {
     
     paper.labelsset = paper.set();
     
-    if (!xyplot.labels) {
+    if (!commobj.xyplot.labels) {
         paper.labelsset.hide();
         paper.thsetter.hide();
     }
     
     paper.labelsArray = new Array();
     
-    paper.x = xyplot.x;
-    paper.y = xyplot.y;
+    paper.x = commobj.xyplot.x;
+    paper.y = commobj.xyplot.y;
     scaleplot(paper);
     createLabels(paper);
     
@@ -3942,7 +4712,7 @@ function draw_venn(paper) {
                 ycoord = BBox.y + 20;
             }
             
-            txt = papers["venn_main"].paragraph({
+            txt = papers["venn"]["main"].paragraph({
                 x: xcoord,
                 y: ycoord,
                 maxWidth: 200,
@@ -3957,7 +4727,7 @@ function draw_venn(paper) {
             
             var BBox2 = txt.getBBox();
             
-            txtfundal = papers["venn_main"].rect(xcoord - BBox2.width/2, ycoord - 1, BBox2.width + 10, BBox2.height + 5);
+            txtfundal = papers["venn"]["main"].rect(xcoord - BBox2.width/2, ycoord - 1, BBox2.width + 10, BBox2.height + 5);
             txtfundal.attr({fill: "#c9c9c9", "fill-opacity": 0.8, stroke: "none"});
             txt.toFront();
             txtfundal.translate(BBox2.width/2 - 5, -10);
@@ -4324,33 +5094,34 @@ function draw_tt(paper) {
     
         paper.clear();
         
-        paper.text(13, 18, "Outcome:").attr({"text-anchor": "start", "font-size": "14px"});
-        paper.text(233, 18, "Conditions:").attr({"text-anchor": "start", "font-size": "14px"});
+        sat(paper.text(19, 17, "Dataset:"));
+        sat(paper.text(167, 17, "Outcome:"));
+        sat(paper.text(315, 17, "Conditions:"));
         
         var stx = 14;
         var sty = 175;
         
-        var neg_out = paper.checkBox(stx, sty + 25 - 14, tt.neg_out, "negate outcome");
+        var neg_out = paper.checkBox(stx, sty + 25 - 14, commobj.tt.neg_out, "negate outcome");
         neg_out.cover.click(function() {
-            tt.neg_out = neg_out.isChecked;
+            commobj.tt.neg_out = neg_out.isChecked;
             console_command("tt");
         });
         
-        var complete = paper.checkBox(stx, sty + 50 - 14, tt.complete, "complete");
+        var complete = paper.checkBox(stx, sty + 50 - 14, commobj.tt.complete, "complete");
         complete.cover.click(function() {
-            tt.complete = complete.isChecked;
+            commobj.tt.complete = complete.isChecked;
             console_command("tt");
         });
         
-        var show_cases = paper.checkBox(stx, sty + 75 - 14, tt.show_cases, "show cases");
+        var show_cases = paper.checkBox(stx, sty + 75 - 14, commobj.tt.show_cases, "show cases");
         show_cases.cover.click(function() {
-            tt.show_cases = show_cases.isChecked;
+            commobj.tt.show_cases = show_cases.isChecked;
             console_command("tt");
         });
         
-        var use_letters = paper.checkBox(stx, sty + 100 - 14, tt.use_letters, "use letters");
+        var use_letters = paper.checkBox(stx, sty + 100 - 14, commobj.tt.use_letters, "use letters");
         use_letters.cover.click(function() {
-            tt.use_letters = use_letters.isChecked;
+            commobj.tt.use_letters = use_letters.isChecked;
             console_command("tt");
         });
         
@@ -4368,7 +5139,7 @@ function draw_tt(paper) {
         paper.coordsy = new Array(3);
         paper.sortsets = new Array(3);
         
-        var keys = getKeys(tt.sort_by);
+        var keys = getKeys(commobj.tt.sort_by);
         var sortbyoptions = {"out": "outcome", "incl": "inclusion", "n": "frequency"};
         
         for (var i = 0; i < 3; i++) {
@@ -4378,10 +5149,10 @@ function draw_tt(paper) {
             paper.coordsy[i] = sty + 20 + i*25;
             
             paper.rects[i] = paper.rect(stx + 154, paper.coordsy[i], 74, 24);
-            paper.rects[i].backcolor = tt.sort_sel[keys[i]];
+            paper.rects[i].backcolor = commobj.tt.sort_sel[keys[i]];
             paper.texts[i] = sat(paper.text(stx + 160, sty + 31 + i*25, sortbyoptions[keys[i]]));
             
-            if (tt.sort_sel[keys[i]]) {
+            if (commobj.tt.sort_sel[keys[i]]) {
                 paper.rects[i].attr({fill: "#79a74c", stroke: "none"});
                 paper.texts[i].attr({fill: "white", "text-anchor": "start", "font-size": "14px"});
             }
@@ -4404,14 +5175,14 @@ function draw_tt(paper) {
             
             paper.sortsets[i].push(paper.rects[3 + i]);
             
-            paper.decrease[i] = paper.checkBox(stx + 248, paper.coordsy[i] + 5, tt.sort_by[keys[i]], "");
+            paper.decrease[i] = paper.checkBox(stx + 248, paper.coordsy[i] + 5, commobj.tt.sort_by[keys[i]], "");
             paper.decrease[i].cover.name = keys[i];
             paper.decrease[i].cover.click(function() {
-                tt.sort_by[this.name] = this.isChecked;
+                commobj.tt.sort_by[this.name] = this.isChecked;
                 console_command("tt");
             });
             
-            if (!tt.sort_sel[keys[i]]) {
+            if (!commobj.tt.sort_sel[keys[i]]) {
                 paper.decrease[i].hideIt();
             }
             
@@ -4419,11 +5190,11 @@ function draw_tt(paper) {
             
         }
         
-        if (getTrueKeys(tt.sort_sel).length == 0) {
-            papers["tt_main"].decr.hide();
+        if (getTrueKeys(commobj.tt.sort_sel).length == 0) {
+            papers["tt"]["main"].decr.hide();
         }
         else {
-            papers["tt_main"].decr.show();
+            papers["tt"]["main"].decr.show();
         }
         
         var ctx = 396; 
@@ -4432,7 +5203,7 @@ function draw_tt(paper) {
         paper.text(ctx, cty, "cut-off:").attr({"text-anchor": "start", "font-size": "14px"});
         paper.text(ctx - 15, cty + 25, "Frequency").attr({"text-anchor": "end", "font-size": "14px"});
         
-        var frequency = paper.text(ctx + 5, cty + 25, tt.n_cut).attr({"text-anchor": "start", "font-size": "14px"});
+        var frequency = paper.text(ctx + 5, cty + 25, commobj.tt.n_cut).attr({"text-anchor": "start", "font-size": "14px"});
         var frequency_rect = paper.rect(ctx, cty + 15, 50, 20, 3)
             .attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
             .click(function(e) {
@@ -4442,7 +5213,7 @@ function draw_tt(paper) {
                 input = frequency.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
                 input.addEventListener("blur", function(e) {
                     frequency.inlineTextEditing.stopEditing(tasta);
-                    tt.n_cut = frequency.attr("text");
+                    commobj.tt.n_cut = frequency.attr("text");
                     me.toFront();
                     tasta = "enter";
                     console_command("tt");
@@ -4451,7 +5222,7 @@ function draw_tt(paper) {
         paper.inlineTextEditing(frequency);
         
         paper.text(ctx - 15, cty + 50, "Inclusion 1").attr({"text-anchor": "end", "font-size": "14px"});
-        var inclcut1 = paper.text(ctx + 5, cty + 50, tt.ic1).attr({"text-anchor": "start", "font-size": "14px"});
+        var inclcut1 = paper.text(ctx + 5, cty + 50, commobj.tt.ic1).attr({"text-anchor": "start", "font-size": "14px"});
         paper.rect(ctx, cty + 40, 50, 20, 3)
             .attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
             .click(function(e) {
@@ -4461,7 +5232,19 @@ function draw_tt(paper) {
                 input = inclcut1.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
                 input.addEventListener("blur", function(e) {
                     inclcut1.inlineTextEditing.stopEditing(tasta);
-                    tt.ic1 = inclcut1.attr("text");
+                    if (isNumeric(inclcut1.attr("text"))) {
+                        commobj.tt.ic1 = inclcut1.attr("text");
+                        if (commobj.tt.ic1 < commobj.tt.ic0) {
+                            commobj.tt.ic0 = commobj.tt.ic1;
+                            inclcut0.attr({"text": commobj.tt.ic0});
+                        }
+                    }
+                    else {
+                        commobj.tt.ic1 = "1";
+                        commobj.tt.ic0 = "";
+                        inclcut1.attr({"text": "1"});
+                        inclcut0.attr({"text": ""});
+                    }
                     me.toFront();
                     tasta = "enter";
                     console_command("tt");
@@ -4470,7 +5253,7 @@ function draw_tt(paper) {
         paper.inlineTextEditing(inclcut1);
         
         paper.text(ctx - 15, cty + 75, "Inclusion 0").attr({"text-anchor": "end", "font-size": "14px"});
-        var inclcut0 = paper.text(ctx + 5, cty + 75, tt.ic0).attr({"text-anchor": "start", "font-size": "14px"});
+        var inclcut0 = paper.text(ctx + 5, cty + 75, commobj.tt.ic0).attr({"text-anchor": "start", "font-size": "14px"});
         paper.rect(ctx, cty + 65, 50, 20, 3)
             .attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
             .click(function(e) {
@@ -4480,7 +5263,18 @@ function draw_tt(paper) {
                 input = inclcut0.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
                 input.addEventListener("blur", function(e) {
                     inclcut0.inlineTextEditing.stopEditing(tasta);
-                    tt.ic0 = inclcut0.attr("text");
+                    commobj.tt.ic0 = inclcut0.attr("text");
+                    if (isNumeric(inclcut0.attr("text"))) {
+                        commobj.tt.ic0 = inclcut0.attr("text");
+                        if (commobj.tt.ic1 < commobj.tt.ic0) {
+                            commobj.tt.ic0 = commobj.tt.ic1;
+                            inclcut0.attr({"text": commobj.tt.ic0});
+                        }
+                    }
+                    else {
+                        commobj.tt.ic0 = commobj.tt.ic1;
+                        inclcut0.attr({"text": commobj.tt.ic0});
+                    }
                     me.toFront();
                     tasta = "enter";
                     console_command("tt");
@@ -4488,23 +5282,75 @@ function draw_tt(paper) {
             });
         paper.inlineTextEditing(inclcut0);
         
-        paper.text(ctx + 3, cty + 114, "Run").attr({"text-anchor": "start", "font-size": "14px"});
-        paper.rect(ctx - 20, cty + 101, 70, 25)
+        var stx = 13, sty = 0;
+        
+        var objname = paper.checkBox(stx, sty + 309, commobj.tt.nameit, "Assign");
+        objname.cover.click(function() {
+            if (this.isChecked) {
+                objname.label[0].attr({"text": "Assign to:"});
+                commobj.tt.objname = objname_TB.text.attr("text");
+                commobj.tt.nameit = true;
+                objnameset.show();
+            }
+            else {
+                objname.label[0].attr({"text": "Assign"});
+                commobj.tt.objname = "";
+                commobj.tt.nameit = false;
+                objnameset.hide();
+            }
+            console_command("tt");
+        });
+        
+        var objnameset = paper.set();
+        var objname_TB = textbox(paper, {x: stx + 95, y: sty + 314, width: 100, height: 20, text: commobj.tt.objname});
+        paper.inlineTextEditing(objname_TB.text);
+        
+        objname_TB.rect.click(function(e) {
+            var me = this;
+            e.stopPropagation();
+            var temp = objname_TB.text.attr("text");
+            ovBox = this.getBBox();
+            input = objname_TB.text.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
+            input.addEventListener("blur", function() {
+                objname_TB.text.inlineTextEditing.stopEditing(tasta);
+                if (objname_TB.text.attr("text") != temp) {
+                    commobj.tt.objname = objname_TB.text.attr("text").replace(/[^A-Za-z0-9]/g, '');
+                    if (isNumeric(commobj.tt.objname[0])) {
+                        commobj.tt.objname = "x" + commobj.tt.objname;
+                    }
+                    objname_TB.text.attr({"text": commobj.tt.objname});
+                    console_command("tt");
+                }
+                me.toFront();
+                
+                tasta = "enter";
+            }, true);
+        });
+        
+        objnameset.push(objname_TB.text, objname_TB.rect);
+        
+        if (!objname.isChecked) {
+            objnameset.hide();
+        }
+        
+        paper.text(ctx + 2, cty + 134, "Run").attr({"text-anchor": "start", "font-size": "14px"});
+        paper.rect(ctx - 20, cty + 121, 70, 25)
         .attr({fill: "white", "fill-opacity": 0, 'stroke-width': 1.25})
         .click(function() {
-            if (datainfo.rownames != "") {
+            if (info["data"][commobj["tt"].dataset].rownames != "") {
                 console_command("tt");
-                tt.outcome = getTrueKeys(colclicks.tt.outcome);
-                tt.conditions = getTrueKeys(colclicks.tt.conditions);
-                tt2R = tt;
+                commobj.tt.outcome = getTrueKeys(colclicks.tt.outcome);
+                commobj.tt.conditions = getTrueKeys(colclicks.tt.conditions);
+                tt2R = commobj.tt;
                 
                 tt2R.counter += 1;
                 
-                outres[0] = "listen2R";
+                reset_outres();
+                responseR = false;
                 
                 Shiny.onInputChange("tt2R", tt2R);
                 updatecounter = 0;
-                printWhenOutputChanges()
+                printWhenOutputChanges();
             }
         });
         
@@ -4515,20 +5361,62 @@ function draw_eqmcc(paper) {
     
     if ($("#eqmcc").length) {
         paper.clear();
-    
-        sat(paper.text(14, 18, "Outcome:"));
-        sat(paper.text(234, 18, "Conditions:"));
+        
+        var backup = function() {
+            var tempdataset = commobj["eqmcc"].dataset;
+            commobj["eqmcc"].dataset = copydataset;
+            copydataset = tempdataset;
+            
+            var tempclicks = null;
+            if (colclicks["eqmcc"] !== void 0) {
+                var tempclicks = copyObject(colclicks["eqmcc"]);
+            }
+            colclicks = copyObject(colclicks, exclude = "eqmcc");
+            if (copyclicks !== null) {
+                colclicks["eqmcc"] = copyObject(copyclicks);
+            }
+            if (tempclicks !== null) {
+                copyclicks = copyObject(tempclicks);
+            }
+        }
+        
+        var dsource = paper.radio(30, 18, 1*(commobj.eqmcc.source == "tt"), ["Dataset", "TT"], [0, 0], [0, 80]);
+        var copyclicks = null;
+        var copydataset = "";
+        
+        dsource.cover[0].click(function() { 
+            commobj.eqmcc.source = "data";
+            backup();
+            refresh_cols("eqmcc");
+            filldirexp();
+            checkeqtt();
+            paper.neg_out.activate();
+            paper.use_letters.activate();
+        });
+        
+        dsource.cover[1].click(function() { 
+            commobj.eqmcc.source = "tt";
+            backup();
+            refresh_cols("eqmcc");
+            filldirexp();
+            checkeqtt();
+            paper.neg_out.deactivate();
+            paper.use_letters.deactivate();
+        });
+        
+        sat(paper.text(172, 17, "Outcome:"));
+        sat(paper.text(320, 17, "Conditions:"));
         paper.direxpl = sat(paper.text(18, 283, ""));
         
-        var expx = 17;
-        var expy = 172;
+        var stx = 17;
+        var sty = 172;
         
-        sat(paper.text(expx, expy, "Explain:"));
-        paper.rect(expx + 3.5, expy + 11, 38, 82)
+        sat(paper.text(stx, sty, "Explain:"));
+        paper.rect(stx + 3.5, sty + 11, 38, 82)
                    .attr({stroke: '#d0d0d0', 'stroke-width': 1, fill: "#ffffff", "fill-opacity": 0});
         
-        sat(paper.text(expx + 61, expy, "Include:"));
-        paper.rect(expx + 65.5, expy + 11, 38, 82)
+        sat(paper.text(stx + 61, sty, "Include:"));
+        paper.rect(stx + 65.5, sty + 11, 38, 82)
                    .attr({stroke: '#d0d0d0', 'stroke-width': 1, fill: "#ffffff", "fill-opacity": 0});
         
         var expinc = ["0", "1", "?", "C"];
@@ -4539,16 +5427,16 @@ function draw_eqmcc(paper) {
         
         for (var i = 0; i < 2; i++) {
             for (var j = 0; j < 4; j++) {
-                selected = eqmcc[(i==0)?"explain":"include"].indexOf(expinc[j]) >= 0;
-                rects[i*4 + j] = paper.rect(expx + 5.5 + i*62, expy + 12.5 + j*20, 34, 19).attr({fill: selected?"#79a74c":"#eeeeee", stroke: 'none'});
+                selected = commobj.eqmcc[(i==0)?"explain":"include"].indexOf(expinc[j]) >= 0;
+                rects[i*4 + j] = paper.rect(stx + 5.5 + i*62, sty + 12.5 + j*20, 34, 19).attr({fill: selected?"#79a74c":"#eeeeee", stroke: 'none'});
                 rects[i*4 + j].backcolor = selected;
-                texts[i*4 + j] = paper.text(expx + 17 + i*62, expy + 21.5 + j*20, expinc[j]).attr({"text-anchor": "start", "font-size": "14px", fill: selected?"white":"black"});
+                texts[i*4 + j] = paper.text(stx + 17 + i*62, sty + 21.5 + j*20, expinc[j]).attr({"text-anchor": "start", "font-size": "14px", fill: selected?"white":"black"});
             }
         }      
         
         for (var i = 0; i < 2; i++) {
             for (var j = 0; j < 4; j++) {
-                rects[8 + i*4 + j] = paper.rect(10 + i*62, expy + 10.5 + j*20, 35, 20)
+                rects[8 + i*4 + j] = paper.rect(10 + i*62, sty + 10.5 + j*20, 35, 20)
                     .attr({stroke: 'none', fill: "#ffffff", "fill-opacity": 0})
                     .click(function() {
                         if (rects[this.id].backcolor) {
@@ -4563,21 +5451,21 @@ function draw_eqmcc(paper) {
                         
                         var value = expinc[this.id % 4];
                         if (this.id < 4) { 
-                            var index = eqmcc.explain.indexOf(value);
+                            var index = commobj.eqmcc.explain.indexOf(value);
                             if (index > -1) {
-                                eqmcc.explain.splice(index, 1);
+                                commobj.eqmcc.explain.splice(index, 1);
                             }
                             else {
-                                eqmcc.explain.push(value);
+                                commobj.eqmcc.explain.push(value);
                             }
                         }
                         else { 
-                            var index = eqmcc.include.indexOf(value);
+                            var index = commobj.eqmcc.include.indexOf(value);
                             if (index > -1) {
-                                eqmcc.include.splice(index, 1);
+                                commobj.eqmcc.include.splice(index, 1);
                             }
                             else {
-                                eqmcc.include.push(value);
+                                commobj.eqmcc.include.push(value);
                             }
                             filldirexp();
                         }
@@ -4587,149 +5475,269 @@ function draw_eqmcc(paper) {
             }
         }
         
-        var neg_out = paper.checkBox(expx + 147, expy + 5, eqmcc.neg_out, "negate outcome");
-        neg_out.cover.click(function() {
-            eqmcc.neg_out = neg_out.isChecked;
-            console_command("eqmcc");
+        paper.neg_out = paper.checkBox(stx + 147, sty + 5, commobj.eqmcc.neg_out, "negate outcome");
+        paper.neg_out.cover.click(function() {
+            if (this.active) {
+                commobj.eqmcc.neg_out = paper.neg_out.isChecked;
+                console_command("eqmcc");
+            }
         });
         
-        var details = paper.checkBox(expx + 147, expy + 5 + 25, eqmcc.details, "show details");
+        var details = paper.checkBox(stx + 147, sty + 5 + 25, commobj.eqmcc.details, "show details");
         details.cover.click(function() {
-            eqmcc.details = details.isChecked;
+            commobj.eqmcc.details = details.isChecked;
+            if (details.isChecked) {
+                show_cases.activate();
+            }
+            else {
+                show_cases.uncheck();
+                commobj.eqmcc.show_cases = false;
+                show_cases.deactivate();
+            }
             console_command("eqmcc");
         });
         
-        var show_cases = paper.checkBox(expx + 147, expy + 5 + 50, eqmcc.show_cases, "show cases");
+        var show_cases = paper.checkBox(stx + 147, sty + 5 + 50, commobj.eqmcc.show_cases, "show cases");
         show_cases.cover.click(function() {
-            eqmcc.show_cases = show_cases.isChecked;
-            console_command("eqmcc");
+            if (this.active) {
+                commobj.eqmcc.show_cases = show_cases.isChecked;
+                console_command("eqmcc");
+            }
         });
         
-        var all_sol = paper.checkBox(expx + 147, expy + 5 + 75, eqmcc.all_sol, "maximal solutions");
+        if (!commobj.eqmcc.details) {
+            show_cases.deactivate();
+        }
+        
+        var all_sol = paper.checkBox(stx + 147, sty + 5 + 75, commobj.eqmcc.all_sol, "maximal solutions");
         all_sol.cover.click(function() {
-            eqmcc.all_sol = all_sol.isChecked;
+            commobj.eqmcc.all_sol = all_sol.isChecked;
             if (all_sol.isChecked) {
                 row_dom.uncheck();
-                eqmcc.row_dom = false;
+                commobj.eqmcc.row_dom = false;
             }
             console_command("eqmcc");
         });
         
-        var use_tilde = paper.checkBox(expx + 307, expy + 5, eqmcc.use_tilde, "use tilde");
+        var use_tilde = paper.checkBox(stx + 307, sty + 5, commobj.eqmcc.use_tilde, "use tilde");
         use_tilde.cover.click(function() {
-            eqmcc.use_tilde = use_tilde.isChecked;
+            commobj.eqmcc.use_tilde = use_tilde.isChecked;
             console_command("eqmcc");
         });
         
-        var use_letters = paper.checkBox(expx + 307, expy + 5 + 25, eqmcc.use_letters, "use letters");
-        use_letters.cover.click(function() {
-            eqmcc.use_letters = use_letters.isChecked;
-            console_command("eqmcc");
+        paper.use_letters = paper.checkBox(stx + 307, sty + 5 + 25, commobj.eqmcc.use_letters, "use letters");
+        paper.use_letters.cover.click(function() {
+            if (this.active) {
+                commobj.eqmcc.use_letters = paper.use_letters.isChecked;
+                console_command("eqmcc");
+            }
         });
         
-        var row_dom = paper.checkBox(expx + 307, expy + 5 + 50, eqmcc.row_dom, "PI dominance");
+        var row_dom = paper.checkBox(stx + 307, sty + 5 + 50, commobj.eqmcc.row_dom, "PI dominance");
         row_dom.cover.click(function() {
-            eqmcc.row_dom = row_dom.isChecked;
+            commobj.eqmcc.row_dom = row_dom.isChecked;
             if (row_dom.isChecked) {
                 all_sol.uncheck();
-                eqmcc.all_sol = false;
+                commobj.eqmcc.all_sol = false;
             }
             console_command("eqmcc");
         });
         
-        sat(paper.text(expx + 168, expy + 115 + 5, "Relation:"));
+        sat(paper.text(stx + 168, sty + 115 + 5, "Relation:"));
         
-        var relation = paper.radio(expx + 155, expy + 141 + 5, 1*(eqmcc.relation == "sufnec"), ["sufficiency", ""], 33);
-        sat(paper.text(expx + 168, expy + 166 + 5, "sufficiency and"));
-        sat(paper.text(expx + 168, expy + 181 + 5, "necessity"));
+        var relation = paper.radio(stx + 155, sty + 141 + 5, 1*(commobj.eqmcc.relation == "sufnec"), ["sufficiency", ""], 33);
+        sat(paper.text(stx + 168, sty + 166 + 5, "sufficiency and"));
+        sat(paper.text(stx + 168, sty + 181 + 5, "necessity"));
         
         relation.cover[0].click(function() {
-            eqmcc.relation = "suf";
+            commobj.eqmcc.relation = "suf";
             console_command("eqmcc");
         });
         
         relation.cover[1].click(function() {
-            eqmcc.relation = "sufnec";
+            commobj.eqmcc.relation = "sufnec";
             console_command("eqmcc");
         });
         
-        sat(paper.text(expx + 380, expy + 90 + 5, "cut-off:"));
+        sat(paper.text(stx + 380, sty + 90 + 5, "cut-off:"));
         
-        sat(paper.text(expx + 365, expy + 115 + 5, "Frequency"), {anchor: "end"});
-        var frequency = sat(paper.text(expx + 385, expy + 115 + 5, eqmcc.n_cut));
-        paper.rect(expx + 380, expy + 105 + 5, 50, 20, 3)
+        sat(paper.text(stx + 365, sty + 115 + 5, "Frequency"), {anchor: "end"});
+        paper.frequency = sat(paper.text(stx + 385, sty + 115 + 5, commobj.eqmcc.n_cut));
+        paper.rect(stx + 380, sty + 105 + 5, 50, 20, 3)
             .attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
             .click(function(event) {
-                event.stopPropagation();
-                var me = this;
-                var BBox = this.getBBox();
-                input = frequency.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
-                input.addEventListener("blur", function(e) {
-                    frequency.inlineTextEditing.stopEditing(tasta);
-                    eqmcc.n_cut = frequency.attr("text");
-                    me.toFront();
-                    tasta = "enter";
-                    console_command("eqmcc");
-                });
+                if (commobj.eqmcc.source == "data") {
+                    event.stopPropagation();
+                    var me = this;
+                    var BBox = this.getBBox();
+                    input = paper.frequency.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
+                    input.addEventListener("blur", function(e) {
+                        paper.frequency.inlineTextEditing.stopEditing(tasta);
+                        commobj.eqmcc.n_cut = paper.frequency.attr("text");
+                        me.toFront();
+                        tasta = "enter";
+                        console_command("eqmcc");
+                    });
+                }
             });
-        paper.inlineTextEditing(frequency);
+        paper.inlineTextEditing(paper.frequency);
         
-        sat(paper.text(expx + 365, expy + 140 + 5, "Inclusion 1"), {anchor: "end"});
-        var inclcut1 = sat(paper.text(expx + 385, expy + 140 + 5, eqmcc.ic1));
-        paper.rect(expx + 380, expy + 130 + 5, 50, 20, 3)
+        sat(paper.text(stx + 365, sty + 140 + 5, "Inclusion 1"), {anchor: "end"});
+        paper.inclcut1 = sat(paper.text(stx + 385, sty + 140 + 5, commobj.eqmcc.ic1));
+        paper.rect(stx + 380, sty + 130 + 5, 50, 20, 3)
             .attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
-            .click(function(e) {
-                e.stopPropagation();
-                var me = this;
-                var BBox = this.getBBox();
-                input = inclcut1.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
-                input.addEventListener("blur", function(e) {
-                    inclcut1.inlineTextEditing.stopEditing(tasta);
-                    eqmcc.ic1 = inclcut1.attr("text");
-                    me.toFront();
-                    tasta = "enter";
-                    console_command("eqmcc");
-                });
+            .click(function(event) {
+                if (commobj.eqmcc.source == "data") {
+                    event.stopPropagation();
+                    var me = this;
+                    var BBox = this.getBBox();
+                    input = paper.inclcut1.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
+                    input.addEventListener("blur", function(e) {
+                        paper.inclcut1.inlineTextEditing.stopEditing(tasta);
+                        if (isNumeric(paper.inclcut1.attr("text"))) {
+                            commobj.eqmcc.ic1 = paper.inclcut1.attr("text");
+                            if (commobj.eqmcc.ic1 < commobj.eqmcc.ic0) {
+                                commobj.eqmcc.ic0 = commobj.eqmcc.ic1;
+                                paper.inclcut0.attr({"text": commobj.eqmcc.ic0});
+                            }
+                        }
+                        else {
+                            commobj.eqmcc.ic1 = "1";
+                            commobj.eqmcc.ic0 = "";
+                            paper.inclcut1.attr({"text": "1"});
+                            paper.inclcut0.attr({"text": ""});
+                        }
+                        me.toFront();
+                        tasta = "enter";
+                        console_command("eqmcc");
+                    });
+                }
             });
-        paper.inlineTextEditing(inclcut1);
+        paper.inlineTextEditing(paper.inclcut1);
         
-        sat(paper.text(expx + 365, expy + 125 + 40 + 5, "Inclusion 0"), {anchor: "end"});
-        var inclcut0 = sat(paper.text(expx + 385, expy + 125 + 40 + 5, eqmcc.ic0));
-        paper.rect(expx + 380, expy + 115 + 40 + 5, 50, 20, 3)
+        sat(paper.text(stx + 365, sty + 125 + 40 + 5, "Inclusion 0"), {anchor: "end"});
+        paper.inclcut0 = sat(paper.text(stx + 385, sty + 125 + 40 + 5, commobj.eqmcc.ic0));
+        paper.rect(stx + 380, sty + 115 + 40 + 5, 50, 20, 3)
             .attr({fill: "#ffffff", stroke: "#a0a0a0", "fill-opacity": "0"})
-            .click(function(e) {
-                e.stopPropagation();
-                var me = this;
-                var BBox = this.getBBox();
-                input = inclcut0.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
-                input.addEventListener("blur", function(e) {
-                    inclcut0.inlineTextEditing.stopEditing(tasta);
-                    eqmcc.ic0 = inclcut0.attr("text");
-                    me.toFront();
-                    tasta = "enter";
-                    console_command("eqmcc");
-                });
+            .click(function(event) {
+                if (commobj.eqmcc.source == "data") {
+                    event.stopPropagation();
+                    var me = this;
+                    var BBox = this.getBBox();
+                    input = paper.inclcut0.inlineTextEditing.startEditing(BBox.x + 1, BBox.y + 21 - 1*(navigator.browserType == "Firefox"), BBox.width - 2, BBox.height - 2);
+                    input.addEventListener("blur", function(e) {
+                        paper.inclcut0.inlineTextEditing.stopEditing(tasta);
+                        commobj.eqmcc.ic0 = paper.inclcut0.attr("text");
+                        if (isNumeric(paper.inclcut0.attr("text"))) {
+                            commobj.eqmcc.ic0 = paper.inclcut0.attr("text");
+                            if (commobj.eqmcc.ic1 < commobj.eqmcc.ic0) {
+                                commobj.eqmcc.ic0 = commobj.eqmcc.ic1;
+                                paper.inclcut0.attr({"text": commobj.eqmcc.ic0});
+                            }
+                        }
+                        else {
+                            commobj.eqmcc.ic0 = commobj.eqmcc.ic1;
+                            paper.inclcut0.attr({"text": commobj.eqmcc.ic0});
+                        }
+                        me.toFront();
+                        tasta = "enter";
+                        console_command("eqmcc");
+                    });
+                }
             });
-        paper.inlineTextEditing(inclcut0);
+        paper.inlineTextEditing(paper.inclcut0);
         
-        sat(paper.text(expx + 383, expy + 214, "Run"));
-        paper.rect(expx + 360, expy + 201, 70, 25)
+        var objname = paper.checkBox(stx - 4, sty + 222, commobj.eqmcc.nameit, "Assign");
+        objname.cover.click(function() {
+            if (this.isChecked) {
+                objname.label[0].attr({"text": "Assign to:"});
+                commobj.eqmcc.objname = objname_TB.text.attr("text");
+                commobj.eqmcc.nameit = true;
+                objnameset.show();
+            }
+            else {
+                objname.label[0].attr({"text": "Assign"});
+                commobj.eqmcc.objname = "";
+                commobj.eqmcc.nameit = false;
+                objnameset.hide();
+            }
+            console_command("eqmcc");
+        });
+        
+        var objnameset = paper.set();
+        var objname_TB = textbox(paper, {x: stx + 91, y: sty + 227, width: 200, height: 20, text: commobj.eqmcc.objname});
+        paper.inlineTextEditing(objname_TB.text);
+        
+        objname_TB.rect.click(function(e) {
+            var me = this;
+            e.stopPropagation();
+            var temp = objname_TB.text.attr("text");
+            ovBox = this.getBBox();
+            input = objname_TB.text.inlineTextEditing.startEditing(ovBox.x + 1, ovBox.y + 21 - 1*(navigator.browserType == "Firefox"), ovBox.width - 2, ovBox.height - 2);
+            input.addEventListener("blur", function() {
+                objname_TB.text.inlineTextEditing.stopEditing(tasta);
+                if (objname_TB.text.attr("text") != temp) {
+                    commobj.eqmcc.objname = objname_TB.text.attr("text").replace(/[^A-Za-z0-9]/g, '');
+                    if (isNumeric(commobj.eqmcc.objname[0])) {
+                        commobj.eqmcc.objname = "x" + commobj.eqmcc.objname;
+                    }
+                    objname_TB.text.attr({"text": commobj.eqmcc.objname});
+                    if (commobj.eqmcc.dataset != "") {
+                        console_command("eqmcc");
+                    }
+                }
+                me.toFront();
+                
+                tasta = "enter";
+            }, true);
+        });
+        
+        objnameset.push(objname_TB.text, objname_TB.rect);
+        
+        if (!objname.isChecked) {
+            objnameset.hide();
+        }
+        
+        sat(paper.text(stx + 383, sty + 224, "Run"));
+        paper.rect(stx + 360, sty + 211, 70, 25)
         .attr({fill: "white", "fill-opacity": 0, 'stroke-width': 1.25})
         .click(function() {
-            if (datainfo.rownames != "") {
-                console_command("eqmcc");
-                eqmcc.outcome = getTrueKeys(colclicks.eqmcc.outcome);
-                eqmcc.conditions = getTrueKeys(colclicks.eqmcc.conditions);
-                eqmcc2R = eqmcc;
-                
-                eqmcc2R.counter += 1;
-                
-                outres[0] = "listen2R";
-                
-                Shiny.onInputChange("eqmcc2R", eqmcc2R);
-                updatecounter = 0;
-                printWhenOutputChanges();
+            if (commobj.eqmcc.source == "tt") {
+                if (info["tt"] !== null) {
+                    if (info["tt"][commobj.eqmcc.dataset] !== void 0) {
+                        console_command("eqmcc");
+                        commobj.eqmcc.outcome = new Array();
+                        commobj.eqmcc.conditions = new Array();
+                        eqmcc2R = commobj.eqmcc;
+                        eqmcc2R.counter += 1;
+                        
+                        outres = new Array();
+                        responseR = false;
+                        
+                        Shiny.onInputChange("eqmcc2R", eqmcc2R);
+                        updatecounter = 0;
+                        printWhenOutputChanges();
+                    }
+                }
             }
+            else {
+                if (info["data"][commobj.eqmcc.dataset].rownames != "") {
+                    console_command("eqmcc");
+                    commobj.eqmcc.outcome = getTrueKeys(colclicks.eqmcc.outcome);
+                    commobj.eqmcc.conditions = getTrueKeys(colclicks.eqmcc.conditions);
+                    eqmcc2R = commobj.eqmcc;
+                    
+                    eqmcc2R.counter += 1;
+                    
+                    outres = new Array();
+                    responseR = false;
+                    
+                    Shiny.onInputChange("eqmcc2R", eqmcc2R);
+                    updatecounter = 0;
+                    printWhenOutputChanges();
+                }
+            }
+            
         });
         
     }
@@ -4738,19 +5746,23 @@ function draw_eqmcc(paper) {
 function filldirexp() {
     
     if ($("#eqmcc").length) {
-        papers["direxp"].clear();
-        papers["direxp"].setSize(200, 20);
+        papers["eqmcc"]["direxp"].clear();
+        papers["eqmcc"]["direxp"].setSize(200, 20); 
         var print = false;
         
-        var inclrem = eqmcc.include.indexOf("?") >= 0;
+        var inclrem = commobj.eqmcc.include.indexOf("?") >= 0;
         
-        if (getKeys(colclicks).length > 0) {
-            eqmcc.outcome = getTrueKeys(colclicks.eqmcc.outcome);
-            eqmcc.conditions = getTrueKeys(colclicks.eqmcc.conditions);
+        if (colclicks.eqmcc !== void 0) {
+            if (colclicks.eqmcc.outcome !== void 0) {
+                if (getKeys(colclicks.eqmcc.outcome).length) {
+                    commobj.eqmcc.outcome = getTrueKeys(colclicks.eqmcc.outcome);
+                    commobj.eqmcc.conditions = getTrueKeys(colclicks.eqmcc.conditions);
+                }
+            }
         }
         
-        var condselected = eqmcc.conditions.length > 0;
-        var singleoutcome = eqmcc.outcome.length == 1;
+        var condselected = commobj.eqmcc.conditions.length > 0;
+        var singleoutcome = commobj.eqmcc.outcome.length == 1;
         
         if (inclrem) {
             if (condselected) {
@@ -4765,18 +5777,14 @@ function filldirexp() {
         
         if (print) {
             
-            papers["eqmcc_main"].direxpl.attr({"text": "Directional exps:"});
-            var conds = eqmcc.conditions;
+            papers["eqmcc"]["main"].direxpl.attr({"text": "Directional exps:"});
+            var conds = commobj.eqmcc.conditions;
             
             if (conds.length == 0) {
                 if (singleoutcome) {
-                    var colnames = new Array(datainfo.colnames.length);
+                    var colnames = copyArray(info["data"][commobj["eqmcc"].dataset].colnames);
                     
-                    for (var i = 0; i < datainfo.colnames.length; i++) {
-                        colnames[i] = datainfo.colnames[i];
-                    }
-                    
-                    var index = colnames.indexOf(eqmcc.outcome[0]);
+                    var index = colnames.indexOf(commobj.eqmcc.outcome[0]);
                     if (index >= 0) { 
                         colnames.splice(index, 1);
                     }
@@ -4788,30 +5796,30 @@ function filldirexp() {
             var cellcover = new Array(conds.length);
             var colnms = new Array(conds.length);
             
-            if (eqmcc.dir_exp.length != conds.length) {
-                eqmcc.dir_exp = new Array(conds.length);
+            if (commobj.eqmcc.dir_exp.length != conds.length) {
+                commobj.eqmcc.dir_exp = new Array(conds.length);
                 for (var i = 0; i < conds.length; i++) {
-                    eqmcc.dir_exp[i] = "-";
+                    commobj.eqmcc.dir_exp[i] = "-";
                 }
             }
             
             for (var i = 0; i < conds.length; i++) {
-                colnms[i] = papers["direxp"].text(3, i*20 + 11, conds[i]).attr({"text-anchor": "start", "font-size": "14px"});
+                colnms[i] = papers["eqmcc"]["direxp"].text(3, i*20 + 11, conds[i]).attr({"text-anchor": "start", "font-size": "14px"});
                 if (colnms[i].getBBox().width > 52) {
                     colnms[i].attr("text", getTrimmedText(colnms[i].attr("text"), 52));
                 }
                 
-                celltext[i]  = papers["direxp"].text(73, i*20 + 11, eqmcc.dir_exp[i]).attr({"text-anchor": "start", "font-size": "14px"});
-                cellcover[i] = papers["direxp"].rect(68, i*20 + 1, 38, 20, 3)
+                celltext[i]  = papers["eqmcc"]["direxp"].text(73, i*20 + 11, commobj.eqmcc.dir_exp[i]).attr({"text-anchor": "start", "font-size": "14px"});
+                cellcover[i] = papers["eqmcc"]["direxp"].rect(68, i*20 + 1, 38, 20, 3)
                     .attr({fill: "#ffffff", stroke: "#d7d7d7", "fill-opacity": "0"});
                 cellcover[i].idx = i;
-                papers["direxp"].inlineTextEditing(celltext[i]);
+                papers["eqmcc"]["direxp"].inlineTextEditing(celltext[i]);
                 cellcover[i].click(function(e) {
                     e.stopPropagation();
                     var temp = celltext[this.idx].attr("text");
                     
                     ovBox = this.getBBox();
-                    input = celltext[this.idx].inlineTextEditing.startEditing(ovBox.x, ovBox.y - $("#direxp").scrollTop(), ovBox.width, ovBox.height, "from_filldirexp");
+                    input = celltext[this.idx].inlineTextEditing.startEditing(ovBox.x, ovBox.y - $("#eqmcc_direxp").scrollTop(), ovBox.width, ovBox.height, "from_filldirexp");
                     input.idx = this.idx;
                     input.addEventListener("blur", function(e) {
                         celltext[this.idx].inlineTextEditing.stopEditing(tasta);
@@ -4822,18 +5830,19 @@ function filldirexp() {
                         
                         if (temp != celltext[this.idx].attr("text")) {
                             
-                            eqmcc.dir_exp[this.idx] = celltext[this.idx].attr("text");
+                            commobj.eqmcc.dir_exp[this.idx] = celltext[this.idx].attr("text");
                             console_command("eqmcc");
                         }
                         tasta = "enter";
                     })
                 })
             }
-            $(papers["direxp"].canvas).height(20*conds.length + 2);
+            $(papers["eqmcc"]["direxp"].canvas).height(20*conds.length + 2);
         }
         else {
-            eqmcc.dir_exp= new Array();
-            papers["eqmcc_main"].direxpl.attr({"text": ""});
+            commobj.eqmcc.dir_exp = new Array();
+            papers["eqmcc"]["main"].direxpl.attr({"text": ""});
+            $(papers["eqmcc"]["direxp"].canvas).height(20);
         }
     }
 }
@@ -4845,6 +5854,15 @@ function checkIfDataLoadedInR() {
     if (updatecounter < 101) { 
         if (tempdatainfo.nrows > 0) {
             refresh_cols("import");
+            
+            if (!commobj["read_table"].customname) {
+                papers["import"]["main"].objnametext.attr({"text": dirfile.filename});
+                commobj["read_table"].objname = dirfile.filename;
+            }
+            else {
+                commobj["read_table"].objname = papers["import"]["main"].objnametext.attr("text");
+            }
+            
             updatecounter = 0; 
         }
         else {
@@ -4928,30 +5946,26 @@ function doWhenDataPointsAreReturned() {
     
     if (updatecounter < 101) { 
         
-        if (poinths.message == "noresponse") {
-            
-            setTimeout(doWhenDataPointsAreReturned, 50);
-        }
-        else {
+        if (responseR) {
             if (poinths.message == "notnumeric") {
                 
-                var clthlen = calibrate.thresholds.length;
-                calibrate.thresholds = new Array(clthlen);
+                var clthlen = commobj.calibrate.thresholds.length;
+                commobj.calibrate.thresholds = new Array(clthlen);
                 
                 for (var i = 0; i < clthlen; i++) {
                     ths[i].attr({"text": ""});
-                    calibrate.thresholds[i] = ""; 
+                    commobj.calibrate.thresholds[i] = "";
                 }
             }
-            else {
+            else if (poinths.message == "OK") {
                 if (poinths.thvals.length > 0) {
-                    calibrate.thresholds = new Array(poinths.thvals.length);
-                    calibrate.thscopycrp = new Array(poinths.thvals.length);
-                    calibrate.thnames = new Array(poinths.thvals.length);
+                    commobj.calibrate.thresholds = new Array(poinths.thvals.length);
+                    commobj.calibrate.thscopycrp = new Array(poinths.thvals.length);
+                    commobj.calibrate.thnames = new Array(poinths.thvals.length);
                     for (var i = 0; i < poinths.thvals.length; i++) {
                         ths[i].attr({"text": poinths.thvals[i]});
-                        calibrate.thresholds[i] = poinths.thvals[i];
-                        calibrate.thscopycrp[i] = poinths.thvals[i];
+                        commobj.calibrate.thresholds[i] = poinths.thvals[i];
+                        commobj.calibrate.thscopycrp[i] = poinths.thvals[i];
                     }
                 }
                 
@@ -4961,6 +5975,10 @@ function doWhenDataPointsAreReturned() {
             
             drawPointsAndThresholds();
         }
+        else {
+            
+            setTimeout(doWhenDataPointsAreReturned, 50);
+        }
     }
     else {
         updatecounter = 0; 
@@ -4968,19 +5986,26 @@ function doWhenDataPointsAreReturned() {
 }
 
 function drawPointsAndThresholds() {
-    if (papers["calibrate_main"].crfuz == 0) { 
-        calibrate.thsettervar = getTrueKeys(colclicks.calibrate.x);
+    if (papers["calibrate"]["main"].crfuz == 0) { 
+        commobj.calibrate.thsettervar = getTrueKeys(colclicks.calibrate.x);
         
         thsetter_content.remove();
-        thsetter_content = papers["calibrate_main"].set().attr({stroke: "#a0a0a0"});
+        thsetter_content = papers["calibrate"]["main"].set().attr({stroke: "#a0a0a0"});
         
         var minv = min(poinths.vals);
         var maxv = max(poinths.vals);
         
+        if (poinths.thvals !== void 0) {
+            commobj.calibrate.thresholds = poinths.thvals;
+            for (var i = 0; i < poinths.thvals.length; i++) {
+                ths[i].attr({"text": poinths.thvals[i]});
+            }
+        }
+        
         var lm = 160;
         var rm = $("#calibrate").width() - 27; 
         
-        var thy = 234;
+        var thy = 239;
         
         if (thsetter_jitter.length != poinths.vals.length) {
             thsetter_jitter = new Array(poinths.vals.length);
@@ -4990,20 +6015,20 @@ function drawPointsAndThresholds() {
         }
         
         for (var i = 0; i < poinths.vals.length; i++) {
-            var point = papers["calibrate_main"].circle(
+            var point = papers["calibrate"]["main"].circle(
                 (rm - lm)*(poinths.vals[i] - minv)/(maxv - minv) + lm,
-                calibrate.jitter?thsetter_jitter[i]:200,
+                commobj.calibrate.jitter?thsetter_jitter[i]:200,
                 4);
             point.attr({fill: "#ffffff", "fill-opacity": 0.0});
-            point.txt = datainfo.rownames[i];
+            point.txt = info["data"][commobj["calibrate"].dataset].rownames[i];
             point.hover(hoverIn, hoverOut, point, point);
             thsetter_content.push(point);
         }
         
-        thsetter_content.push(sat(papers["calibrate_main"].text(lm - 3, thy + 15, minv)));
-        thsetter_content.push(sat(papers["calibrate_main"].text(rm + 3, thy + 15, maxv), {"anchor": "end"}));
+        thsetter_content.push(sat(papers["calibrate"]["main"].text(lm - 3, thy + 15, minv)));
+        thsetter_content.push(sat(papers["calibrate"]["main"].text(rm + 3, thy + 15, maxv), {"anchor": "end"}));
         
-        thsetter_content.push(papers["calibrate_main"].path([ 
+        thsetter_content.push(papers["calibrate"]["main"].path([ 
             ["M", lm, thy + 5],
             ["L", lm, thy],
             ["L", rm, thy],
@@ -5013,19 +6038,19 @@ function drawPointsAndThresholds() {
         var position, th;
         var handles = new Array(3);
         
-        if (calibrate.thresholds.length > 0) {
-            for (i = 0; i < calibrate.thresholds.length; i++) {
-                if (calibrate.thresholds[i] != "") {
-                    if (calibrate.thresholds[i] < minv) {
-                        calibrate.thresholds[i] = minv;
+        if (commobj.calibrate.thresholds.length > 0) {
+            for (i = 0; i < commobj.calibrate.thresholds.length; i++) {
+                if (commobj.calibrate.thresholds[i] != "") {
+                    if (commobj.calibrate.thresholds[i] < minv) {
+                        commobj.calibrate.thresholds[i] = minv;
                         ths[i].attr({"text": minv});
                     }
-                    else if (calibrate.thresholds[i] > maxv) {
-                        calibrate.thresholds[i] = maxv;
+                    else if (commobj.calibrate.thresholds[i] > maxv) {
+                        commobj.calibrate.thresholds[i] = maxv;
                         ths[i].attr({"text": maxv});
                     }
-                    position = (rm - lm)*(calibrate.thresholds[i] - minv)/(maxv - minv) + lm;
-                    handles[i] = papers["calibrate_main"].path([
+                    position = (rm - lm)*(commobj.calibrate.thresholds[i] - minv)/(maxv - minv) + lm;
+                    handles[i] = papers["calibrate"]["main"].path([
                         ["M", position, thy],
                         ["L", position - 5, thy + 7],
                         ["L", position + 5, thy + 7],
@@ -5054,11 +6079,11 @@ function drawPointsAndThresholds() {
             var xcoord = BBox.x;
             var ycoord = BBox.y - 20;
             
-            txt = sat(papers["calibrate_main"].text(xcoord, ycoord, this.txt), {"anchor": "middle"});
+            txt = sat(papers["calibrate"]["main"].text(xcoord, ycoord, this.txt), {"anchor": "middle"});
             txt.attr({"font-weight": "bold", "fill-opacity": 0.7});
             var BBox2 = txt.getBBox();
             
-            txtfundal = papers["calibrate_main"].rect(xcoord - BBox2.width/2, ycoord - 1, BBox2.width + 10, 16);
+            txtfundal = papers["calibrate"]["main"].rect(xcoord - BBox2.width/2, ycoord - 1, BBox2.width + 10, 16);
             txtfundal.attr({fill: "#c9c9c9", "fill-opacity": 0.6, stroke: "none"});
             txt.toFront();
             txt.translate(5, 7);
@@ -5081,7 +6106,7 @@ function doWhenXYplotPointsAreReturned() {
     
     if (updatecounter < 21) {
         if (lastvals.toString() != xyplotdata.toString()) {
-            draw_xyplot(papers["xyplot_main"]);
+            draw_xyplot(papers["xyplot"]["main"]);
             updatecounter = 0;
         }
         else {
@@ -5128,13 +6153,13 @@ function pingit(where) {
 }
 
 function printRcommand() {
-    pingit();
     
     updatecounter += 1;
     
     if (updatecounter < 21) {
         
-        if (outres.result != "listen2R") {
+        if (responseR) {
+            
             updatecounter = 0;
             
             var sc = string_command.split("\n");
@@ -5143,21 +6168,22 @@ function printRcommand() {
             
             for (var i = 0; i < sc.length; i++) {
                 
-                header = strwrap(sc[i], 74, "  ");
-                if (i == 0) {
-                    $("#result_main").append("<span style='color:#932192'>" + ((tempcommand == "")?">":"+") + " </span><span style='color:blue'>" + header + "</span><br>");
-                }
-                else {
-                    $("#result_main").append("<span style='color:blue'>&nbsp;&nbsp;" + header + "</span><br>");
-                }
+                    header = strwrap(sc[i].replace(/\s/g, "∞"), 74, "  ").replace(/∞/g, " ");
+                    if (i == 0) {
+                        $("#result_main").append("<span style='color:#932192'>" + ((tempcommand == "")?">":"+") + " </span><span style='color:blue'>" + header + "</span><br>");
+                    }
+                    else {
+                        $("#result_main").append("<span style='color:blue'>&nbsp;&nbsp;" + header + "</span><br>");
+                    }
+                
             }
             
             tempcommand = "";
             var toprint = "";
             
             if (outres.error != null) {
-                toprint = strwrap("Error: " + outres.error + "<br>", 74, "  ");
-                $("#result_main").append("<span style='color:red'>" + toprint + "</span><br>");
+                toprint = strwrap(("Error: " + outres.error).replace(/\s/g, "∞"), 74, "  ").replace(/∞/g, " ");
+                $("#result_main").append("<span style='color:red'><br>" + toprint + "</span><br><br>");
             } 
             else {
                 if (outres.result != null) {
@@ -5177,26 +6203,149 @@ function printRcommand() {
                 }
                 
                 if (outres.warning != null) {
-                    toprint = strwrap("Warning: " + outres.warning + "<br>", 74, "  ");
-                    $("#result_main").append("<span style='color:red'>" + toprint + "</span><br>");
+                    toprint = strwrap(("Warning: " + outres.warning).replace(/\s/g, "∞"), 74, "  ").replace(/∞/g, " ");
+                    $("#result_main").append("<span style='color:red'><br>" + toprint + "</span><br><br>");
                 }
             }
             
-            var modified = getKeys(outres.modified);
+            var tomodify, toadd;
+            var objtype = ["data", "tt", "qmc"];
+            var refresh = false;
             
-            if (modified.length > 0) {
-                if (any(modified, "== \"dataset\"")) {
+            if (outres.modified !== null) {
+                refresh = true;
+                for (var i = 0; i < 3; i++) {
+                    if (outres.modified[objtype[i]] !== null) {
+                        if (info[objtype[i]] === null) {
+                            info[objtype[i]] = new Array();
+                        }
+                        
+                        tomodify = getKeys(outres.modified[objtype[i]]);
+                        for (var j = 0; j < tomodify.length; j++) {
+                            info[objtype[i]][tomodify[j]] = outres.modified[objtype[i]][tomodify[j]];
+                            
+                            if (objtype[i] == "data" && commobj["data_editor"].dataset == tomodify[j]) {
+                                update_data();
+                            }
+                            
+                            if (outres.poinths !== void 0 && $("#calibrate").length) {
+                                if (commobj["calibrate"].dataset == outres.poinths.dataset && commobj["calibrate"].x == outres.poinths.condition) {
+                                    poinths.vals = outres.poinths.vals;
+                                    console.log(outres.poinths);
+                                    if (outres.poinths.thvals !== void 0) {
+                                        poinths.thvals = outres.poinths.thvals;
+                                    }
+                                    drawPointsAndThresholds();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (outres.added !== null) {
+                refresh = true;
+                for (var i = 0; i < 3; i++) {
+                    if (outres.added[objtype[i]] !== null) {
+                        
+                        if (info[objtype[i]] === null) {
+                            info[objtype[i]] = new Array();
+                        }
+                        
+                        toadd = getKeys(outres.added[objtype[i]]);
+                        for (var j = 0; j < toadd.length; j++) {
+                            info[objtype[i]][toadd[j]] = outres.added[objtype[i]][toadd[j]];
+                            
+                            if (objtype[i] == "data") {
+                                click_col("data_editor", "dataset", toadd[j], others = false);
+                                $("#data_editor_body").scrollTop(0);
+                                $("#data_editor_body").scrollLeft(0);
+                                $("#data_editor_rownames").scrollTop(0);
+                                $("#data_editor_colnames").scrollLeft(0);
+                                update_data();
+                            }
+                        }
+                    }
+                }
+            }
+            
+            var allcommobj = getKeys(commobj);
+            var alldialogs = getKeys(colclicks);
+            
+            if (outres.deleted !== null) {
+                refresh = true;
+                var position;
+                for (var i = 0; i < 3; i++) {
                     
-                    datainfo = outres.modified.dataset.datainfo;
-                    theData = outres.modified.dataset.theData;
-                    dataCoords = outres.modified.dataset.dataCoords;
-                    updateWhenDataChanged();
+                    if (info[objtype[i]] !== null) {
+                        if (getKeys(info[objtype[i]]).length == 1) {
+                            for (var d = 0; d < outres.deleted.length; d++) {
+                                if (getKeys(info[objtype[i]]).indexOf(outres.deleted[d]) >= 0) {
+                                    info[objtype[i]] = null;
+                                    if (objtype[i] == "data") {
+                                        commobj["data_editor"].dataset = "";
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            info[objtype[i]] = copyObject(info[objtype[i]], exclude = outres.deleted);
+                            if (objtype[i] == "data" && outres.deleted.indexOf(commobj["data_editor"].dataset) >= 0) {
+                                commobj["data_editor"].dataset = "";
+                            }
+                        }
+                    }
+                    
+                    if (objtype[i] == "data" && info[objtype[i]] !== null && commobj["data_editor"].dataset == "") {
+                        commobj["data_editor"].dataset = getKeys(info[objtype[i]])[0];
+                    }
+                    
+                    for (var d = 0; d < allcommobj.length; d++) {
+                        if (commobj[allcommobj[d]].dataset !== "") {
+                            for (var j = 0; j < outres.deleted.length; j++) {
+                                if (commobj[allcommobj[d]].dataset == outres.deleted[j]) {
+                                    commobj[allcommobj[d]].dataset = "";
+                                    if (allcommobj[d] == "calibrate") {
+                                        thsetter_content.remove();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    for (d = 0; d < alldialogs.length; d++) {
+                        if (colclicks[alldialogs[d]].dataset !== void 0) {
+                            if (colclicks[alldialogs[d]].dataset.length == 1) {
+                                if (outres.deleted.indexOf(getKeys(colclicks[alldialogs[d]].dataset)) >= 0) {
+                                    colclicks = copyObject(colclicks, exclude = [alldialogs[d]]);
+                                }
+                            }
+                            else {
+                                if (any(colclicks[alldialogs[d]].dataset, "== true")) {
+                                    if (any(outres.deleted, "== \"" + getTrueKeys(colclicks[alldialogs[d]].dataset)[0] + "\"")) {
+                                        var allkeys = getKeys(colclicks[alldialogs[d]]);
+                                        colclicks[alldialogs[d]] = copyObject(colclicks[alldialogs[d]], exclude = copyArray(allkeys, exclude = ["dataset"]));
+                                    }
+                                }
+                                colclicks[alldialogs[d]].dataset = copyObject(colclicks[alldialogs[d]].dataset, exclude = outres.deleted);
+                            }
+                        }
+                    }
                 }
+            }
+            
+            if (refresh) {
+                refresh_cols("all");
+            }
+            
+            if ($("#eqmcc").length) {
                 
-                if (any(modified, "== \"calibcond\"")) {
-                    poinths = outres.modified.calibcond;
-                    drawPointsAndThresholds();
-                }
+                checkeqtt();
+                filldirexp();
+            }
+            
+            if ($("#data_editor").length) {
+                print_data(); 
             }
             
             createCommandPromptInRconsole();
@@ -5206,7 +6355,12 @@ function printRcommand() {
             if (outres.plot) {
                 plotopen = true;
                 
-                showDialogToFront(plotsettings);
+                if ($("#plotdiv").length) {
+                    showDialogToFront(settings["plotdiv"]);
+                }
+                else {
+                    createDialog(settings["plotdiv"]);
+                }
                 
                 $("#plotdiv_main").css({
                     "background-image": "url('css/images/plot.svg?" + new Date().getTime() + "')", 
@@ -5214,12 +6368,11 @@ function printRcommand() {
                 });
             
                 if ($("#saveRplot").length) {
-                    $("#preview").css({
+                    $("#saveRplot_preview").css({
                         "background-image": "url('css/images/plot.svg?" + new Date().getTime() + "')", 
                         "background-size": "100% 100%"
                     });
                 }
-            
             }
             
             $("#result_main").animate({
@@ -5259,7 +6412,7 @@ function resizePlot() {
     
     if (updatecounter < 21) {
     
-        if (outres[0] != "listen2R") {
+        if (responseR) {
             
             updatecounter = 0;
             
@@ -5284,19 +6437,17 @@ function printWhenOutputChanges() {
     updatecounter += 1;
     
     if (updatecounter < 21) {
-    
-        if (outres[0] != "listen2R") {
+        
+        if (responseR) {
             
             updatecounter = 0;
             
-            var toprint = outres[0];
+            refresh_cols("all");
             
-            if (toprint == "error") {
-                toprint = "";
-            }
-            for (var i = 1; i < outres.length; i++) {
-                toprint += "<br>" + outres[i];
-            }
+                if ($("#eqmcc").length) {
+                    checkeqtt();
+                    filldirexp();
+                }
             
             var cr = {"£": "csv(", "§": "table(", "∞":" ", "≠": " "};
             history[(histindex < history.length)?history.length:histindex] = string_command.replace(/£|§|∞|≠/g, function(x) {return cr[x]});
@@ -5311,7 +6462,40 @@ function printWhenOutputChanges() {
                 $("#result_main").append("<span style='color:blue'>" + objname + "</span><br>");
             }
             
-            $("#result_main").append(toprint.split(" ").join("&nbsp;") + "<br>");
+            var toprint = "";
+            
+            if (outres.error !== null) {
+                for (var i = 0; i < outres.error.length; i++) {
+                    toprint += "<br>" + outres.error[i];
+                }
+                
+                $("#result_main").append("<span style='color:red'>" +
+                                         (toprint.split(" ").join("&nbsp;") + "<br>") +
+                                         "</span>");
+            }
+            else {
+                
+                if (outres.console !== null) {
+                    for (var i = 0; i < outres.console.length; i++) {
+                        toprint += "<br>" + outres.console[i];
+                    }
+                    
+                    $("#result_main").append(toprint.split(" ").join("&nbsp;") + "<br>");
+                }
+                else {
+                    $("#result_main").append("<br>");
+                }
+                
+                if (outres.warning !== null) {
+                    toprint = "";
+                    for (var i = 0; i < outres.warning.length; i++) {
+                        toprint += "<br>" + outres.warning[i];
+                    }
+                    $("#result_main").append("<span style='color:red'>" +
+                                             (toprint.split(" ").join("&nbsp;") + "<br>") +
+                                             "</span>");
+                }
+            }
             
             createCommandPromptInRconsole();
             
@@ -5343,21 +6527,9 @@ function doWhenRresponds() {
     
     if (updatecounter < 21) {
     
-        if (outres[0] != "listen2R") {
+        if (responseR) {
             
-            var noerror = true;
-            
-            var toprint = outres[0][0];
-            if (toprint == "no problem") {
-                toprint = "";
-            }
-            else if (toprint == "error") {
-                toprint = "";
-                noerror = false;
-                for (var i = 1; i < outres[0].length; i++) {
-                    toprint += "<br>" + outres[0][i];
-                }
-            } 
+            var toprint = outres.toprint;
             
             var cr = {"£": "csv(", "§": "table(", "∞":" ", "≠": " "};
             history[(histindex < history.length)?history.length:histindex] = string_command.replace(/£|§|∞|≠/g, function(x) {return cr[x]});
@@ -5367,8 +6539,43 @@ function doWhenRresponds() {
             $("#tempdiv").remove();
             $("#result_main").append("<span style='color:#932192'>> </span><span style='color:blue'>" + header + "</span><br><br>");
             
-            if (toprint != "") {
-                $("#result_main").append(toprint.split(" ").join("&nbsp;") + "<br>");
+            updatecounter = 0;
+            
+            if (outres.error) {
+                if (toprint != "") {
+                    $("#result_main").append("<span style='color:red'>" + toprint.split(" ").join("&nbsp;") + "<br><br>" + "</span>");
+                }
+            }
+            else {
+                
+                if (toprint != "") {
+                    $("#result_main").append(toprint.split(" ").join("&nbsp;") + "<br>");
+                }
+                
+                visibledata = info["data"][outres.dataset].theData.toString();
+                coordscopy = info["data"][outres.dataset].dataCoords;
+                
+                info["data"][outres.dataset] = outres.infobjs.data[outres.dataset];
+                
+                if (info["data"][outres.dataset].theData.toString() != visibledata | info["data"][outres.dataset].dataCoords != coordscopy) {
+                    
+                    refresh_cols("all");
+                    
+                    if ($("#data_editor").length && info["data"] !== null) {
+                        
+                        $(papers["data_editor"]["body"].canvas).width(70*info["data"][commobj["data_editor"].dataset].ncols);
+                        $(papers["data_editor"]["body"].canvas).height(20*info["data"][commobj["data_editor"].dataset].nrows);
+                        $(papers["data_editor"]["rownames"].canvas).height(20*info["data"][commobj["data_editor"].dataset].nrows);
+                        $(papers["data_editor"]["colnames"].canvas).width(70*info["data"][commobj["data_editor"].dataset].ncols);
+                        
+                        update_data();
+                    } 
+                }
+                
+                if (outres.origin == "calibrate" && outres.poinths !== void 0) {
+                    poinths = outres.poinths;
+                    drawPointsAndThresholds();
+                }
             }
             
             createCommandPromptInRconsole();
@@ -5377,37 +6584,8 @@ function doWhenRresponds() {
                 scrollTop: $("#result_main")[0].scrollHeight
             }, 1000);
             
-            updatecounter = 0;
-            
-            if (noerror) {
-                datainfo.colnames = outres[1].colnames;
-                datainfo.rownames = outres[1].rownames;
-                datainfo.ncols = outres[1].ncols;
-                datainfo.nrows = outres[1].nrows;
-                datainfo.numerics = outres[1].numerics;
-                
-                visibledata = theData.toString();
-                theData = outres[2][0];
-                
-                coordscopy = dataCoords;
-                
-                dataCoords = outres[2][1];
-                
-                if (theData.toString() != visibledata | dataCoords != coordscopy) {
-                    
-                    refresh_cols("all");
-                    
-                    if ($("#data_editor").length) {
-                        
-                        $(papers["data_body"].canvas).width(70*datainfo.ncols + 5);
-                        $(papers["data_body"].canvas).height(20*datainfo.nrows + 5);
-                        $(papers["data_rownames"].canvas).height(20*datainfo.nrows + 25);
-                        $(papers["data_colnames"].canvas).width(70*datainfo.ncols + 25);
-                        
-                        update_data();
-                    } 
-                }
-                
+            if ($("#data_editor").length) {
+                update_data();
             }
             
         }
@@ -5432,14 +6610,14 @@ function print_dirs() {
     if ($("#import").length) {
         
         if (dirfile.filename == "error!") {
-            papers["import_main"].glow.show();
+            papers["import"]["main"].glow.show();
         }
         else {
-            papers["import_main"].glow.hide();
+            papers["import"]["main"].glow.hide();
             
-            papers["import_main"].stdir_text.attr({"text": ""});
+            papers["import"]["main"].stdir_text.attr({"text": ""});
             
-            papers["impath"].goToDir = function(dir) {
+            papers["import"]["path"].goToDir = function(dir) {
                 dirfile_chosen[0] = "dir";
                 dirfile_chosen[1] = dir;
                 dirfile_chosen[2] = "";
@@ -5449,18 +6627,18 @@ function print_dirs() {
                 printDirsWhenPathChanges();
             }
             
-            setPath(papers["impath"], dirfile.wd);
+            setPath(papers["import"]["path"], dirfile.wd);
             
             var rw = 400; 
-            papers["importdirs"].clear();
+            papers["import"]["dirs"].clear();
             
             var i, aaa, bbb, ccc, toprint, printplus;
             var row = 10;
             var fill_opacity = 0.3;
-            var rects_back = papers["importdirs"].set();
-            var texts = papers["importdirs"].set();
-            var rects = papers["importdirs"].set();
-            var pluses = papers["importdirs"].set();
+            var rects_back = papers["import"]["dirs"].set();
+            var texts = papers["import"]["dirs"].set();
+            var rects = papers["import"]["dirs"].set();
+            var pluses = papers["import"]["dirs"].set();
             var x = 30; 
             var dirs_length = 1*((dirfile.dirs === null)?0:dirfile.dirs.length);
             var files_length = 1*((dirfile.files === null)?0:dirfile.files.length);
@@ -5470,13 +6648,13 @@ function print_dirs() {
                 
                 printplus = false;
                 
-                bbb = papers["importdirs"].rect(0, row - 10, rw, 20);
+                bbb = papers["import"]["dirs"].rect(0, row - 10, rw, 20);
                 bbb.id = i;
                 rects_back.push(bbb);
                 
                 if (i == 0) {
                     toprint = "..";
-                    pluses.push(papers["importdirs"].text(0, 0, ""));
+                    pluses.push(papers["import"]["dirs"].text(0, 0, ""));
                 }
                 else {
                     if (i < (dirs_length + 1)) {
@@ -5489,13 +6667,13 @@ function print_dirs() {
                 }
                 
                 if (printplus) {
-                    pluses.push(sat(papers["importdirs"].text(x - 20, row, "+")));
+                    pluses.push(sat(papers["import"]["dirs"].text(x - 20, row, "+")));
                 }
                 
-                aaa = sat(papers["importdirs"].text(x, row, toprint));
+                aaa = sat(papers["import"]["dirs"].text(x, row, toprint));
                 texts.push(aaa);
                 
-                ccc = papers["importdirs"].rect(0, row - 10, rw, 20);
+                ccc = papers["import"]["dirs"].rect(0, row - 10, rw, 20);
                 ccc.id = i;
                 ccc.txt = (i == 0)?(".."):(toprint);
                 
@@ -5523,17 +6701,15 @@ function print_dirs() {
                         
                         if (dirfile_chosen[0] == "file") {
                             
-                            read_table.counter += 1;
-                            Shiny.onInputChange("read_table", read_table);
-                            
-                            visiblerows = 16;
-                            visiblecols = 7;
-                            scrollvh = [0, 0, visiblerows, visiblecols];
-                            papers["importcols"].clear();
-                            $(papers["importcols"].canvas).width(100);
-                            papers["importcols"].text(10, 11, "Loading...").attr({"text-anchor": "start", "font-size": "14px"});
-                            
                             tempdatainfo.nrows = 0;
+                            commobj.read_table.counter += 1;
+                            
+                            Shiny.onInputChange("read_table", commobj.read_table);
+                            
+                            papers["import"]["cols"].clear();
+                            $(papers["import"]["cols"].canvas).width(100);
+                            papers["import"]["cols"].text(10, 11, "Loading...").attr({"text-anchor": "start", "font-size": "14px"});
+                            
                             updatecounter = 0;
                             checkIfDataLoadedInR();
                             
@@ -5551,7 +6727,7 @@ function print_dirs() {
                         dirfile_chosen[1] = (this.txt == "..")?((dirfile_chosen[1] == "..")?"...":".."):this.txt;
                         dirfile_chosen[2] = "";
                         
-                        papers["import_main"].stdir_text.attr({"text": ""});
+                        papers["import"]["main"].stdir_text.attr({"text": ""});
                         
                         if (dirfile_chosen[0] == "dir") {
                             
@@ -5582,10 +6758,10 @@ function print_dirs() {
             
             canvas_height = Math.max(400, rects.getBBox().height);
             
-            $(papers["importdirs"].canvas).height(canvas_height);
-            $("#importdirs").css({height: canvas_height});
+            $(papers["import"]["dirs"].canvas).height(canvas_height);
+            $("#import_dirs").css({height: canvas_height});
             if (dirfile_chosen[0] == "dir") {
-                $("#importdirs").scrollTop(0);
+                $("#import_dirs").scrollTop(0);
             }
         
         }
@@ -5594,7 +6770,7 @@ function print_dirs() {
     
     if ($("#export").length) {
         
-        papers["expath"].goToDir = function(dir) {
+        papers["export"]["path"].goToDir = function(dir) {
             dirfile_chosen[0] = "dir";
             dirfile_chosen[1] = dir;
             pathcopy = dirfile.filepath;
@@ -5602,27 +6778,28 @@ function print_dirs() {
             printDirsWhenPathChanges();
         }
         
-        setPath(papers["expath"], dirfile.wd);
+        setPath(papers["export"]["path"], dirfile.wd);
         
         var rw = 400; 
-        papers["exportdirs"].clear();
+        papers["export"]["dirs"].clear();
         
         var i, aaa, bbb, ccc, extoprint, printplus;
         var row = 10;
         var fill_opacity = 0.3;
-        var exrects_back = papers["exportdirs"].set();
-        var extexts = papers["exportdirs"].set();
-        var exrects = papers["exportdirs"].set();
-        var expluses = papers["exportdirs"].set();
+        var exrects_back = papers["export"]["dirs"].set();
+        var extexts = papers["export"]["dirs"].set();
+        var exrects = papers["export"]["dirs"].set();
+        var expluses = papers["export"]["dirs"].set();
         var x = 30; 
         var exdirs_length = 1*((dirfile.dirs === null)?0:dirfile.dirs.length);
         var exfiles_length = 1*((dirfile.files === null)?0:dirfile.files.length);
         var exclicked = -1;
         
-        papers["export_main"].ovr.hideIt();
+        papers["export"]["main"].ovr.hideIt();
+        
         if (dirfile.files != void 0) {
-            if (dirfile.files.indexOf(exportobj.filename) >= 0) {
-                papers["export_main"].ovr.showIt();
+            if (dirfile.files.indexOf(commobj["export"].filename) >= 0) {
+                papers["export"]["main"].ovr.showIt();
             }
         }
         
@@ -5632,13 +6809,13 @@ function print_dirs() {
             
             printplus = false;
             
-            bbb = papers["exportdirs"].rect(0, row - 10, rw, 20);
+            bbb = papers["export"]["dirs"].rect(0, row - 10, rw, 20);
             bbb.id = i;
             exrects_back.push(bbb);
             
             if (i == 0) {
                 extoprint = "..";
-                expluses.push(papers["exportdirs"].text(0, 0, ""));
+                expluses.push(papers["export"]["dirs"].text(0, 0, ""));
             }
             else {
                 if (i < (exdirs_length + 1)) {
@@ -5651,13 +6828,13 @@ function print_dirs() {
             }
             
             if (printplus) {
-                expluses.push(papers["exportdirs"].text(x - 20, row, "+").attr({"text-anchor": "start", "font-size": "14px"}));
+                expluses.push(papers["export"]["dirs"].text(x - 20, row, "+").attr({"text-anchor": "start", "font-size": "14px"}));
             }
             
-            aaa = sat(papers["exportdirs"].text(x, row, extoprint));
+            aaa = sat(papers["export"]["dirs"].text(x, row, extoprint));
             extexts.push(aaa);
             
-            ccc = papers["exportdirs"].rect(0, row - 10, rw, 20);
+            ccc = papers["export"]["dirs"].rect(0, row - 10, rw, 20);
             ccc.id = i;
             ccc.txt = (i == 0)?(".."):(extoprint);
             
@@ -5681,9 +6858,9 @@ function print_dirs() {
                     }
                     
                     if (this.id > exdirs_length) { 
-                        papers["export_main"].newname.attr({"text": this.txt});
-                        exportobj.filename = this.txt;
-                        papers["export_main"].ovr.showIt();
+                        papers["export"]["main"].newname.attr({"text": this.txt});
+                        commobj["export"].filename = this.txt;
+                        papers["export"]["main"].ovr.showIt();
                     }
                     
                 })
@@ -5721,16 +6898,16 @@ function print_dirs() {
         
         canvas_height = Math.max(400, exrects.getBBox().height);
         
-        $(papers["exportdirs"].canvas).height(canvas_height);
-        $("#exportdirs").css({height: canvas_height});
+        $(papers["export"]["dirs"].canvas).height(canvas_height);
+        $("#export_dirs").css({height: canvas_height});
         
-            $("#exportdirs").scrollTop(0);
+            $("#export_dirs").scrollTop(0);
         
     }
     
     if ($("#saveRplot").length) {
         
-        papers["savepath"].goToDir = function(dir) {
+        papers["saveRplot"]["path"].goToDir = function(dir) {
             dirfile_chosen[0] = "dir";
             dirfile_chosen[1] = dir;
             pathcopy = dirfile.filepath;
@@ -5738,11 +6915,11 @@ function print_dirs() {
             printDirsWhenPathChanges();
         }
         
-        setPath(papers["savepath"], dirfile.wd);
+        setPath(papers["saveRplot"]["path"], dirfile.wd);
         
         var rw = 400; 
         
-        papers["savedirs"].clear();
+        papers["saveRplot"]["dirs"].clear();
         
         if (savetexts !== void 0) {
             savetexts.remove();
@@ -5751,35 +6928,35 @@ function print_dirs() {
         var aaa, bbb, ccc, svtoprint, printplus;
         var row = 10;
         var fill_opacity = 0.3;
-        var saverects_back = papers["savedirs"].set();
-        var savetexts = papers["savedirs"].set();
-        var saverects = papers["savedirs"].set();
-        var savepluses = papers["savedirs"].set();
+        var saverects_back = papers["saveRplot"]["dirs"].set();
+        var savetexts = papers["saveRplot"]["dirs"].set();
+        var saverects = papers["saveRplot"]["dirs"].set();
+        var savepluses = papers["saveRplot"]["dirs"].set();
         var x = 30; 
         var savedirs_length = 1*((dirfile.dirs === null)?0:dirfile.dirs.length);
         var savefiles_length = 1*((dirfile.files === null)?0:dirfile.files.length);
         var svclicked = -1;
         
-        papers["saveRplot_main"].ovr.hideIt();
-        if (dirfile.files != void 0) {
-            if (dirfile.files.indexOf(exportobj.filename) >= 0) {
-                papers["saveRplot_main"].ovr.showIt();
+        papers["saveRplot"]["main"].ovr.hideIt();
+        if (dirfile.files !== void 0) {
+            if (dirfile.files.indexOf((commobj["saveRplot"].filename + "." + commobj["saveRplot"].type)) >= 0) {
+                papers["saveRplot"]["main"].ovr.showIt();
             }
         }
         
-        console_command("saveRplot_main");
+        console_command("saveRplot");
         
         for (var i = 0; i < (1 + savedirs_length + savefiles_length); i++) {
             
             printplus = false;
             
-            bbb = papers["savedirs"].rect(0, row - 10, rw, 20);
+            bbb = papers["saveRplot"]["dirs"].rect(0, row - 10, rw, 20);
             bbb.id = i;
             saverects_back.push(bbb);
             
             if (i == 0) {
                 svtoprint = "..";
-                savepluses.push(papers["savedirs"].text(0, 0, ""));
+                savepluses.push(papers["saveRplot"]["dirs"].text(0, 0, ""));
             }
             else {
                 if (i < (savedirs_length + 1)) {
@@ -5792,14 +6969,14 @@ function print_dirs() {
             }
             
             if (printplus) {
-                savepluses.push(papers["savedirs"].text(x - 20, row, "+").attr({"text-anchor": "start", "font-size": "14px"}));
+                savepluses.push(papers["saveRplot"]["dirs"].text(x - 20, row, "+").attr({"text-anchor": "start", "font-size": "14px"}));
             }
             
-            aaa = sat(papers["savedirs"].text(x, row, svtoprint));
+            aaa = sat(papers["saveRplot"]["dirs"].text(x, row, svtoprint));
             
             savetexts.push(aaa);
             
-            ccc = papers["savedirs"].rect(0, row - 10, rw, 20);
+            ccc = papers["saveRplot"]["dirs"].rect(0, row - 10, rw, 20);
             ccc.id = i;
             ccc.txt = (i == 0)?(".."):(svtoprint);
             
@@ -5823,9 +7000,9 @@ function print_dirs() {
                     }
                     
                     if (this.id > savedirs_length) { 
-                        papers["saveRplot_main"].filename.attr({"text": this.txt});
-                        saveRplot.filename = this.txt;
-                        papers["saveRplot_main"].ovr.showIt();
+                        papers["saveRplot"]["main"].filename.attr({"text": this.txt});
+                        commobj.saveRplot.filename = this.txt;
+                        papers["saveRplot"]["main"].ovr.showIt();
                     }
                     
                 })
@@ -5863,10 +7040,10 @@ function print_dirs() {
         
         canvas_height = Math.max(400, saverects.getBBox().height);
         
-        $(papers["savedirs"].canvas).height(canvas_height);
-        $("#savedirs").css({height: canvas_height});
+        $(papers["saveRplot"]["dirs"].canvas).height(canvas_height);
+        $("#saveRplot_dirs").css({height: canvas_height});
         
-            $("#savedirs").scrollTop(0);
+            $("#saveRplot_dirs").scrollTop(0);
         
     }
 }
@@ -5876,8 +7053,11 @@ function updateWhenDataChanged() {
     updatecounter += 1;
     
     if (updatecounter < 21) { 
-        if (theData.toString() != visibledata | dataCoords != coordscopy) {
-            update_data();
+        
+        if (responseR) {
+            
+            print_data();
+            
             updatecounter = 0; 
         }
         else {
@@ -5938,6 +7118,19 @@ function printDirsWhenPathChanges() {
     }
 }
 
+function textbox(paper, settings) {
+    var x = settings.x;
+    var y = settings.y;
+    var text = settings.text;
+    var width = settings.width;
+    var height = settings.height;
+    
+    var result = {};
+    result.text = sat(paper.text(x, y, text), {"clip": (x - 5) + ", " + (y - 10) + ", " + width + ", " + height});
+    result.rect = sat(paper.rect(x - 5, y - 10, width, height, 3));
+    return(result);
+}
+
 var lastX, absoluteX, newpos;
 
 function dragStart() {
@@ -5974,12 +7167,12 @@ function dragMove(slider) {
         if (this.id == "thsetter") {
             newpos = Math.round(newpos*1000)/1000;
             ths[this.name].attr({"text": newpos});
-            calibrate.thresholds[this.name] = newpos;
+            commobj.calibrate.thresholds[this.name] = newpos;
         }
         else if (this.id == "xyplot") {
-            papers["xyplot_main"].labelRotation = newpos;
+            papers["xyplot"]["main"].labelRotation = newpos;
             if (xyplotdata.length > 0) {
-                createLabels(papers["xyplot_main"]);
+                createLabels(papers["xyplot"]["main"]);
             }
         }
         
@@ -5992,7 +7185,7 @@ function dragStop(slider) {
             console_command("calibrate");
         }
         else if (this.id == "xyplot") {
-            papers["xyplot_main"].labelRotation = newpos;
+            papers["xyplot"]["main"].labelRotation = newpos;
         }
     }
 };
@@ -6042,11 +7235,11 @@ function dragSortStop(sortoption) {
         
         for (var i = 0; i < 3; i++) {
             
-            if (absoluteY > papers["tt_main"].coordsy[i]) {
+            if (absoluteY > papers["tt"]["main"].coordsy[i]) {
                 oldposition = i;
             }
             
-            if (middle > papers["tt_main"].coordsy[i]) {
+            if (middle > papers["tt"]["main"].coordsy[i]) {
                 newposition = i;
             }
             
@@ -6054,7 +7247,7 @@ function dragSortStop(sortoption) {
         
         if (oldposition == newposition) {
             
-            if (tt.sort_sel[sortoption[2].name]) {
+            if (commobj.tt.sort_sel[sortoption[2].name]) {
                 sortoption[0].attr({fill: "#eeeeee", stroke: "none"});
                 sortoption[1].attr({fill: "black", "text-anchor": "start", "font-size": "14px"});
                 
@@ -6065,62 +7258,62 @@ function dragSortStop(sortoption) {
                 
             }
             
-            tt.sort_sel[sortoption[2].name] = !tt.sort_sel[sortoption[2].name];
-            sortoption[0].backcolor = tt.sort_sel[sortoption[2].name];
+            commobj.tt.sort_sel[sortoption[2].name] = !commobj.tt.sort_sel[sortoption[2].name];
+            sortoption[0].backcolor = commobj.tt.sort_sel[sortoption[2].name];
             
-            sortoption.translate(0, papers["tt_main"].coordsy[oldposition] - newBB.y);
+            sortoption.translate(0, papers["tt"]["main"].coordsy[oldposition] - newBB.y);
             
         }
         else {
-            var positions = copyArray(papers["tt_main"].positions);
+            var positions = copyArray(papers["tt"]["main"].positions);
             var distomove;
             
-            distomove = papers["tt_main"].coordsy[oldposition] - papers["tt_main"].sortsets[positions[newposition]].getBBox().y;
-            papers["tt_main"].sortsets[positions[newposition]].translate(0, distomove);
-            sortoption.translate(0, papers["tt_main"].coordsy[newposition] - newBB.y);
+            distomove = papers["tt"]["main"].coordsy[oldposition] - papers["tt"]["main"].sortsets[positions[newposition]].getBBox().y;
+            papers["tt"]["main"].sortsets[positions[newposition]].translate(0, distomove);
+            sortoption.translate(0, papers["tt"]["main"].coordsy[newposition] - newBB.y);
             
-            papers["tt_main"].positions[oldposition] = positions[newposition];
-            papers["tt_main"].positions[newposition] = positions[oldposition];
+            papers["tt"]["main"].positions[oldposition] = positions[newposition];
+            papers["tt"]["main"].positions[newposition] = positions[oldposition];
             
             if (Math.abs(newposition - oldposition) == 2) {
-                distomove = papers["tt_main"].coordsy[oldposition] - papers["tt_main"].sortsets[positions[1]].getBBox().y;
-                papers["tt_main"].sortsets[positions[1]].translate(0, distomove);
+                distomove = papers["tt"]["main"].coordsy[oldposition] - papers["tt"]["main"].sortsets[positions[1]].getBBox().y;
+                papers["tt"]["main"].sortsets[positions[1]].translate(0, distomove);
                 
-                distomove = papers["tt_main"].coordsy[1] - papers["tt_main"].sortsets[positions[newposition]].getBBox().y;
-                papers["tt_main"].sortsets[positions[newposition]].translate(0, distomove);
+                distomove = papers["tt"]["main"].coordsy[1] - papers["tt"]["main"].sortsets[positions[newposition]].getBBox().y;
+                papers["tt"]["main"].sortsets[positions[newposition]].translate(0, distomove);
                 
-                papers["tt_main"].positions[oldposition] = positions[1];
-                papers["tt_main"].positions[1] = positions[newposition];
+                papers["tt"]["main"].positions[oldposition] = positions[1];
+                papers["tt"]["main"].positions[1] = positions[newposition];
             }
             
-            tt.sort_by = reorder(tt.sort_by, oldposition, newposition);
-            tt.sort_sel = reorder(tt.sort_sel, oldposition, newposition);
+            commobj.tt.sort_by = reorder(commobj.tt.sort_by, oldposition, newposition);
+            commobj.tt.sort_sel = reorder(commobj.tt.sort_sel, oldposition, newposition);
         }
         
-        var keys = getKeys(tt.sort_by);
+        var keys = getKeys(commobj.tt.sort_by);
         for (var i = 0; i < 3; i++) {
-            papers["tt_main"].decrease[i].cover.name = keys[i];
+            papers["tt"]["main"].decrease[i].cover.name = keys[i];
             
-            if (tt.sort_by[keys[i]]) {
-                papers["tt_main"].decrease[i].check();
+            if (commobj.tt.sort_by[keys[i]]) {
+                papers["tt"]["main"].decrease[i].check();
             }
             else {
-                papers["tt_main"].decrease[i].uncheck();
+                papers["tt"]["main"].decrease[i].uncheck();
             }
             
-            if (tt.sort_sel[keys[i]]) {
-                papers["tt_main"].decrease[i].showIt();
+            if (commobj.tt.sort_sel[keys[i]]) {
+                papers["tt"]["main"].decrease[i].showIt();
             }
             else {
-                papers["tt_main"].decrease[i].hideIt();
+                papers["tt"]["main"].decrease[i].hideIt();
             }
         }
         
-        if (getTrueKeys(tt.sort_sel).length == 0) {
-            papers["tt_main"].decr.hide();
+        if (getTrueKeys(commobj.tt.sort_sel).length == 0) {
+            papers["tt"]["main"].decr.hide();
         }
         else {
-            papers["tt_main"].decr.show();
+            papers["tt"]["main"].decr.show();
         }
         
         console_command("tt");
@@ -6129,135 +7322,57 @@ function dragSortStop(sortoption) {
 }
 
 function makePapers(obj) {
-    papers[obj.name + "_main"] = Raphael(obj.name + "_main", obj.width, obj.height);
+    papers[obj.name] = new Array();
+    papers[obj.name]["main"] = Raphael(obj.name + "_main", obj.width, obj.height);
     
-    if (obj.inside != undefined) {
+    if (obj.inside !== undefined) {
         var keys = getKeys(obj.inside);
         for (var i = 0; i < keys.length; i++) {
-            papers[keys[i]] = Raphael(keys[i], obj.inside[keys[i]].width, obj.inside[keys[i]].height);
+            papers[obj.name][keys[i]] = Raphael(obj.name + "_" + keys[i], obj.inside[keys[i]].width, obj.inside[keys[i]].height);
         }
     }
 }
 
 $("#menu_import").click(function() {
-    
     pingit();
-    
-    var settings = {
-        name:       "import",
-        title:      "Import from text file",
-        position:   {my: "left top", at: "left+5px top+33px", of: window, collision: "flip"},
-        resizable:  false,
-        width:      680,
-        height:     433,
-        inside: {
-            
-            impath:     {border: true, left: 270, top:  62, width: 400, height:  40},
-            importdirs: {border: true, left: 264, top:  80, width: 400, height: 300},
-            importcols: {border: true, left:  14, top: 260, width: 235, height: 120}
-        }
-    };
-    
-    if ($("#import").length) {
-        showDialogToFront(settings);
-    }
-    else {
+    if (!$("#import").length) {
         current_command = "import";
-        createDialog(settings);
-        makePapers(settings);
-        $(papers["importcols"].canvas).height(20);
-        draw_import(papers["import_main"]);
+        createDialog(settings["import"]);
+        makePapers(settings["import"]);
+        $(papers["import"]["cols"].canvas).height(20);
+        draw_import(papers["import"]["main"]);
     }
-    
     $("#main_menu").smartmenus('menuHideAll');
     return false;
 });
 
 $("#menu_export").click(function() {
-    
     pingit();
-    
-    var settings = {
-        name:       "export",
-        title:      "Export to text file",
-        position:   {my: "left top", at: "left+5px top+33px", of: window, collision: "flip"},
-        resizable:  false,
-        width:      655,
-        height:     375,
-        inside: {
-            
-            expath:     {border: true, left: 240, top:  60, width: 400, height:  40},
-            exportdirs: {border: true, left: 240, top:  78, width: 400, height: 240}
-        }
-    };
-    
-    if ($("#export").length) {
-        showDialogToFront(settings);
-    }
-    else {
+    if (!$("#export").length) {
         current_command = "export";
-        createDialog(settings);
-        makePapers(settings);
-        draw_export(papers["export_main"]);
+        createDialog(settings["export"]);
+        makePapers(settings["export"]);
+        refresh_cols("export");
+        draw_export(papers["export"]["main"]);
     }
-    
     $("#main_menu").smartmenus('menuHideAll');
     return false;
 });
 
-$("#menu_edit").click(function() {
+function openDataEditor(dataset) {
     
     pingit();
     
-    var vscrollbar = datainfo.nrows > visiblerows;
-    var hscrollbar = datainfo.ncols > visiblecols;
-    var settings = {
-        name:       "data_editor",
-        title:      "Data editor",
-        position:   {my: "left top", at: "left+" + testX + "px top+" + testY + "px", of: window, collision: "flip"},
-        resizable:  true,
-        width:      200, 
-        height:     150, 
-        inside: {
-            data_topleft:  {
-                border: false,
-                left:  0,
-                top: 20,
-                width: 70,
-                height: 20
-            },
-            data_colnames: {
-                border: false,
-                left: 70,
-                top: 20,
-                width: (visiblecols + 1)*70,
-                height: 20
-            },
-            data_rownames: {
-                border: false,
-                left:  0,
-                top: 40,
-                width: 70,
-                height: (visiblerows + 1)*20
-            },
-            data_body: {
-                border: false,
-                left: 70,
-                top: 40,
-                width: (visiblecols + 1)*70 + 1*(vscrollbar?scrollbarsWH:0),
-                height: (visiblerows + 1)*20 + 1*(hscrollbar?scrollbarsWH:0)
-            }
-        }
-    };
-    
-    if ($("#data_editor").length) {
-        showDialogToFront(settings);
-        update_data(); 
-    }
-    else {
+    if (!$("#data_editor").length) {
+        var vscrollbar = false, hscrollbar = false;
         
-        createDialog(settings);
-        makePapers(settings);
+        if (info["data"] !== null) {
+            vscrollbar = info["data"][dataset].nrows - 1 > visiblerows;
+            hscrollbar = info["data"][dataset].ncols - 1 > visiblecols;
+        }
+        
+        createDialog(settings["data_editor"]);
+        makePapers(settings["data_editor"]);
         
         $("#data_editor").width((visiblecols + 1 + 1)*70 + 1*(vscrollbar?scrollbarsWH:0));
                                             
@@ -6270,10 +7385,30 @@ $("#menu_edit").click(function() {
             }
         });
         
-        print_data(); 
-        
-        $("#data_editor_main").width($("#data_editor").width());
-        $("#data_editor_main").height($("#data_editor").height() - 20);
+        if (info["data"] !== null) {
+            
+            scrollobj.scrollvh = {};
+            var datasets = getKeys(info["data"]);
+            for (var i = 0; i < datasets.length; i++) {
+                scrollobj.scrollvh[datasets[i]] = info["data"][datasets[i]].scrollvh;
+            }
+            
+            scrollobj.dataset = dataset;
+            scrollobj.counter += 1;
+            scrollobj.visiblerows = visiblerows;
+            scrollobj.visiblecols = visiblecols;
+            scrollobj.alldata = true;
+            
+            responseR = false;
+            Shiny.onInputChange("scrollobj", scrollobj);
+            updatecounter = 0;
+            responseR = false;
+            updateWhenDataChanged();
+        }
+        else {
+            
+            print_data();  
+        }
         
         $("#data_editor").resizable({
             start: function(event, ui) {
@@ -6281,168 +7416,196 @@ $("#menu_edit").click(function() {
             },
             resize: function(event, ui) {
                 
+                if (info["data"] !== null) {
+                    
+                    vscrollbar = info["data"][commobj["data_editor"].dataset].nrows - 1 > visiblerows;
+                    hscrollbar = info["data"][commobj["data_editor"].dataset].ncols - 1 > visiblecols;
+                }
                 $("#data_editor_main").width($("#data_editor").width());
                 $("#data_editor_main").height($("#data_editor").height() - 20);
                 
-                $("#data_body").width($("#data_editor").width() - 70);
-                $("#data_body").height($("#data_editor").height() - 40);
-                $("#data_colnames").width($("#data_editor").width() - 70 - 1*((datainfo.nrows > visiblerows)?scrollbarsWH:0));
-                $("#data_rownames").height($("#data_editor").height() - 40 - 1*((datainfo.ncols > visiblecols)?scrollbarsWH:0));
+                var width = $("#data_editor").width() - 70;
+                var height = $("#data_editor").height() - 40;
                 
-                visiblerows = Math.round($("#data_rownames").height()/20);
-                visiblecols = Math.round($("#data_colnames").width() /70); 
+                $("#data_editor_body").width(width);
+                $("#data_editor_body").height(height);
+                $("#data_editor_colnames").width(width - 1*(vscrollbar?scrollbarsWH:0));
+                $("#data_editor_rownames").height(height - 1*(hscrollbar?scrollbarsWH:0));
+                
+                visiblerows = Math.round($("#data_editor_rownames").height()/20) - 1; 
+                visiblecols = Math.round($("#data_editor_colnames").width() /70) - 1;
+                
+                $(papers["data_editor"]["body"].canvas).width(width - 15);
+                $(papers["data_editor"]["body"].canvas).height(height - 15);
+                $(papers["data_editor"]["colnames"].canvas).width(width - 1*(vscrollbar?scrollbarsWH:0) - 15);
+                $(papers["data_editor"]["rownames"].canvas).height(height - 1*(vscrollbar?scrollbarsWH:0) - 15);
+                
             },
             stop: function(event, ui) {
-                var vscrollbar = datainfo.nrows > visiblerows;
-                var hscrollbar = datainfo.ncols > visiblecols;
-                var scrollvh2 = scrollvh.slice(); 
+                var dataset = commobj["data_editor"].dataset;
+                if (info["data"] !== null) {
+                    
+                    vscrollbar = info["data"][dataset].nrows - 1 > visiblerows;
+                    hscrollbar = info["data"][dataset].ncols - 1 > visiblecols;
+                }
                 
-                $("#data_editor").width( (visiblecols + 1)*70 + 1*(vscrollbar?scrollbarsWH:0));
-                $("#data_editor").height((visiblerows + 2)*20 + 1*(hscrollbar?scrollbarsWH:0));
+                $("#data_editor").width((visiblecols + 2)*70 + 1*(vscrollbar?scrollbarsWH:0));
+                $("#data_editor").height((visiblerows + 3)*20 + 1*(hscrollbar?scrollbarsWH:0));
                 $("#data_editor_main").width($("#data_editor").width());
                 $("#data_editor_main").height($("#data_editor").height() - 20);
                 
-                $("#data_body").width($("#data_editor").width() - 70);
-                $("#data_body").height($("#data_editor").height() - 40);
-                
-                $("#data_colnames").width(visiblecols*70);
-                $("#data_rownames").height(visiblerows*20);
-                
-                scrollvh[2] = scrollvh[0] + (visiblerows - 1);
-                scrollvh[3] = scrollvh[1] + (visiblecols - 1);
-                
-                if (!arraysEqual(scrollvh, scrollvh2)) {
+                if (dataset != "") {
+                    var svh = info["data"][dataset].scrollvh.toString();
+                    info["data"][dataset].scrollvh[2] = info["data"][dataset].scrollvh[0] + visiblerows;
+                    info["data"][dataset].scrollvh[3] = info["data"][dataset].scrollvh[1] + visiblecols;
                     
-                    visibledata = theData.toString();
-                    coordscopy = dataCoords;
-                    Shiny.onInputChange("scrollvh", scrollvh);
-                    updatecounter = 0;
-                    updateWhenDataChanged();
+                    if (info["data"][dataset].scrollvh.toString() !== svh && info["data"] !== null) {
+                        visibledata = info["data"][dataset].theData.toString();
+                        coordscopy = info["data"][dataset].dataCoords;
+                        
+                        scrollobj.scrollvh = {};
+                        var datasets = getKeys(info["data"]);
+                        for (var i = 0; i < datasets.length; i++) {
+                            scrollobj.scrollvh[datasets[i]] = info["data"][datasets[i]].scrollvh;
+                        }
+                        scrollobj.dataset = dataset;
+                        scrollobj.counter += 1;
+                        scrollobj.visiblerows = visiblerows;
+                        scrollobj.visiblecols = visiblecols;
+                        scrollobj.alldata = true;
+                        
+                        responseR = false;
+                        Shiny.onInputChange("scrollobj", scrollobj);
+                        updatecounter = 0;
+                        updateWhenDataChanged();
+                    }
+                    else {
+                        
+                        print_data();
+                    }
                 }
-                
+                else {
+                    
+                    print_data();
+                    
+                    var width = $("#data_editor").width() - 70;
+                    var height = $("#data_editor").height() - 40;
+                    
+                    $(papers["data_editor"]["body"].canvas).width(width);
+                    $(papers["data_editor"]["body"].canvas).height(height);
+                    $(papers["data_editor"]["colnames"].canvas).width(width - 1*(vscrollbar?scrollbarsWH:0));
+                    $(papers["data_editor"]["rownames"].canvas).height(height - 1*(vscrollbar?scrollbarsWH:0));
+                }
             }
         });
         
-        $("#data_body").scroll(function () {
-            $("#data_rownames").scrollTop($("#data_body").scrollTop());
-            $("#data_colnames").scrollLeft($("#data_body").scrollLeft());
+        $("#data_editor_body").scroll(function () {
+            $("#data_editor_rownames").scrollTop($("#data_editor_body").scrollTop());
+            $("#data_editor_colnames").scrollLeft($("#data_editor_body").scrollLeft());
             
             clearTimeout($.data(this, 'scrollCheck'));
             
             $.data(this, "scrollCheck", setTimeout(function() {
-                var vertical = $("#data_body").scrollTop();
-                var horizontal = $("#data_body").scrollLeft(); 
+                var vertical = $("#data_editor_body").scrollTop();
+                var horizontal = $("#data_editor_body").scrollLeft(); 
                 
                 var cellstoright = Math.round(horizontal/70);
                 var cellsdown = Math.round(vertical/20);
+                var dataset = commobj["data_editor"].dataset;
+                
+                scrolleftop[dataset] = {"vertical": vertical, "horizontal": horizontal}
                 
                 var change = false;
                 
-                if (cellstoright != scrollvh[1]) {
+                if (cellstoright != info["data"][dataset].scrollvh[1] && info["data"] !== null) {
                     change = true;
-                    scrollvh[1] = cellstoright;
-                    scrollvh[3] = Math.min(visiblecols, datainfo.ncols - scrollvh[1]);
-                }
-                
-                if (cellsdown != scrollvh[0]) {
-                    change = true;
-                    scrollvh[0] = cellsdown;
-                    scrollvh[2] = Math.min(visiblerows, datainfo.nrows - scrollvh[0]);
-                }
-                
-                if (change) {
+                    info["data"][dataset].scrollvh[1] = cellstoright;
                     
-                    visibledata = theData.toString();
-                    coordscopy = dataCoords;
-                    Shiny.onInputChange("scrollvh", scrollvh);
+                }
+                
+                if (cellsdown != info["data"][dataset].scrollvh[0] && info["data"] !== null) {
+                    change = true;
+                    info["data"][dataset].scrollvh[0] = cellsdown;
+                    
+                }
+                
+                if (change && info["data"] !== null) {
+                    
+                    visibledata = info["data"][dataset].theData.toString();
+                    coordscopy = info["data"][dataset].dataCoords;
+                    
+                    scrollobj.scrollvh = {};
+                    scrollobj.scrollvh[dataset] = info["data"][dataset].scrollvh;
+                    scrollobj.dataset = dataset;
+                    scrollobj.counter += 1;
+                    scrollobj.visiblerows = visiblerows;
+                    scrollobj.visiblecols = visiblecols;
+                    scrollobj.alldata = false;
+                    
+                    responseR = false;
+                    Shiny.onInputChange("scrollobj", scrollobj);
                     
                     updateWhenDataChanged();
                 }
                 
             }, 100));
         });
-        
     }
+    else {
+        click_col("data_editor", "dataset", dataset, others = false);
+        print_data();
+    }
+}
+
+$("#menu_data_editor").click(function() {
+    
+    openDataEditor(commobj["data_editor"].dataset);
     
     $("#main_menu").smartmenus('menuHideAll');
     return false;
 });
 
 $("#menu_calibrate").click(function() {
-    
     pingit();
     
-    var settings = {
-        name:      "calibrate",
-        title:     "Calibrate",
-        position:  {my: "left top", at: "left+80px top+33px", of: window, collision: "flip"},
-        resizable: true,
-        width:     490,
-        height:    335,
-        inside: {
-            "calibcols": {border: true, left: 15, top: 57, width: 120, height: 220}
-        }
-    };
-    
-    if ($("#calibrate").length) {
-        showDialogToFront(settings);
-    }
-    else {
-        createDialog(settings);
-        makePapers(settings);
-        thsetter_content = papers["calibrate_main"].set();
+    if (!$("#calibrate").length) {
+        createDialog(settings["calibrate"]);
+        makePapers(settings["calibrate"]);
+        thsetter_content = papers["calibrate"]["main"].set();
         refresh_cols("calibrate");
-        draw_calib(papers["calibrate_main"]);
-    }
-    
-    $("#calibrate").resizable({
-        start: function() {
-            showDialogToFront(settings);
-        },
-        resize: function() {
-            $(this).height(settings.height);
-            $("#calibrate_main").width($("#calibrate").width());
-            $(papers["calibrate_main"].canvas).width($("#calibrate").width());
-            
-            papers["calibrate_main"].thsetter_frame.attr({width: $("#calibrate").width() - 170});
-            papers["calibrate_main"].Run.transform("t" + ($("#calibrate").width() - 490) + ",0");
-        },
-        stop: function () {
-            if (poinths.vals.length > 0) {
-                drawPointsAndThresholds();
+        draw_calib(papers["calibrate"]["main"]);
+        
+        $("#calibrate").resizable({
+            start: function() {
+                showDialogToFront(settings["calibrate"]);
+            },
+            resize: function() {
+                $(this).height(settings["calibrate"].height);
+                $("#calibrate_main").width($("#calibrate").width());
+                $(papers["calibrate"]["main"].canvas).width($("#calibrate").width());
+                
+                papers["calibrate"]["main"].thsetter_frame.attr({width: $("#calibrate").width() - 170});
+                papers["calibrate"]["main"].Run.transform("t" + ($("#calibrate").width() - 490) + ",0");
+            },
+            stop: function () {
+                if (poinths.vals.length > 0) {
+                    drawPointsAndThresholds();
+                }
             }
-        }
-    });
+        });
+    }
     
     $("#main_menu").smartmenus('menuHideAll');
     return false;
 });
 
 $("#menu_recode").click(function() {
-    
     pingit();
-    
-    var settings = {
-        name:      "recode",
-        title:     "Recode",
-        position:  {my: "left top", at: "left+80px top+33px", of: window, collision: "flip"},
-        resizable: false,
-        width:     520,
-        height:    310,
-        inside: {
-            recodecols: {border: true, left: 14, top:  57, width: 120, height: 200},
-            recrules:   {border: true, left: 335, top: 157, width: 170, height: 100}
-        }
-    };
-    
-    if ($("#recode").length) {
-        showDialogToFront(settings);
-    }
-    else {
-        createDialog(settings);
-        makePapers(settings);
+    if (!$("#recode").length) {
+        createDialog(settings["recode"]);
+        makePapers(settings["recode"]);
         refresh_cols("recode");
-        draw_recode(papers["recode_main"]);
+        draw_recode(papers["recode"]["main"]);
     }
     
     $("#main_menu").smartmenus('menuHideAll');
@@ -6450,31 +7613,14 @@ $("#menu_recode").click(function() {
 
 });
 
-$("#menu_tt").click(function() {
-    
+$("#menu_create_tt").click(function() {
     pingit();
     
-    var settings = {
-        name:      "tt",
-        title:     "Truth table",
-        position:  {my: "left top", at: "left+170px top+33px", of: window, collision: "flip"},
-        resizable: false,
-        width:     460,
-        height:    340,
-        inside: {
-            ttcols1: {border: true, left:  13, top:  50, width: 212, height: 120},
-            ttcols2: {border: true, left: 234, top:  50, width: 212, height: 120}
-        }
-    };
-    
-    if ($("#tt").length) {
-        showDialogToFront(settings);
-    }
-    else {
-        createDialog(settings);
-        makePapers(settings);
+    if (!$("#tt").length) {
+        createDialog(settings["tt"]);
+        makePapers(settings["tt"]);
         refresh_cols("tt");
-        draw_tt(papers["tt_main"]);
+        draw_tt(papers["tt"]["main"]);
     }
     
     $("#main_menu").smartmenus('menuHideAll');
@@ -6482,35 +7628,15 @@ $("#menu_tt").click(function() {
 });
 
 $("#menu_eqmcc").click(function() {
-    
     pingit();
     
-    var settings = {
-        name:       "eqmcc",
-        title:      "Quine-McCluskey minimization",
-        position:   {my: "left top", at: "left+170px top+33px", of: window, collision: "flip"},
-        resizable:  false,
-        width:      463,
-        height:     432,
-        inside: {
-            eqcols1: {border: true, left:  14, top:  47, width: 212, height: 120},
-            eqcols2: {border: true, left: 235, top:  47, width: 212, height: 120},
-            direxp:  {border: true, left:  14, top: 312, width: 120, height: 102}
-        }
-    };
-    
-    if ($("#eqmcc").length) {
-        showDialogToFront(settings);
-    }
-    else {
-    
-        createDialog(settings);
-        makePapers(settings);
-        draw_eqmcc(papers["eqmcc_main"]);
+    if (!$("#eqmcc").length) {
+        createDialog(settings["eqmcc"]);
+        makePapers(settings["eqmcc"]);
+        draw_eqmcc(papers["eqmcc"]["main"]);
         refresh_cols("eqmcc");
         filldirexp();
         current_command = "eqmcc";
-        
     }
     
     $("#main_menu").smartmenus('menuHideAll');
@@ -6518,138 +7644,86 @@ $("#menu_eqmcc").click(function() {
 });
 
 $("#menu_xyplot").click(function() {
-    
     pingit();
     
-    var settings = {
-        name:      "xyplot",
-        title:     "XY plot",
-        position:  {my: "left top", at: "left+240px top+33px", of: window, collision: "flip"},
-        resizable: true,
-        width:     720,
-        height:    567,
-        inside: {
-            xyplotcols1: {border: true, left: 13, top:  210, width: 150, height: 120},
-            xyplotcols2: {border: true, left: 13, top:   54, width: 150, height: 120}
-            
-        }
-    };
-    
-    if ($("#xyplot").length) {
-        showDialogToFront(settings);
-    }
-    else {
-        
-        createDialog(settings);
-        makePapers(settings);
+    if (!$("#xyplot").length) {
+        createDialog(settings["xyplot"]);
+        makePapers(settings["xyplot"]);
         refresh_cols("xyplot");
-        draw_xyplot(papers["xyplot_main"])
+        draw_xyplot(papers["xyplot"]["main"]);
+        
+        $("#xyplot").resizable({
+            resize: function () {
+                var paper = papers["xyplot"]["main"];
+                $("#xyplot").width($("#xyplot_main").height() + 173);
+                $(paper.canvas).width($("#xyplot").width());
+                $(paper.canvas).height($("#xyplot").height() - 20);
+                $("#xyplot_main").width($("#xyplot").width());
+                $("#xyplot_main").height($("#xyplot").height() - 20);
+            },
+            stop: function() {
+                var paper = papers["xyplot"]["main"];
+                $(paper.canvas).width($("#xyplot").width() - 50);
+                $(paper.canvas).height($("#xyplot").height() - 70);
+                $(paper.canvas).width($("#xyplot").width());
+                $(paper.canvas).height($("#xyplot").height() - 20);
+                paper.scale = Math.min(($(paper.canvas).width() - paper.sx - 10)/paper.dim, ($(paper.canvas).height() - paper.sy - 47)/paper.dim);
+                
+                draw_xyplot(paper);
+            }
+        });
     }
-    
-    $("#xyplot").resizable({
-        resize: function () {
-            var paper = papers["xyplot_main"];
-            $("#xyplot").width($("#xyplot_main").height() + 173);
-            $(paper.canvas).width($("#xyplot").width());
-            $(paper.canvas).height($("#xyplot").height() - 20);
-            $("#xyplot_main").width($("#xyplot").width());
-            $("#xyplot_main").height($("#xyplot").height() - 20);
-        },
-        stop: function() {
-            var paper = papers["xyplot_main"];
-            $(paper.canvas).width($("#xyplot").width() - 50);
-            $(paper.canvas).height($("#xyplot").height() - 70);
-            $(paper.canvas).width($("#xyplot").width());
-            $(paper.canvas).height($("#xyplot").height() - 20);
-            paper.scale = Math.min(($(paper.canvas).width() - paper.sx - 10)/paper.dim, ($(paper.canvas).height() - paper.sy - 47)/paper.dim);
-            
-            draw_xyplot(paper);
-        }
-    });
     
     $("#main_menu").smartmenus('menuHideAll');
     return false;
 });
 
 $("#menu_venn").click(function() {
-    
     pingit();
     
-    var settings = {
-        name:      "venn",
-        title:     "Venn diagram",
-        position:  {my: "left top", at: "left+240px top+33px", of: window, collision: "flip"},
-        resizable: true,
-        width:     430, 
-        height:    500
-    };
-    
-    if ($("#venn").length) {
-        showDialogToFront(settings);
-    }
-    else {
-        createDialog(settings);
-        makePapers(settings);
-    }
-    
-    draw_venn(papers["venn_main"]);
-    
-    $("#venn").resizable({
-        stop: function() {
-            var paper = papers["venn_main"];
-            $(paper.canvas).width($("#venn").width() - 50);
-            $(paper.canvas).height($("#venn").height() - 70);
+    if (!$("#venn").length) {
+        createDialog(settings["venn"]);
+        makePapers(settings["venn"]);
+        draw_venn(papers["venn"]["main"]);
+        
+        $("#venn").resizable({
+            stop: function() {
+                var paper = papers["venn"]["main"];
+                $(paper.canvas).width($("#venn").width() - 50);
+                $(paper.canvas).height($("#venn").height() - 70);
+                $(paper.canvas).width($("#venn").width());
+                $(paper.canvas).height($("#venn").height() - 20);
+                paper.scale = (Math.min($(paper.canvas).width() - 20, $(paper.canvas).height() - 70))/1000;
+                
+                draw_venn(paper);
+                paper.hover = true;
+            }
+        });
+        
+        $("#venn").resize(function() {
+            var paper = papers["venn"]["main"];
+            paper.hover = false;
+            $("#venn").height($("#venn").width() + 70);
+            $("#venn_main").width($("#venn").width());
+            $("#venn_main").height($("#venn").height() - 20);
+            
             $(paper.canvas).width($("#venn").width());
             $(paper.canvas).height($("#venn").height() - 20);
-            paper.scale = (Math.min($(paper.canvas).width() - 20, $(paper.canvas).height() - 70))/1000;
-            
-            draw_venn(paper);
-            paper.hover = true;
-        }
-    });
-    
-    $("#venn").resize(function() {
-        var paper = papers["venn_main"];
-        paper.hover = false;
-        $("#venn").height($("#venn").width() + 70);
-        $("#venn_main").width($("#venn").width());
-        $("#venn_main").height($("#venn").height() - 20);
-        
-        $(paper.canvas).width($("#venn").width());
-        $(paper.canvas).height($("#venn").height() - 20);
-    });
+        });
+    }
     
     $("#main_menu").smartmenus('menuHideAll');
     return false;
 });
 
 $("#menu_saveRplot").click(function() {
-    
     pingit();
     
-    var settings = {
-        name:       "saveRplot",
-        title:      "Save R plot window",
-        position:   {my: "left top", at: "left+5px top+33px", of: window, collision: "flip"},
-        resizable:  false,
-        width:      655,
-        height:     400,
-        inside: {
-            
-            preview: {border: false, left: 10, top:  30, width: 220, height: 200},
-            savepath: {border: false, left: 240, top:  60, width: 400, height:  40},
-            savedirs: {border: true, left: 240, top:  78, width: 400, height: 260}
-        }
-    };
-    
-    if ($("#saveRplot").length) {
-        showDialogToFront(settings);
-    }
-    else {
+    if (!$("#saveRplot").length) {
         current_command = "saveRplot";
-        createDialog(settings);
-        makePapers(settings);
-        draw_saveRplot(papers["saveRplot_main"]);
+        createDialog(settings["saveRplot"]);
+        makePapers(settings["saveRplot"]);
+        draw_saveRplot(papers["saveRplot"]["main"]);
     }
     
     $("#main_menu").smartmenus('menuHideAll');
@@ -6657,25 +7731,12 @@ $("#menu_saveRplot").click(function() {
 });
 
 $("#menu_about").click(function() {
-    
     pingit();
     
-    var settings = {
-        name:       "about",
-        title:      "About this software",
-        position:   {my: "left top", at: "left+300px top+33px", of: window, collision: "flip"},
-        resizable:  false,
-        width:      470,
-        height:     405 + 10*(navigator.browserType == "Firefox")
-    };
-    
-    if ($("#about").length) {
-        showDialogToFront(settings);
-    }
-    else {
-        createDialog(settings);
+    if (!$("#about").length) {
+        createDialog(settings["about"]);
         var messages = [
-            "R package: QCAGUI, version 2.3",
+            "R packages: QCA and QCAGUI, version 2.4",
             "",
             "Author: Adrian Dușa (dusa.adrian@unibuc.ro)",
             "",
@@ -6684,7 +7745,6 @@ $("#menu_about").click(function() {
             "            jQuery contributors (jQuery library and jQuery UI library)",
             "            Vasil Dinkov (smartmenus.js library)",
             "            Dmitry Baranovskiy (raphael.js library)",
-            "            Thomas Richter (raphael.boolean.js library)",
             "            Emmanuel Quentin (raphael.inline_text_editing.js library)",
             "            Jimmy Breck-McKye (raphael-paragraph.js library)",
             "            Alrik Thiem (package QCA versions 1.0-0 to 1.1-3)",
@@ -6705,33 +7765,23 @@ $("#menu_about").click(function() {
             $("#about_main").append(text + "<br>");
         }
     }
+    
+    $("#main_menu").smartmenus('menuHideAll');
+    return false;
 });
 
 $("#menu_changes").click(function() {
-    
     pingit();
     
-    var settings = {
-        name:       "changes",
-        title:      "Change log",
-        position:   {my: "left top", at: "left+300px top+33px", of: window, collision: "flip"},
-        resizable:  false,
-        width:      550,
-        height:     420 + 10*(navigator.browserType == "Firefox")
-    };
-    
-    if ($("#changes").length) {
-        showDialogToFront(settings);
-    }
-    else {
-        createDialog(settings);
+    if (!$("#changes").length) {
+        createDialog(settings["changes"]);
         
         function getChanges() {
     
             updatecounter += 1;
             
             if (updatecounter < 21) {
-                if (outres[0] != "listen2R") {
+                if (responseR) {
                     updatecounter = 0;
                     
                     for (var i = 0; i < outres.length; i++) {
@@ -6747,23 +7797,27 @@ $("#menu_changes").click(function() {
         
         changes = 1;
         updatecounter = 0;
-        outres[0] = "listen2R";
+        outres = new Array();
+        responseR = false;
         Shiny.onInputChange("changes", changes);
         
         getChanges();
-        
     }
+    
+    $("#main_menu").smartmenus('menuHideAll');
+    return false;
 });
 
 $("#menu_help").click(function() {
-    
     pingit();
-    
     help += 1;
     Shiny.onInputChange("help", help);
+    $("#main_menu").smartmenus('menuHideAll');
+    return false;
 });
 
 $("#menu_quit").click(function() {
+    pingit();
     var quit = 0;
     quit += 1;
     if (confirm("Close Window?")) {
@@ -6772,38 +7826,9 @@ $("#menu_quit").click(function() {
     }
 });
 
-createDialog({
-    name:      "command",
-    title:     "Command constructor",
-    position:  {my: "right top", at: "right-10px top+33px", of: window, collision: "fitflip"},
-    resizable: true,
-    width:     665, 
-    height:    commandHeight, 
-    closable: false
-    
-});
-
-createDialog({
-    name:      "result",
-    title:     "R console",
-    position:  {my: "left top", at: "left bottom+4px", of: "#command", collision: "fitflip"},
-    resizable: true,
-    width:     665, 
-    height:    resultHeight, 
-    closable: false
-});
-
-var plotsettings = {
-    name:      "plotdiv",
-    title:     "R plot window",
-    position:  {my: "right top", at: "left-10px top", of: "#command", collision: "fitflip"},
-    resizable: true,
-    width:     550,
-    height:    570,
-    closable: true
-}
-
-createDialog(plotsettings);
+createDialog(settings["command"]);
+createDialog(settings["result"]);
+createDialog(settings["plotdiv"]);
 
 $("#plotdiv").resizable({
     stop: function() {
@@ -6811,7 +7836,7 @@ $("#plotdiv").resizable({
         plotsize[1] = $('#plotdiv_main').height()/96;
         
         outres = new Array();
-        outres[0] = "listen2R";
+        responseR = false;
         Shiny.onInputChange("plotsize", plotsize);
         
         updatecounter = 0;
@@ -6892,8 +7917,7 @@ $("body").on("keyup", function(evt) {
 $("#tempdiv").click();
 
 function showDialogToFront(settings) {
-    
-    $("#" + settings.name).fadeIn();
+    $("#" + settings.name).show();
     
     $("#" + settings.name).css("z-index", "9000");
     
@@ -6907,8 +7931,8 @@ function showDialogToFront(settings) {
         var keys = getKeys(settings.inside);
         
         for (var i = 0; i < keys.length; i++) {
-            scrollTop[keys[i]] = $("#" + keys[i]).scrollTop();
-            scrollLeft[keys[i]] = $("#" + keys[i]).scrollLeft();
+            scrollTop[keys[i]] = $("#" + settings.name + "_" + keys[i]).scrollTop();
+            scrollLeft[keys[i]] = $("#" + settings.name + "_" + keys[i]).scrollLeft();
         }
     }
     
@@ -6924,40 +7948,40 @@ function showDialogToFront(settings) {
     
     if (settings.inside !== undefined) {
         for (var i = 0; i < keys.length; i++) {
-            $("#" + keys[i]).scrollTop(scrollTop[keys[i]]);
-            $("#" + keys[i]).scrollLeft(scrollLeft[keys[i]]);
+            $("#" + settings.name + "_" + keys[i]).scrollTop(scrollTop[keys[i]]);
+            $("#" + settings.name + "_" + keys[i]).scrollLeft(scrollLeft[keys[i]]);
         }
     }
 }
 
-function createDialog(settings) {
+function createDialog(dialogsettings) {
     
     var dialog = document.createElement("div");
-    dialog.id = settings.name;
+    dialog.id = dialogsettings.name;
     document.body.appendChild(dialog);
     
-    current_command = settings.name;
+    current_command = dialogsettings.name;
     
-    $("#" + settings.name).css({
+    $("#" + dialogsettings.name).css({
         position: "absolute",
-        width:  settings.width,
-        height: settings.height
-    }).position(settings.position);
+        width:  dialogsettings.width,
+        height: dialogsettings.height
+    }).position(dialogsettings.position);
     
-    if (settings.name != "data_editor") {
-        $("#" + settings.name).css({
-            minWidth: settings.width,
-            minHeight: settings.height
+    if (dialogsettings.name !== "data_editor") {
+        $("#" + dialogsettings.name).css({
+            minWidth: dialogsettings.width,
+            minHeight: dialogsettings.height
         });
     }
     
-    $("#" + settings.name).addClass("outerborder");
+    $("#" + dialogsettings.name).addClass("outerborder");
     
-    if (settings.resizable) {
-        $("#" + settings.name).resizable({
+    if (dialogsettings.resizable) {
+        $("#" + dialogsettings.name).resizable({
             resize: function() {
-                showDialogToFront(settings);
-                $("#" + settings.name + "_main").css({
+                showDialogToFront(dialogsettings);
+                $("#" + dialogsettings.name + "_main").css({
                     width: ($(this).width()) + "px",
                     height: ($(this).height() - 20) + "px"
                 })
@@ -6966,21 +7990,21 @@ function createDialog(settings) {
     }
     
     var header = document.createElement("div");
-    header.id = settings.name + "_header";
+    header.id = dialogsettings.name + "_header";
     
-    dialog = document.getElementById(settings.name);
+    dialog = document.getElementById(dialogsettings.name);
     dialog.appendChild(header);
     
-    document.getElementById(settings.name + "_header").style.fontWeight = "bold";
-    document.getElementById(settings.name + "_header").style.padding = "1px 0px 0px 3px";
+    $("#" + dialogsettings.name + "_header").css({
+        fontWeight: "bold",
+        padding: "1px 0px 0px 3px"
+    }).addClass("header");
     
-    $("#" + settings.name + "_header").addClass("header");
+    header.innerHTML = dialogsettings.title;
     
-    header.innerHTML = settings.title;
+    $("#" + dialogsettings.name + "_header").prepend('<img id="' + dialogsettings.name + '_img' + '" src="css/images/close.png" width="27px"/>')
     
-    $("#" + settings.name + "_header").prepend('<img id="' + settings.name + '_img' + '" src="css/images/close.png" width="27px"/>')
-    
-    $("#" + settings.name + "_img").css({
+    $("#" + dialogsettings.name + "_img").css({
         "vertical-align": "middle"
     }).mouseenter(function() {
         $(this).attr('src', 'css/images/closex.png');
@@ -6990,101 +8014,128 @@ function createDialog(settings) {
     
     var clickfired = false;
     
-    $("#" + settings.name + "_img").mousedown(function(event) {
+    $("#" + dialogsettings.name + "_img").mousedown(function(event) {
         clickfired = true;
     });
-            
-    $("#" + settings.name + "_img").click(function(event) {
+    
+    $("#" + dialogsettings.name + "_img").click(function(event) {
         event.stopPropagation();
         
-        if (settings.name == "plotdiv") {
+        if (dialogsettings.name == "plotdiv") {
             closeplot += 1;
             plotopen = false;
             Shiny.onInputChange("closeplot", closeplot);
-            $("#preview").css({
+            $("#saveRplot_preview").css({
                 "background-image": ""
             });
         }
         
-        if (settings.name != "command" && settings.name != "result") {
+        if (dialogsettings.name !== "command" && dialogsettings.name !== "result") {
+            if (dialogsettings.name == "import") {
+                dirfile.filepath = "";
+                commobj.read_table.objname = "";
+            }
             
-            $("#" + settings.name).remove();
+            $("#" + dialogsettings.name).remove();
+            
+            if (getKeys(papers).indexOf(dialogsettings.name) >= 0) {
+                var dialog_papers = getKeys(papers[dialogsettings.name]);
+                for (var i = 0; i < dialog_papers.length; i++) {
+                    papers[dialogsettings.name][dialog_papers[i]].remove();
+                }
+                delete papers[dialogsettings.name];
+            }
         }
         
     });
     
-    $("#" + settings.name + "_img").mouseup(function(event) {
+    $("#" + dialogsettings.name + "_img").mouseup(function(event) {
         if (clickfired) {
             
-            if (settings.name == "plotdiv") {
+            if (dialogsettings.name == "plotdiv") {
                 closeplot += 1;
                 plotopen = false;
                 Shiny.onInputChange("closeplot", closeplot);
-                $("#preview").css({
+                $("#saveRplot_preview").css({
                     "background-image": ""
                 });
             }
             
-            if (settings.name != "command" && settings.name != "result") {
+            if (dialogsettings.name !== "command" && dialogsettings.name !== "result") {
+                if (dialogsettings.name == "import") {
+                    dirfile.filepath = "";
+                    commobj.read_table.objname = "";
+                }
                 
-                $("#" + settings.name).remove();
+                $("#" + dialogsettings.name).remove();
+                
+                if (getKeys(papers).indexOf(dialogsettings.name) >= 0) {
+                    var dialog_papers = getKeys(papers[dialogsettings.name]);
+                    for (var i = 0; i < dialog_papers.length; i++) {
+                        papers[dialogsettings.name][dialog_papers[i]].remove();
+                    }
+                    delete papers[dialogsettings.name];
+                }
+                
             }
             
             clickfired = false;
         }
     });
     
-    var body = document.createElement("div");
-    body.id = settings.name + "_main";
+    var main = document.createElement("div");
+    main.id = dialogsettings.name + "_main";
     
-    dialog.appendChild(body);
+    dialog.appendChild(main);
     
-    $("#" + settings.name + "_main").css({
-        width: ($("#" + settings.name).width()) + "px",
-        height: ($("#" + settings.name).height() - 20) + "px"
+    $("#" + dialogsettings.name + "_main").css({
+        width: ($("#" + dialogsettings.name).width()) + "px",
+        height: ($("#" + dialogsettings.name).height() - 20) + "px",
+        background: "#ffffff"
     });
     
-    document.getElementById(settings.name + "_main").style.background = "#ffffff";
-    
-    $("#" + settings.name).draggable({
-        handle: "#" + settings.name + "_header",
+    $("#" + dialogsettings.name).draggable({
+        handle: "#" + dialogsettings.name + "_header",
         start: function() {
             
-            showDialogToFront(settings);
+            showDialogToFront(dialogsettings);
         },
         stop: function() {
             if ($(this).offset().top < 31) {
                 var left = $(this).offset().left;
                 $(this).position({my: "left top", at: "left+" + left + "px top+31px", of: window, collision: "flip"});
             }
+            var position = $(this).position();
+            settings[dialogsettings.name].position.at = "left+" + position.left + "px top+" + position.top + "px";
         }
     });
     
-    if (settings.inside !== undefined) {
-        var keys = getKeys(settings.inside);
+    if (dialogsettings.inside !== void 0) {
+        var keys = getKeys(dialogsettings.inside);
         for (var i = 0; i < keys.length; i++) {
-            addDiv(settings.name, keys[i], settings.inside[keys[i]]);
+            addDiv(dialogsettings.name, keys[i], dialogsettings.inside[keys[i]]);
         }
     }
     
     var clientX, clientY;
     
-    $("#" + settings.name).mousedown(function(event) {
+    $("#" + dialogsettings.name).mousedown(function(event) {
         clientX = event.clientX;
         clientY = event.clientY;
     });
     
-    $("#" + settings.name).click(function(event) {
+    $("#" + dialogsettings.name).click(function(event) {
         if (clientX == event.clientX && clientY == event.clientY) {
-            showDialogToFront(settings);
+            showDialogToFront(dialogsettings);
         }
     });
     
-    $("#" + settings.name).css("z-index", "9000");
+    $("#" + dialogsettings.name).css("z-index", "9000");
     
-    if (settings.name != "command" && settings.name != "result") {
-        $("#" + settings.name).disableTextSelection();
+    if (dialogsettings.name != "command" && dialogsettings.name != "result") {
+        $("#" + dialogsettings.name).disableTextSelection();
     }
+    
 }
 
 var venn = {

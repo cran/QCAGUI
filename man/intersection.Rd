@@ -49,7 +49,7 @@ Quantitative Strategies}. Berkeley: University of California Press.
 
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # in Ragin's (1987) book, the equation E = SG + LW is the result
 # of the Boolean minimization for the ethnic political mobilization.
@@ -87,6 +87,7 @@ intersection("Lg", "SG + LW", snames = "S, L, W, G")
 intersection(deMorgan("lw + SW + Lg"), "SG + LW", snames = "S, L, W, G")
 
 # [1] "sLWG + SLwG"
-}
+
+}}
 
 \keyword{functions}

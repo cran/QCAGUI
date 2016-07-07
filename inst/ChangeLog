@@ -1,9 +1,22 @@
+Version 2.4
+    o Improved: major rewrite of the GUI code to allow working with multiple
+      datasets / objects in the same time
+    o New: minimization in the user interface now allow input from both data
+      and truth table objects
+    o Changed: removed argument size from function XYplot()
+      (due to compatibility with the web user interface)
+    o Fixed: examples sections to allow building the sources for Mavericks
+    o Fixed: server code to avoid duplicating commands in the GUI console
+    o Fixed: plot window in the GUI did not reopen after close
+    o Fixed: minor bug in the recode() function, affecting numeric conditions when
+      using a range from lowest to a number, below the actual minimum
+
 Version 2.3
     o New: the user interface gained the possibility to plot graphics from the
       command line
     o New: plots produced in the command line can be saved in various formats
     o New: the menu dialogs and the command line in the interface work with the
-      same objects from the workspace
+      same objects in the workspace
     o New: function findRows(), to find patterns of rows in a truth table, usually to
       be served as the "omit" argument in the function eqmcc()
       (thanks to Eva Thomann for the suggestion)

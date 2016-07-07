@@ -385,6 +385,10 @@ function(setms, outcome, data, relation = "nec", inf.test = "",
         }
         else if (is.matrix(setms)) {
             
+            if (via.eqmcc) {
+                conditions <- other.args$conditions
+            }
+            
             if (missing(data)) {
                 cat("\n")
                 stop(simpleError("The data argument is missing, with no default.\n\n"))

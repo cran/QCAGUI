@@ -288,7 +288,7 @@ Qualitative Comparative Analysis (QCA) and Related Techniques}, SAGE.
 \seealso{\code{\link{truthTable}}, \code{\link{factorize}}}
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # -----
 # Lipset binary crisp data
@@ -406,7 +406,7 @@ for(i in 1:4) {
 data(RS)
 eqmcc(RS, "REC", details = TRUE, show.cases = TRUE)
 
-}
+}}
 
 \keyword{functions}
 

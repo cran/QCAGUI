@@ -137,7 +137,7 @@ vol.17, no.6, pp.625-642.
 }
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # generate heights for 100 people
 # with an average of 175cm and a standard deviation of 10cm
@@ -237,7 +237,7 @@ cx <- calibrate(x, type = "fuzzy", logistic = FALSE, ecdf = TRUE,
       thresholds = "e=155, c=175, i=195")
 plot(x, cx, main = "Membership scores in the set of tall people", 
      xlab = "Raw data", ylab = "Calibrated data")
-}
+}}
 
 
 \keyword{functions}

@@ -1,4 +1,4 @@
-`XYplot` <- function(x, y, data, relation = "nec", size = 15, mguides = TRUE,
+`XYplot` <- function(x, y, data, relation = "nec", mguides = TRUE,
                      jitter = FALSE, clabels = NULL, ...) {
     
     if (!isNamespaceLoaded("QCA")) {
@@ -11,6 +11,12 @@
     if (missing(x)) {
         cat("\n")
         stop(simpleError("Argument x is mandatory.\n\n"))
+    }
+    
+    via.web <- FALSE
+    if (length(testarg <- which(names(other.args) == "via.web")) > 0) {
+        via.web <- other.args$via.web
+        other.args <- other.args[-testarg]
     }
     
     negated <- logical(2)
@@ -219,10 +225,6 @@
     xcopy <- x
     ycopy <- y
     
-    if (dev.cur() == 1) {
-        dev.new(width = (size + 1)/2.54, height = (size + 1)/2.54)
-    }
-    
     jitfactor <- 0.01
     jitamount <- 0.01
     cexpoints <- 0.8
@@ -311,10 +313,6 @@
     
     if (length(other.args) > 0) {
         toplot <- c(toplot, other.args)
-    }
-    
-    if (dev.cur() == 1) {
-        dev.new(width = (size + 1)/2.54, height = (size + 1)/2.54)
     }
     
     par(mar = c(3, 3.1, 2.5, 0.5), cex.axis = cexaxis, tck = -.015,

@@ -78,7 +78,7 @@ quantitative strategies}, Berkeley: University of California Press
 }
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # non-standard products, it needs the set names
 chart <- makeChart("A, B, c", "ABC, Abc, AbC, aBc", snames =  "A,B,C")
@@ -159,6 +159,6 @@ prettyTable(chartLC)
 #      AbCdE AbCDE ABCDE
 # AbCE   x     x     -  
 # ACDE   -     x     x   
-}
+}}
 
 \keyword{functions}

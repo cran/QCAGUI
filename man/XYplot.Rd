@@ -10,7 +10,7 @@ two separate vectors of numeric values.
 }
 
 \usage{
-XYplot(x, y, data, relation = "nec", size = 15, mguides = TRUE,
+XYplot(x, y, data, relation = "nec", mguides = TRUE,
        jitter = FALSE, clabels = NULL, ...)
 }
 
@@ -24,7 +24,6 @@ XYplot(x, y, data, relation = "nec", size = 15, mguides = TRUE,
   \item{data}{A calibrated dataset, only if \bold{\code{x}} and \bold{\code{y}} are names.}
   \item{relation}{The set relation to Y, either \bold{\code{"nec"}} (default) or
         \bold{\code{"suf"}}.}
-  \item{size}{Plot size, in centimeters.}
   \item{mguides}{Logical, print the middle guides.}
   \item{jitter}{Logical, jitter the points.}
   \item{clabels}{A vector of case labels with the same length as
@@ -92,7 +91,7 @@ A Guide to Qualitative Comparative Analysis}. Cambridge: Cambridge University Pr
 }
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # Cebotari & Vink (2013)
 data(CVF)
@@ -149,7 +148,7 @@ XYplot("~NATPRIDE, PROTEST", data = CVF, jitter = TRUE, cex = 0.8,
 XYplot("~NATPRIDE, PROTEST", data = CVF, jitter = TRUE, cex = 0.8,
        clabels = seq(nrow(CVF)))
 
-}
+}}
 
 
 \keyword{functions}

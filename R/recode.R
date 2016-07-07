@@ -24,8 +24,16 @@ function(x, rules, ...) {
     factor.labels <- if ("labels" %in% names(other.args)) other.args$labels else c()
     
     getFromRange <- function(a, b) {
+        
+        copya <- a
+        copyb <- b
+        
         a <- ifelse(a == "lo", uniques[1], a)
         b <- ifelse(b == "hi", uniques[length(uniques)], b)
+        
+        if (xisnumeric) {
+            if (a > b & (copya == "lo" | copyb == "hi")) return(NULL)
+        }
         
         seqfrom <- which(uniques == a)
         seqto <- which(uniques == b)
@@ -65,12 +73,13 @@ function(x, rules, ...) {
     temp <- rep(NA, length(x))
     
     elsecopy <- oldval == "else" & newval == "copy"
+    
     if (any(elsecopy)) {
         temp <- x
         newval <- newval[!elsecopy]
         oldval <- oldval[!elsecopy]
     }
-             
+    
     newval[newval == "missing" | newval == "NA"] <- NA
     
     if (any(oldval == "else")) {
@@ -109,7 +118,6 @@ function(x, rules, ...) {
     
     for (i in seq(length(from))) {
         if (!is.na(to[i])) { 
-            
             vals <- uniques[getFromRange(from[i], to[i])]
             temp[x %in% vals] <- newval[i]
             recoded <- c(recoded, vals)

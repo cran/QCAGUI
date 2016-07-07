@@ -10,7 +10,6 @@ function(x) {
     }
     
     Sys.setenv(userwd=getwd())
-    Sys.setenv("LANGUAGE"="en") 
     
     runApp(x, launch.browser = TRUE)
     

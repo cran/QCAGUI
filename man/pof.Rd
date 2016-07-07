@@ -141,7 +141,7 @@ A Guide to Qualitative Comparative Analysis}. Cambridge: Cambridge University Pr
 \seealso{\code{\link{eqmcc}}, \code{\link{superSubset}}, \code{\link{translate}}}
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # -----
 # Cebotari & Vink (2013) fuzzy data
@@ -201,7 +201,6 @@ pof("natpride + GEOCON => protest", data = CVF)
 # necessity is indicated by the reverse arrow
 pof("natpride + GEOCON <= PROTEST", data = CVF)
 
-
-}
+}}
 
 \keyword{functions}

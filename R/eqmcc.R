@@ -69,7 +69,6 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     }
     
     if (!is(data, "tt")) {
-        
         if (length(outcome) > 1) {
             
             return(eqmccLoop(data=data, outcome=outcome, conditions=conditions, n.cut=n.cut,
@@ -374,6 +373,7 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
     }
     
     if (length(p.sol$solution.list[[1]]) == 1) {
+        
         listIC <- pof(p.sol$reduced$expressions - 1, tt$options$outcome, indata, showc=TRUE, cases=expr.cases, neg.out=neg.out,
                       relation = "sufficiency", conditions = conditions, via.eqmcc=TRUE)
         listIC$options$show.cases <- show.cases
@@ -614,15 +614,18 @@ function(data, outcome = "", conditions = "",  relation = "suf", n.cut = 1,
                 }
                 
                 if (length(i.sol.index$solution.list[[1]]) == 1) {
+                    
                     i.sol[[index]]$IC <- pof(i.sol.index$reduced$expressions - 1, outcome, indata, showc=TRUE,
-                                             cases=expr.cases, relation = "sufficiency", neg.out=neg.out, via.eqmcc = TRUE)
+                                             cases=expr.cases, relation = "sufficiency", neg.out=neg.out,
+                                             conditions = conditions, via.eqmcc = TRUE)
                     
                     i.sol[[index]]$IC$options$show.cases <- show.cases
                 }
                 else {
                     i.sol[[index]]$IC <- pof(i.sol.index$reduced$expressions - 1, outcome, indata, showc=TRUE,
-                                             cases=expr.cases, relation = "sufficiency", neg.out=neg.out, via.eqmcc = TRUE,
-                                             solution.list=i.sol.index$solution.list[[1]], essential=i.sol.index$solution.list[[2]])
+                                             cases=expr.cases, relation = "sufficiency", neg.out=neg.out, conditions=conditions,
+                                             via.eqmcc = TRUE, solution.list=i.sol.index$solution.list[[1]],
+                                             essential=i.sol.index$solution.list[[2]])
                     i.sol[[index]]$IC$options$show.cases <- show.cases
                 }
                 i.sol[[index]]$pims <- i.sol[[index]]$IC$pims

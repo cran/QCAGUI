@@ -158,7 +158,7 @@ Cambridge: Cambridge University Press.
 \seealso{\code{\link{createMatrix}}, \code{\link{getRow}}}
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # Lipset binary crisp sets
 data(LC)
@@ -253,6 +253,6 @@ getRow(noflevels + 1, sup)
 #  16  1  2  0    |   16  0  1  -       aB
 #  17  1  2  1    |   17  0  1  0       aBc
                              
-}
+}}
 
 \keyword{functions}

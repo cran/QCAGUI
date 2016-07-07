@@ -47,6 +47,7 @@ body {
     height: 15px;
     border: 1px solid;
     border-color: #d0d0d0;
+    background: #ffffff;
 }
 
 
@@ -101,17 +102,17 @@ body {
 
 
 
-#data_colnames{
+#data_editor_colnames{
     overflow: hidden;
 }
 
 
-#data_rownames{
+#data_editor_rownames{
     overflow: hidden;
 }
 
 
-#data_body{
+#data_editor_body{
     overflow-x: auto;
     overflow-y: auto;
 }

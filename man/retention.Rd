@@ -93,7 +93,7 @@ Diagnostics for Qualitative Comparative Analysis: A Combinatorial Approach.}
 }
 
 \examples{
-require("QCA")
+if (require("QCA")) {
 
 # the replication data, see Thiem, Spohel and Dusa (2015)
 
@@ -116,6 +116,6 @@ retention(dat, outcome = "W", type = "corruption", dep = FALSE,
 1 - retention(dat, outcome = "W", type = "corruption", dep = FALSE,
        p.pert = 0.025, incl.cut = 1)
 
-}
+}}
 
 \keyword{functions}

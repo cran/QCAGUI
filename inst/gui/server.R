@@ -46,6 +46,8 @@ listFiles <- function(dirpath, filetype = "*") {
         
     }
     
+    resfilename <- ""
+    
     if (!identical(filepath, "")) {
         if (file_test("-f", filepath)) {
             
@@ -56,12 +58,10 @@ listFiles <- function(dirpath, filetype = "*") {
                 resfilename <- paste("x", resfilename, sep="")
             }
             
-            filename <<- resfilename
-            
         }
     }
     
-    result$filename <- filename
+    result$filename <- resfilename
     result$extension <- extension
     result$wd <- getwd()
     
@@ -69,15 +69,138 @@ listFiles <- function(dirpath, filetype = "*") {
     
 }
 
-ev <- new.env(parent = globalenv())
-hashes <- list()
-active <- list(dataset = "", tt = "")
-calibcond <- ""
-templotfile <- file.path(tempdir(), "plot.pdf")
+plusMessage <- unlist(strsplit(unlist(strsplit(tryCatch(eval(parse(text = "1+")), error = function(e) e)$message, "\n"))[1], ":"))
+plusMessage <- QCA::trimst(plusMessage[length(plusMessage)])
 
-if (file.exists("Rplots.pdf")) {
-    file.remove("Rplots.pdf")
+copyEnv <- function(from, to, names = ls(from)) {
+    mapply(assign, names, mget(names, from), list(to), SIMPLIFY = FALSE, USE.NAMES = FALSE)
+    return(invisible(NULL))
 }
+
+infobjs <- function(env, objs, scrollvh) {
+    misscroll <- missing(scrollvh)
+    
+    toreturn <- list(data = NULL, tt = NULL, qmc = NULL)
+    if (length(objs) > 0) {
+        objs <- unlist(lapply(mget(objs, env), function(x) {
+            if (is.data.frame(x)) {
+                return(1)
+            }
+            else if (is(x, "tt")) {
+                return(2)
+            }
+            else if (is(x, "qca")) {
+                return(3)
+            }
+            else {
+                return(0)
+            }
+        }))
+        
+        if (any(objs == 1)) {
+            toreturn$data <- lapply(names(objs[objs == 1]), function(n) {
+                
+                x <- env[[n]]
+                dscrollvh <- c(1, 1)
+                
+                if (!misscroll) {
+                    if (n %in% names(scrollvh)) {
+                        dscrollvh <- scrollvh[[n]]
+                    }
+                }
+                
+                nrowd <- nrow(x)
+                ncold <- ncol(x)
+                
+                srow <- min(dscrollvh[1], nrowd - min(nrowd, visiblerows) + 1)
+                scol <- min(dscrollvh[2], ncold - min(ncold, visiblecols) + 1)
+                erow <- min(srow + visiblerows - 1, nrowd)
+                ecol <- min(scol + visiblecols - 1, ncold)
+                
+                list(
+                    nrows = nrowd,
+                    ncols = ncold,
+                    rownames = rownames(x),
+                    colnames = colnames(x),
+                    numerics = as.vector(unlist(lapply(x, QCA::possibleNumeric))),
+                    calibrated = as.vector(unlist(lapply(x, function(x) {
+                        all(na.omit(x) >= 0 & na.omit(x) <= 1)
+                    }))),
+                    binary = as.vector(unlist(lapply(x, function(x) all(x %in% 0:1)))),
+                    scrollvh = c(srow, scol) - 1, 
+                    theData = x[seq(srow, erow), seq(scol, ecol), drop = FALSE],
+                    dataCoords = paste(srow, scol, erow, ecol, ncol(x), sep="_")
+                )
+                
+            })
+            names(toreturn$data) <- names(objs[objs == 1])
+        }
+        
+        if (any(objs == 2)) {
+            toreturn$tt <- lapply(mget(names(objs[objs == 2]), env), function(x) {
+                components <- c("indexes", "noflevels", "cases", "options", "colnames", "numerics")
+                
+                x$indexes <- x$indexes - 1 
+                x$options$conditions <- toupper(x$options$conditions)
+                
+                cnds <- x$options$conditions
+                if (x$options$use.letters) {
+                    cnds <- LETTERS[seq(length(cnds))]
+                }
+                
+                if (length(x$options$incl.cut) == 1) {
+                    x$options$incl.cut <- list(x$options$incl.cut)
+                }
+                
+                if (length(cnds) <= 7) {
+                    x$id <- apply(x$tt[, cnds], 1, function(x) {
+                        ifelse(any(x == 1), paste(which(x == 1), collapse=""), "0")
+                    })
+                    components <- c(components, "id")
+                }
+                
+                x$colnames <- colnames(x$initial.data)
+                x$numerics <- as.vector(unlist(lapply(x$initial.data, QCA::possibleNumeric)))
+                
+                return(x[components])
+            })
+        }
+        
+        if (any(objs == 3)) {
+            toreturn$qmc <- lapply(mget(names(objs[objs == 3]), env), function(x) {
+                components <- c("indexes", "noflevels", "cases", "options")
+                x <- x$tt
+                x$options$conditions <- toupper(x$options$conditions)
+                
+                cnds <- x$options$conditions
+                
+                if (x$options$use.letters) {
+                    cnds <- LETTERS[seq(length(cnds))]
+                }
+                
+                if (length(cnds) <= 7) {
+                    x$id <- apply(x$tt[, cnds], 1, function(x) {
+                        ifelse(any(x == 1), paste(which(x == 1), collapse=""), "0")
+                    })
+                    components <- c(components, "id")
+                }
+                
+                x$indexes <- x$indexes - 1 
+                return(x[components])
+            })
+        }
+    }
+    
+    return(toreturn)
+}
+
+ev <- new.env(parent = globalenv())
+
+hashes <- list()
+caliblist <- list(dataset = "", condition = "", findth = FALSE, nth = 1)
+templotfile <- file.path(tempdir(), "plot.pdf")
+visiblerows <- 17
+visiblecols <- 8
 
 pdf(templotfile)
 emptyplot <- recordPlot()
@@ -93,20 +216,15 @@ tempdata <- NULL
 current_path <- getwd()
 oktoset <- TRUE
 filepath <- ""
-filename <- ""
+
 extension <- ""
 tcisdata <- TRUE
-scrollvh <- c(1, 1, 17, 8)
 
 shinyServer(function(input, output, session) {
     
     observe({
         dirfilist <- input$dirfilist
-        if (!is.null(dirfilist)) {
-            if (dirfilist$refresh) {
-                filename <<- ""
-            }
-        }
+        
         session$sendCustomMessage(type = "dirfile", listFiles(current_path))
     })
     
@@ -155,7 +273,6 @@ shinyServer(function(input, output, session) {
                     
                     if (dfchosen[2] %in% current_dirs) {
                         pathtobe <- file.path(current_path, dfchosen[2])
-                        pathtobe <- paste(pathtobe, "/", sep="")
                         
                         if (length(list.files(pathtobe)) > 0) {
                             current_path <<- pathtobe
@@ -186,6 +303,8 @@ shinyServer(function(input, output, session) {
             }
             
             if (oktoset) {
+                
+                current_path <<- gsub("//", "/", current_path)
                 
                 if (!grepl("/", current_path)) {
                     current_path <<- paste(current_path, "/", sep="")
@@ -239,10 +358,10 @@ shinyServer(function(input, output, session) {
             row_names <- read_table$row_names
             decimal <- read_table$dec
             
-            filename <<- unlist(strsplit(basename(filepath), split="\\."))
-            filename <<- filename[-length(filename)]
+            filename <- unlist(strsplit(basename(filepath), split="\\."))
+            filename <- filename[-length(filename)]
             if (length(filename) > 1) {
-                filename <<- paste(filename, collapse=".")
+                filename <- paste(filename, collapse=".")
             }
             
             if (!identical(row_names, "")) { 
@@ -302,7 +421,6 @@ shinyServer(function(input, output, session) {
             }
             
             if (tcisdata) {
-                
                 if (row_names != "") {
                     tc <- tryCatch(read.table(filepath, header=header, ifelse(colsep == "tab", "\t", colsep),
                               row.names=row_names, as.is=TRUE, dec=decimal), error = function(e) e, warning = function(w) w)
@@ -317,12 +435,20 @@ shinyServer(function(input, output, session) {
                     session$sendCustomMessage(type = "tempdatainfo", list(ncols=1, nrows=1, colnames=tc$message, rownames="error!"))
                 }
                 else {
-                
                     tempdata <<- tc
+                    cnames <- colnames(tempdata)
+                    if (length(cnames) == 1) {
+                        cnames = list(cnames)
+                    }
+                    rnames <- rownames(tempdata)
+                    if (length(rnames) == 1) {
+                        rnames = list(rnames)
+                    }
+                    
                     session$sendCustomMessage(type = "tempdatainfo", list(ncols=ncol(tempdata),
                                                                      nrows=nrow(tempdata),
-                                                                     colnames=colnames(tempdata),
-                                                                     rownames=rownames(tempdata)))
+                                                                     colnames=cnames,
+                                                                     rownames=rnames))
                     
                 }
             }
@@ -332,85 +458,82 @@ shinyServer(function(input, output, session) {
     
     observe({
         
-        import <- input$import
+        foo <- input$import
         
-        if (!is.null(import) & tcisdata) {
+        if (!is.null(foo) & tcisdata) {
             
-            if (!identical(import$filename, "")) {
-                filename <<- import$filename
+            result <- list(infobjs = NULL, console = NULL)
+            
+            if (foo$nameit) {
+                ev[[foo$objname]] <- tempdata
+            }
+            else {
+                result$console <- c(capture.output(tempdata), "")
             }
             
-            active$dataset <<- filename
-            ev[[active$dataset]] <- tempdata
+            result$infobjs <- infobjs(ev, ls(ev))
             
-            numerics <- as.vector(unlist(lapply(ev[[active$dataset]], QCA::possibleNumeric)))
-            
-            calibrated <- as.vector(unlist(lapply(ev[[active$dataset]], function(x) {
-                all(na.omit(x) >= 0 & na.omit(x) <= 1)
-            })))
-            
-            rowend <- min(17, nrow(ev[[active$dataset]]))
-            colend <- min(8, ncol(ev[[active$dataset]]))
-            
-            tosend <- as.list(ev[[active$dataset]][seq(rowend), seq(colend)])
-            names(tosend) <- NULL 
-            
-            session$sendCustomMessage(type = "datainfo",
-                                      list(list(ncols=ncol(ev[[active$dataset]]),              
-                                                nrows=nrow(ev[[active$dataset]]),
-                                                colnames=colnames(ev[[active$dataset]]),
-                                                rownames=rownames(ev[[active$dataset]]),
-                                                numerics=numerics,
-                                                calibrated=calibrated),
-                                            tosend,                               
-                                            paste(1, 1, rowend, colend, ncol(ev[[active$dataset]]), sep="_"))) 
+            session$sendCustomMessage(type = "fullinfo", result)
             
         }
     })
     
-    if (!identical(active$dataset, "")) {
+    observe({
+        foo <- input$scrollobj
         
-        numerics <- as.vector(unlist(lapply(ev[[active$dataset]], QCA::possibleNumeric)))
-        
-        calibrated <- as.vector(unlist(lapply(ev[[active$dataset]], function(x) {
-            all(na.omit(x) >= 0 & na.omit(x) <= 1)
-        })))
-        
-        rowend <- min(17, nrow(ev[[active$dataset]]))
-        colend <- min(8, ncol(ev[[active$dataset]]))
-        
-        tosend <- as.list(ev[[active$dataset]][seq(rowend), seq(colend)])
-        names(tosend) <- NULL 
-        
-        session$sendCustomMessage(type = "datainfo",
-                                  list(list(ncols=ncol(ev[[active$dataset]]),              
-                                            nrows=nrow(ev[[active$dataset]]),
-                                            colnames=colnames(ev[[active$dataset]]),
-                                            rownames=rownames(ev[[active$dataset]]),
-                                            numerics=numerics,
-                                            calibrated=calibrated),
-                                        tosend,                               
-                                        paste(1, 1, rowend, colend, ncol(ev[[active$dataset]]), sep="_"))) 
-        
-    }
+        if (!is.null(foo)) {
+            
+            scrollvh <- lapply(foo$scrollvh, function(x) unlist(x) + 1)
+            visiblerows <<- foo$visiblerows + 1
+            visiblecols <<- foo$visiblecols + 1
+            
+            if (!foo$alldata) {
+                scrollvh <- scrollvh[foo$dataset]
+            }
+            
+            tosend <- vector(mode = "list", length = length(scrollvh))
+            names(tosend) <- names(scrollvh)
+            
+            for (n in names(scrollvh)) {
+                
+                nrowd <- nrow(ev[[n]])
+                ncold <- ncol(ev[[n]])
+                
+                dscrollvh <- scrollvh[[n]]
+                srow <- min(dscrollvh[1], nrowd - min(nrowd, visiblerows) + 1)
+                scol <- min(dscrollvh[2], ncold - min(ncold, visiblecols) + 1)
+                erow <- min(srow + visiblerows - 1, nrowd)
+                ecol <- min(scol + visiblecols - 1, ncold)
+                
+                tosend[[n]] <- list(
+                    theData = ev[[n]][seq(srow, erow), seq(scol, ecol), drop = FALSE],
+                    dataCoords = paste(srow, scol, erow, ecol, ncold, sep="_"),
+                    scrollvh = c(srow, scol) - 1
+                )
+            }
+            
+            session$sendCustomMessage(type = "scrollData", tosend)
+        }   
+    })
     
     observe({
-        scrollvh2 <- input$scrollvh
+        foo <- input$dataModif
         
-        if (!is.null(scrollvh2)) {
+        if (!is.null(foo)) {
             
-            scrollvh <<- scrollvh2 + 1
-            
-            rowstart <- scrollvh[1]
-            colstart <- scrollvh[2]
-            rowend <- min(rowstart + scrollvh[3] - 1, nrow(ev[[active$dataset]]))
-            colend <- min(colstart + scrollvh[4] - 1, ncol(ev[[active$dataset]]))
-            
-            tosend <- as.list(ev[[active$dataset]][seq(rowstart, rowend), seq(colstart, colend)])
-            names(tosend) <- NULL
-            
-            session$sendCustomMessage(type = "theData", list(tosend, paste(rowstart, colstart, rowend, colend, ncol(ev[[active$dataset]]), sep="_")))
-        }   
+            if (is.null(foo$row)) {
+                colnames(ev[[foo$dataset]])[foo$col] <- foo$val
+            }
+            else if (is.null(foo$col)) {
+                rownames(ev[[foo$dataset]])[foo$row] <- foo$val
+            }
+            else {
+                if (identical(foo$val, "")) {
+                    foo$val <- NA
+                }
+                ev[[foo$dataset]][foo$row, foo$col] <- foo$val
+            }
+        }
     })
     
     observe({
@@ -418,8 +541,8 @@ shinyServer(function(input, output, session) {
         foo <- input$eqmcc2R
         
         if (!is.null(foo)) {
-        if (!identical(active$dataset, "")) {
-        if (!is.null(ev[[active$dataset]])) {
+        if (!identical(foo$dataset, "")) { 
+        if (!is.null(ev[[foo$dataset]])) { 
             
             outc <- c("")
             if (length(foo$outcome) > 0) {
@@ -454,76 +577,81 @@ shinyServer(function(input, output, session) {
             myeqmcc <- NULL
             incl.cut <- c(as.numeric(foo$ic1), as.numeric(foo$ic0))
             
-            textoutput <- capture.output(tryCatch(
-                (myeqmcc <- eqmcc(ev[[active$dataset]], outcome = outc,
-                      neg.out = foo$neg_out,
-                      conditions = cnds,
-                      relation = foo$relation,
-                      n.cut = as.numeric(foo$n_cut),
-                      incl.cut = incl.cut[!is.na(incl.cut)],
-                      explain = expl,
-                      include = incl,
-                      all.sol = foo$all_sol,
-                      dir.exp = direxp,
-                      details = foo$details,
-                      show.cases = foo$show_cases,
-                      use.tilde = foo$use_tilde,
-                      use.letters = use_letters,
-                      via.web=TRUE)) , error = function(e) e)
-                      
-            )
+            tosend <- list(error = NULL, warning = NULL, console = NULL, tt = NULL, infobjs = NULL)
             
-            if (!is.null(myeqmcc)) {
-                if (!identical(foo$eqmcname, "")) {
-                    ev[[foo$eqmcname]] <- myeqmcc
+            tryit <- tryCatch(
+                    myobj <- eqmcc(ev[[foo$dataset]], outcome = outc,
+                          neg.out = foo$neg_out,
+                          conditions = cnds,
+                          relation = foo$relation,
+                          n.cut = as.numeric(foo$n_cut),
+                          incl.cut = incl.cut[!is.na(incl.cut)],
+                          explain = expl,
+                          include = incl,
+                          all.sol = foo$all_sol,
+                          dir.exp = direxp,
+                          details = foo$details,
+                          show.cases = foo$show_cases,
+                          use.tilde = foo$use_tilde,
+                          use.letters = use_letters,
+                          
+                          via.web=TRUE),
+                  error = function(e) e)
+            
+            if (inherits(tryit, "error")) {
+                tosend$error <- gsub("undefined columns selected>",
+                                     "Column names in the command don't match those in the interface.",
+                                     gsub("\\n", "<br>", tryit$message))
+                tosend$error[1] <- paste("Error:", tosend$error[1])
+                
+                if (length(tryit$message) == 1) {
+                    tosend$error <- list(tosend$error)
                 }
             }
-            
-            if (any(error <- grepl("Error", textoutput))) {
-                errmessage <- paste0("Error:", unlist(strsplit(textoutput[which(error)], split=":"))[2])
-                errmessage <- substr(errmessage, 1, nchar(errmessage) - 1)
-                textoutput <- c("error", errmessage, "")
+            else {
+                tosend$console <- capture.output(myobj)[-1]
+                
+                if (!identical(foo$objname, "")) { 
+                    ev[[foo$objname]] <- myobj
+                    tosend$infobjs <- infobjs(ev, foo$objname)
+                }
+                
+                if (inherits(tryit, "warning")) {
+                    tosend$warning <- tryit$message
+                    tosend$warning[1] <- paste("Warning:", tosend$warning[1])
+                    if (length(tryit$message) == 1) {
+                        tosend$warning <- list(tryit$message)
+                    }
+                }
             }
-            
-            textoutput <- gsub("undefined columns selected>", "Column names in the command don't match those in the interface.", textoutput)
-            
-            sendnormal <- FALSE
             
             if (length(cnds) <= 7) { 
                 
                 if (!identical(outc, "")) { 
-                    if (length(QCA::splitstr(outc)) == 1 & !is.null(myeqmcc)) {
+                    if (length(QCA::splitstr(outc)) == 1 & !is.null(myobj)) {
                         
-                        myeqmcc$tt$initial.data <- NULL
-                        myeqmcc$tt$recoded.data <- NULL
-                        myeqmcc$tt$indexes <- myeqmcc$tt$indexes - 1 
+                        myobj$tt$initial.data <- NULL
+                        myobj$tt$recoded.data <- NULL
+                        myobj$tt$indexes <- myobj$tt$indexes - 1 
+                        myobj$tt$options$conditions <- toupper(myobj$tt$options$conditions)
                         if (identical(cnds, "")) {
-                            cnds <- toupper(setdiff(names(ev[[active$dataset]]), outc))
+                            cnds <- myobj$tt$options$conditions
                         }
                         
                         if (use_letters) {
                             cnds <- LETTERS[seq(length(cnds))]
                         }
                         
-                        myeqmcc$tt$options$conditions <- toupper(cnds)
-                        myeqmcc$tt$id <- apply(myeqmcc$tt$tt[, toupper(cnds)], 1, function(x) {
+                        myobj$tt$id <- apply(myobj$tt$tt[, toupper(cnds)], 1, function(x) {
                             ifelse(any(x == 1), paste(which(x == 1), collapse=""), "0")
                         })
                         
-                        session$sendCustomMessage(type = "eqmcc", list(textoutput, list(as.list(myeqmcc$tt      ))))
+                        tosend$tt <- myobj$tt
                     }
-                    else {
-                        sendnormal <- TRUE
-                    }
-                }
-                else {
-                    sendnormal <- TRUE
                 }
             }
             
-            if (sendnormal) {
-                session$sendCustomMessage(type = "eqmcc", list(textoutput, NULL))
-            }
+            session$sendCustomMessage(type = "tt_eq", tosend)
             
         }
         }
@@ -536,8 +664,8 @@ shinyServer(function(input, output, session) {
         foo <- input$tt2R
         
         if (!is.null(foo)) {
-        if (!identical(active$dataset, "")) {
-        if (!is.null(ev[[active$dataset]])) {
+        if (!identical(foo$dataset, "")) {
+        if (!is.null(ev[[foo$dataset]])) {
             
             outc <- ""
             if (length(foo$outcome) > 0) {
@@ -549,9 +677,9 @@ shinyServer(function(input, output, session) {
                 cnds <- QCA::splitstr(unlist(foo$conditions))
             }
             
-            sortbys <- unlist(foo$sort_by)
+            sortbys  <- unlist(foo$sort_by)
             selected <- unlist(foo$sort_sel)
-            sortbys <- sortbys[selected[names(sortbys)]]
+            sortbys  <- sortbys[selected[names(sortbys)]]
             
             if (length(sortbys) == 0) {
                 sortbys <- ""
@@ -559,65 +687,75 @@ shinyServer(function(input, output, session) {
             
             use_letters <- foo$use_letters
             
-            mytt <- NULL
+            myobj <- NULL
             
             incl.cut <- c(as.numeric(foo$ic1), as.numeric(foo$ic0))
             
-            textoutput <- capture.output(tryCatch(
-                (mytt <- truthTable(ev[[active$dataset]], outcome = outc,
-                      neg.out = foo$neg_out,
-                      conditions = cnds,
-                      n.cut = as.numeric(foo$n_cut),
-                      incl.cut = incl.cut[!is.na(incl.cut)],
-                      complete = foo$complete,
-                      show.cases = foo$show_cases,
-                      sort.by = sortbys,
-                      use.letters = foo$use_letters)), error = function(e) e)
-                      
-            )
+            tosend <- list(error = NULL, warning = NULL, console = NULL, tt = NULL, infobjs = NULL)
             
-            if (!is.null(mytt)) {
-                if (!identical(foo$ttname, "")) {
-                    
-                    active$tt <- foo$ttname
-                    ev[[active$tt]] <- mytt
+            tryit <- tryCatch(
+                    myobj <- truthTable(ev[[foo$dataset]], outcome = outc,
+                          neg.out = foo$neg_out,
+                          conditions = cnds,
+                          n.cut = as.numeric(foo$n_cut),
+                          incl.cut = incl.cut[!is.na(incl.cut)],
+                          complete = foo$complete,
+                          show.cases = foo$show_cases,
+                          sort.by = sortbys,
+                          
+                          use.letters = foo$use_letters),
+                 error = function(e) e)
+            
+            if (inherits(tryit, "error")) {
+                tosend$error <- gsub("undefined columns selected>",
+                                     "Column names in the command don't match those in the interface.",
+                                     gsub("\\n", "<br>", tryit$message))
+                tosend$error[1] <- paste("Error:", tosend$error[1])
+                
+                if (length(tryit$message) == 1) {
+                    tosend$error <- list(tosend$error)
+                }
+            }
+            else {
+                tosend$console <- capture.output(myobj)[-1]
+                
+                if (!identical(foo$objname, "")) { 
+                    ev[[foo$objname]] <- myobj
+                    tosend$infobjs <- infobjs(ev, foo$objname)
+                }
+                
+                if (inherits(tryit, "warning")) {
+                    tosend$warning <- tryit$message
+                    tosend$warning[1] <- paste("Warning:", tosend$warning[1])
+                    if (length(tryit$message) == 1) {
+                        tosend$warning <- list(tryit$message)
+                    }
                 }
             }
             
-            if (any(error <- grepl("Error", textoutput))) {
-                errmessage <- paste0("Error:", unlist(strsplit(textoutput[which(error)], split=":"))[2])
-                errmessage <- substr(errmessage, 1, nchar(errmessage) - 1)
-                textoutput <- c("error", errmessage, "")
-            }
-            
-            textoutput <- gsub("undefined columns selected>", "Column names in the command don't match those in the interface.", textoutput)
-            
             if (length(cnds) <= 7) { 
-                if (!is.null(mytt)) {
-                    mytt$initial.data <- NULL
-                    mytt$recoded.data <- NULL
-                    mytt$indexes <- mytt$indexes - 1 
+                if (!is.null(myobj)) {
+                    myobj$initial.data <- NULL
+                    myobj$recoded.data <- NULL
+                    myobj$indexes <- myobj$indexes - 1 
+                    myobj$options$conditions <- toupper(myobj$options$conditions)
                     if (identical(cnds, "")) {
-                        cnds <- toupper(setdiff(names(ev[[active$dataset]]), outc))
+                        cnds <- myobj$options$conditions
                     }
                     
                     if (use_letters) {
                         cnds <- LETTERS[seq(length(cnds))]
                     }
                     
-                    mytt$options$conditions <- toupper(cnds)
-                    
-                    mytt$id <- apply(mytt$tt[, toupper(cnds)], 1, function(x) {
+                    myobj$id <- apply(myobj$tt[, toupper(cnds)], 1, function(x) {
                         ifelse(any(x == 1), paste(which(x == 1), collapse=""), "0")
                     })
                     
+                    tosend$tt <- myobj
                 }
-                
-                session$sendCustomMessage(type = "tt", list(textoutput, mytt))
             }
-            else {
-                session$sendCustomMessage(type = "tt", list(textoutput, NULL))
-            }
+            
+            session$sendCustomMessage(type = "tt_eq", tosend)
             
         }
         }
@@ -625,22 +763,24 @@ shinyServer(function(input, output, session) {
     })
     
     observe({
-        thinfo <- input$thinfo
+        foo <- input$thinfo
         
-        if (!is.null(thinfo)) {
+        if (!is.null(foo)) {
             
             response <- list()
             response$message <- "OK"
             
-            if (thinfo$condition != "") {
-                thinfo$nth <- as.numeric(thinfo$nth)
+            if (foo$condition != "") {
+                foo$nth <- as.numeric(foo$nth)
                 
-                if (QCA::possibleNumeric((ev[[active$dataset]][, thinfo$condition]))) {
-                    calibcond <<- thinfo$condition
-                    response$vals <- ev[[active$dataset]][, calibcond]
+                if (QCA::possibleNumeric((ev[[foo$dataset]][, foo$condition]))) {
+                    
+                    caliblist <<- foo[c("dataset", "condition", "findth", "nth")]
+                    
+                    response$vals <- unname(ev[[foo$dataset]][, foo$condition])
                     response$thvals <- vector(length = 0)
-                    if (thinfo$th) {
-                        response$thvals <- findTh(ev[[active$dataset]][, calibcond], n = thinfo$nth)
+                    if (foo$findth) {
+                        response$thvals <- findTh(ev[[foo$dataset]][, foo$condition], n = foo$nth)
                         if (length(response$thvals) == 1) {
                             
                             response$thvals <- as.list(response$thvals)
@@ -657,25 +797,25 @@ shinyServer(function(input, output, session) {
     })
     
     observe({
-        exportobj <- input$exportobj
+        foo <- input$exportobj
         
-        if (!is.null(exportobj)) {
+        if (!is.null(foo)) {
             
-            filesep <- exportobj$sep
+            filesep <- foo$sep
             if (filesep == "tab") {
                 filesep <- "\t"
             }
             
-            separator <- exportobj$sep
-            filetowrite <- file.path(current_path, exportobj$filename)
+            separator <- foo$sep
+            filetowrite <- file.path(current_path, foo$filename)
             
-            if (exportobj$newfile) {
-                if (exportobj$filename != "") {
-                    filetowrite <- file.path(current_path, exportobj$filename)
+            if (foo$newfile) {
+                if (foo$filename != "") {
+                    filetowrite <- file.path(current_path, foo$filename)
                 }
             }
             
-            export(ev[[active$dataset]], filetowrite, sep=filesep, col.names=exportobj$header, caseid=exportobj$caseid)
+            export(ev[[foo$dataset]], filetowrite, sep=filesep, col.names=foo$header, caseid=foo$caseid)
         }
     })
     
@@ -683,10 +823,10 @@ shinyServer(function(input, output, session) {
         foo <- input$calibrate
         
         if (!is.null(foo)) {
-            
+            scrollvh <- lapply(foo$scrollvh, function(x) unlist(x) + 1)
             checks <- rep(TRUE, 9)
             
-            checks[1] <- !is.null(ev[[active$dataset]])
+            checks[1] <- !is.null(ev[[foo$dataset]])
             
             foo$thresholds <- unlist(foo$thresholds)
             
@@ -714,43 +854,32 @@ shinyServer(function(input, output, session) {
                 }
             }
             
-            foo$x <- unlist(foo$x)
+            checks[4] <- foo$x != ""
             
-            checks[4] <- !is.null(foo$x)
-            if (checks[4]) {
-                checks[5] <- foo$x != ""
-            }
-            
-            if (checks[1] & checks[5]) {
+            if (checks[1] & checks[4]) {
                 
-                if (foo$x %in% names(ev[[active$dataset]])) {
-                    checks[6] <- is.numeric(ev[[active$dataset]][, foo$x])
+                if (foo$x %in% names(ev[[foo$dataset]])) {
+                    checks[6] <- is.numeric(ev[[foo$dataset]][, foo$x])
                 }
             }
             
-            checks[7] <- QCA::possibleNumeric(foo$idm)
-            if (checks[7]) {
+            if (QCA::possibleNumeric(foo$idm)) {
                 foo$idm <- as.numeric(foo$idm)
             }
             
-            checks[8] <- QCA::possibleNumeric(foo$below)
-            if (checks[8]) {
+            if (QCA::possibleNumeric(foo$below)) {
                 foo$below <- as.numeric(foo$below)
             }
             
-            checks[9] <- QCA::possibleNumeric(foo$above)
-            if (checks[9]) {
+            if (QCA::possibleNumeric(foo$above)) {
                 foo$above <- as.numeric(foo$above)
             }
-            
-            scrollvh <- unlist(foo$scrollvh)
-            scrollvh <- scrollvh + 1
             
             if (all(checks)) {
                 
                 textoutput <- capture.output(tryCatch(
                     calibrate(
-                        ev[[active$dataset]][, foo$x],
+                        ev[[foo$dataset]][, foo$x],
                         type = foo$type,
                         thresholds = foo$thresholds,
                         include = foo$include,
@@ -761,23 +890,21 @@ shinyServer(function(input, output, session) {
                         above = foo$above), error = function(e) e)
                 )
                 
-                response <- vector(mode="list", length = 5)
+                response <- list()
+                response$origin <- "calibrate"
+                response$error <- FALSE
+                response$toprint <- ""
                 
                 if (any(error <- grepl("Error", textoutput))) {
                     errmessage <- paste0("Error:", unlist(strsplit(textoutput[which(error)], split=":"))[2])
                     errmessage <- substr(errmessage, 1, nchar(errmessage) - 1)
-                    textoutput <- c("error", errmessage, "")
+                    response$error <- TRUE
+                    response$toprint <- errmessage
                 }
                 else {
-                    textoutput <- "no problem"
                     
-                    tomodify <- ifelse(foo$newvar != "", foo$newvar, foo$x)
-                    if (foo$same) {
-                        tomodify <- foo$x
-                    }
-                    
-                    ev[[active$dataset]][, ifelse(foo$newvar != "", foo$newvar, foo$x)] <- calibrate(
-                            ev[[active$dataset]][, foo$x],
+                    ev[[foo$dataset]][, ifelse(foo$newvar != "", foo$newvar, foo$x)] <- calibrate(
+                            ev[[foo$dataset]][, foo$x],
                             type = foo$type,
                             thresholds = foo$thresholds,
                             include = foo$include,
@@ -786,31 +913,26 @@ shinyServer(function(input, output, session) {
                             ecdf = foo$ecdf,
                             below = foo$below,
                             above = foo$above)
-                    
-                    rowstart <- scrollvh[1]
-                    colstart <- scrollvh[2]
-                    rowend <- min(rowstart + scrollvh[3] - 1, nrow(ev[[active$dataset]]))
-                    colend <- min(colstart + scrollvh[4] - 1, ncol(ev[[active$dataset]]))
-                    
-                    tosend <- as.list(ev[[active$dataset]][seq(rowstart, rowend), seq(colstart, colend)])
-                    names(tosend) <- NULL
-                    
-                    numerics <- as.vector(unlist(lapply(ev[[active$dataset]], QCA::possibleNumeric)))
-                    response[[2]] <- list(ncols=ncol(ev[[active$dataset]]),
-                                          nrows=nrow(ev[[active$dataset]]),
-                                          colnames=colnames(ev[[active$dataset]]),
-                                          rownames=rownames(ev[[active$dataset]]),
-                                          numerics=numerics)
-                    response[[3]] <- list(tosend, paste(rowstart, colstart, rowend, colend, ncol(ev[[active$dataset]]), sep="_"))
-                    
-                    if (foo$same) {
-                        response[[4]] <- "calibrate"
-                        response[[5]] <- ev[[active$dataset]][, foo$x]
-                    }
                 }
                 
-                response[[1]] <- as.list(textoutput)
+                response$infobjs <- infobjs(ev, foo$dataset, scrollvh)
                 
+                response$toprint <- paste(response$toprint, collapse = "<br>")
+                response$dataset <- foo$dataset
+                if (foo$same & foo$x == caliblist$condition) { 
+                    
+                    response$poinths <- list(dataset = caliblist$dataset,
+                                         condition = caliblist$condition,
+                                         vals = unname(ev[[caliblist$dataset]][, caliblist$condition]))
+                    if (caliblist$findth) {
+                        response$poinths$thvals <- findTh(ev[[caliblist$dataset]][, caliblist$condition], n = caliblist$nth)
+                        if (length(response$poinths$thvals) == 1) {
+                            
+                            response$poinths$thvals <- as.list(response$poinths$thvals)
+                        }
+                        response$poinths$message <- "OK"
+                    }
+                }
                 session$sendCustomMessage(type = "calibrate", response)
                 
             }
@@ -823,17 +945,13 @@ shinyServer(function(input, output, session) {
         
         if (!is.null(foo)) {
             
-            checks <- rep(TRUE, 3)
+            scrollvh <- lapply(foo$scrollvh, function(x) unlist(x) + 1)
             
-            checks[1] <- !is.null(ev[[active$dataset]])
+            checks <- rep(TRUE, 2)
             
-            foo$x <- unlist(foo$x)
+            checks[1] <- !is.null(ev[[foo$dataset]])
             
-            checks[2] <- !is.null(foo$x)
-            
-            if (checks[2]) {
-                checks[3] <- foo$x != ""
-            }
+            checks[2] <- foo$x != ""
             
             foo$oldv <- unlist(foo$oldv)
             foo$newv <- unlist(foo$newv)
@@ -845,50 +963,28 @@ shinyServer(function(input, output, session) {
                 rules <- paste(rules, part, ifelse(i == length(uniques), "", "; "), sep="")
             }
             
-            scrollvh <- unlist(foo$scrollvh)
-            scrollvh <- scrollvh + 1
-            
             if (all(checks)) {
                 
-                textoutput <- capture.output(tryCatch(
-                    recode(ev[[active$dataset]][, foo$x],
-                           rules = rules), error = function(e) e)
-                )
+                textoutput <- tryCatch(recode(ev[[foo$dataset]][, foo$x], rules = rules),
+                                       error = function(e) e)
                 
-                response <- vector(mode="list", length = 3)
+                response <- list()
+                response$origin <- "recode"
+                response$error <- FALSE
+                response$toprint <- ""
                 
-                if (any(error <- grepl("Error", textoutput))) {
-                    errmessage <- paste0("Error:", unlist(strsplit(textoutput[which(error)], split=":"))[2])
-                    errmessage <- substr(errmessage, 1, nchar(errmessage) - 1)
-                    textoutput <- c("error", errmessage, "")
+                if (inherits(textoutput, "error")) {
+                    response$error <- TRUE
+                    response$toprint <- textoutput$message
                 }
                 else {
-                    textoutput <- "no problem"
-                    
-                    ev[[active$dataset]][, ifelse(foo$newvar != "", foo$newvar, foo$x)] <- recode(
-                            ev[[active$dataset]][, foo$x],
-                            rules = rules)
-                    
-                    rowstart <- scrollvh[1]
-                    colstart <- scrollvh[2]
-                    rowend <- min(rowstart + scrollvh[3] - 1, nrow(ev[[active$dataset]]))
-                    colend <- min(colstart + scrollvh[4] - 1, ncol(ev[[active$dataset]]))
-                    
-                    tosend <- as.list(ev[[active$dataset]][seq(rowstart, rowend), seq(colstart, colend)])
-                    names(tosend) <- NULL
-                    
-                    numerics <- as.vector(unlist(lapply(ev[[active$dataset]], QCA::possibleNumeric)))
-                    response[[2]] <- list(ncols=ncol(ev[[active$dataset]]),
-                                          nrows=nrow(ev[[active$dataset]]),
-                                          colnames=colnames(ev[[active$dataset]]),
-                                          rownames=rownames(ev[[active$dataset]]),
-                                          numerics=numerics)
-                    response[[3]] <- list(tosend, paste(rowstart, colstart, rowend, colend, ncol(ev[[active$dataset]]), sep="_"))
-                    
+                    xvar <- ifelse(!foo$same & foo$newvar != "", foo$newvar, foo$x)
+                    ev[[foo$dataset]][, xvar] <- recode(ev[[foo$dataset]][, foo$x], rules = rules)
                 }
                 
-                response[[1]] <- as.list(textoutput)
-                
+                response$infobjs <- infobjs(ev, foo$dataset, scrollvh)
+                response$toprint <- paste(response$toprint, collapse = "<br>")
+                response$dataset <- foo$dataset
                 session$sendCustomMessage(type = "recode", response)
                 
             }
@@ -897,33 +993,14 @@ shinyServer(function(input, output, session) {
     })
     
     observe({
-        dM <- input$dataModif
-        if (!is.null(dM)) {
-            
-            if (is.null(dM$row)) {
-                colnames(ev[[active$dataset]])[dM$col] <- dM$val
-            }
-            else if (is.null(dM$col)) {
-                rownames(ev[[active$dataset]])[dM$row] <- dM$val
-            }
-            else {
-                if (identical(dM$val, "")) {
-                    dM$val <- NA
-                }
-                ev[[active$dataset]][dM$row, dM$col] <- dM$val
-            }
-        }
-    })
-    
-    observe({
         foo <- input$xyplot
         
         if (!is.null(foo)) {
             
-            if (all(c(foo$x, foo$y) %in% names(ev[[active$dataset]]))) {
+            if (all(c(foo$x, foo$y) %in% names(ev[[foo$dataset]]))) {
                 
-                X <- ev[[active$dataset]][, foo$x]
-                Y <- ev[[active$dataset]][, foo$y]
+                X <- ev[[foo$dataset]][, foo$x]
+                Y <- ev[[foo$dataset]][, foo$y]
                 
                 rpofsuf <- list(pof(    X,     Y, rel = "suf"),
                                 pof(1 - X,     Y, rel = "suf"),
@@ -945,9 +1022,9 @@ shinyServer(function(input, output, session) {
                     return(frmted)
                 })
                 
-                response = list(rownames(ev[[active$dataset]]),
-                                ev[[active$dataset]][, foo$x],
-                                ev[[active$dataset]][, foo$y],
+                response = list(rownames(ev[[foo$dataset]]),
+                                ev[[foo$dataset]][, foo$x],
+                                ev[[foo$dataset]][, foo$y],
                                 rpofsuf,
                                 rpofnec)
                 session$sendCustomMessage(type = "xyplot", response)
@@ -961,17 +1038,19 @@ shinyServer(function(input, output, session) {
         foo <- input$Rcommand
         
         if (!is.null(foo)) {
+            
+            scrollvh <- lapply(foo$scrollvh, function(x) unlist(x) + 1)
+            
             thinfo <- foo$thinfo
-            hashes1 <- lapply(active, function(x) {
-                if (x != "") {
-                    fastdigest(ev[[unname(x)]])
-                }
+            
+            hashes_before <- lapply(ev, function(x) {
+                fastdigest(x)
             })
             
-            if (!identical(calibcond, "")) {
-                if (calibcond %in% names(ev[[active$dataset]])) {
-                    hashes1[["calibcond"]] <- fastdigest(ev[[active$dataset]][[calibcond]])
-                }
+            caliblist_before <- ""
+            
+            if (!identical(caliblist[1:2], list(dataset = "", condition = ""))) {
+                caliblist_before <- fastdigest(ev[[caliblist$dataset]][[caliblist$condition]])
             }
             
             if (length(dev.list()) > 0) {
@@ -983,12 +1062,12 @@ shinyServer(function(input, output, session) {
             foo <- trimst(unlist(strsplit(foo$command, split = "\n")))
             foo <- apply(fromto, 1, function(x) paste(foo[seq(x[1], x[2])], collapse = " "))
             
-            tosend <- list(result = NULL, error = NULL, warning = NULL, plot = FALSE, modified = list())
+            tosend <- list(result = NULL, error = NULL, warning = NULL, plot = FALSE, added = NULL, modified = NULL, deleted = NULL)
             
             forbidden <- "dev.new\\(|plot.new\\(|plot.window\\(|X11\\(|quartz\\(|dev.set\\(|windows\\("
             
             if (any(grepl(forbidden, foo))) {
-                tosend$error <- "Opening on-screen graphics devices is not supported in this GUI."
+                tosend$error <- "Opening multiple graphics devices is not supported."
             }
             else {
                    
@@ -999,19 +1078,30 @@ shinyServer(function(input, output, session) {
                 
                 testplot <- emptyplot 
                 
-                currobjs <- names(ev)
+                rm(list = ls(envir = globalenv()), envir = globalenv())
+                
+                ev2 <- new.env(parent = globalenv())
+                if (length(names(ev)) > 0) {
+                    copyEnv(ev, ev2)
+                }
                 
                 pdf(templotfile)
                 dev.control("enable")
-                tc <- tryCatch(eval(parse(text = foo), envir = ev), error = function(e) e, warning = function(w) w)
+                tc <- tryCatch(eval(parse(text = foo), envir = ev2), error = function(e) e, warning = function(w) w)
+                
+                globjs <- ls(envir = globalenv())
+                
+                if (length(globjs) >= 0) {
+                    
+                    for (i in globjs) { 
+                        assign(i, get(i, globalenv()), ev)
+                    }
+                    rm(list = ls(envir = globalenv()), envir = globalenv())
+                }
                 
                 if (length(dev.list()) > 0) {
                     testplot <- recordPlot()
                     sapply(dev.list(), dev.off)
-                }
-                
-                if (length(addobjs <- setdiff(names(ev), currobjs)) > 0) {
-                    suppressWarnings(eval(parse(text = paste("rm(", paste(addobjs, collapse = ","), ", envir = ev)"))))
                 }
                 
                 if (inherits(tc, "error")) {
@@ -1064,7 +1154,7 @@ shinyServer(function(input, output, session) {
                     
                     tosend$warning <- tc$message
                 }
-                else {
+                else if (length(capture.output(tc)) > 0) {
                     if (capture.output(tc)[1] == "null device ") {
                         tosend$error <- "cannot shut down device 1 (the null device)"
                     }
@@ -1089,60 +1179,43 @@ shinyServer(function(input, output, session) {
                 }
             }
             
-            if (file.exists("Rplots.pdf")) {
-                file.remove("Rplots.pdf")
-            }
-
-            hashes2 <- lapply(active, function(x) {
-                if (x != "") {
-                    fastdigest(ev[[x]])
-                }
+            hashes_after <- lapply(ev, function(x) {
+                fastdigest(x)
             })
             
-            if (!identical(calibcond, "")) {
-                if (calibcond %in% names(ev[[active$dataset]])) {
-                    hashes2[["calibcond"]] <- fastdigest(ev[[active$dataset]][[calibcond]])
-                }
+            caliblist_after <- ""
+            if (!identical(caliblist[1:2], list(dataset = "", condition = ""))) {
+                caliblist_after <- fastdigest(ev[[caliblist$dataset]][[caliblist$condition]])
             }
             
-            for (nm in names(hashes1)) {
-                
-                if (!identical(hashes1[[nm]], hashes2[[nm]])) {
-                    
-                    if (nm == "dataset" & !is.null(hashes1$dataset)) {
-                        tosend$modified[["dataset"]] <- list()
+            added <- setdiff(names(hashes_after), names(hashes_before))
+            deleted <- setdiff(names(hashes_before), names(hashes_after))
+            common <- intersect(names(hashes_before), names(hashes_after))
+            modified <- names(hashes_before)[!is.element(hashes_before[common], hashes_after[common])]
+            
+            if (length(modified) > 0) {
+                tosend$modified <- infobjs(ev, modified, scrollvh)
+            }
+            
+            if (length(added) > 0) {
+                tosend$added <- infobjs(ev, added)
+            }
+            
+            if (length(deleted) > 0) {
+                tosend$deleted <- as.list(deleted)
+            }
+            
+            if (!identical(caliblist_before, caliblist_after)) {
+                tosend$poinths <- list(dataset = caliblist$dataset,
+                                       condition = caliblist$condition,
+                                       vals = unname(as.vector(ev[[caliblist$dataset]][, caliblist$condition])))
+                if (caliblist$findth) {
+                    tosend$poinths$thvals <- findTh(ev[[caliblist$dataset]][, caliblist$condition], n = caliblist$nth)
+                    if (length(tosend$poinths$thvals) == 1) {
                         
-                        rowstart <- scrollvh[1]
-                        colstart <- scrollvh[2]
-                        rowend <- min(rowstart + scrollvh[3] - 1, nrow(ev[[active$dataset]]))
-                        colend <- min(colstart + scrollvh[4] - 1, ncol(ev[[active$dataset]]))
-                        
-                        tosend$modified$dataset$theData <- as.list(ev[[active$dataset]][seq(rowstart, rowend), seq(colstart, colend)])
-                        names(tosend$modified$dataset$theData) <- NULL
-                        
-                        numerics <- as.vector(unlist(lapply(ev[[active$dataset]], QCA::possibleNumeric)))
-                        
-                        calibrated <- as.vector(unlist(lapply(ev[[active$dataset]], function(x) {
-                            all(na.omit(x) >= 0 & na.omit(x) <= 1)
-                        })))
-                        
-                        tosend$modified$dataset$datainfo <- list(ncols=ncol(ev[[active$dataset]]),
-                                              nrows=nrow(ev[[active$dataset]]),
-                                              colnames=colnames(ev[[active$dataset]]),
-                                              rownames=rownames(ev[[active$dataset]]),
-                                              numerics=numerics, calibrated = calibrated)
-                        tosend$modified$dataset$dataCoords <- paste(rowstart, colstart, rowend, colend, ncol(ev[[active$dataset]]), sep="_")
+                        tosend$poinths$thvals <- as.list(tosend$poinths$thvals)
                     }
-                    else if (nm == "tt" & !is.null(hashes1$tt)) {
-                        
-                    }
-                    else if (nm == "calibcond") {
-                        tosend$modified$calibcond <- list(vals = ev[[active$dataset]][[calibcond]])
-                    
-                        if (thinfo$th) {
-                            tosend$modified$calibcond$thvals <- findTh(ev[[active$dataset]][, calibcond], n = thinfo$nth)
-                        }
-                    }
+                    tosend$poinths$message <- "OK"
                 }
             }
             
@@ -1182,7 +1255,7 @@ shinyServer(function(input, output, session) {
         
         if (!is.null(foo)) {
             
-            session$sendCustomMessage(type = "ping", paste("bla", foo))
+            session$sendCustomMessage(type = "ping", paste("bar", foo))
             
         }
         
@@ -1272,5 +1345,7 @@ shinyServer(function(input, output, session) {
         
     })
     
+    session$sendCustomMessage(type = "fullinfo", list(infobjs = infobjs(ev, ls(ev)), console = NULL))
+        
 })
 

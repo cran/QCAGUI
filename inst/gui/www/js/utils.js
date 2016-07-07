@@ -16,11 +16,12 @@ $.extend($.fn.disableTextSelection = function() {
     
 });
 
-function addDiv(olddiv, newdiv, settings) {
-    var div1 = document.getElementById(olddiv);
+function addDiv(parent, child, settings) {
+    
+    var div1 = document.getElementById(parent + "_main");
     var div2 = document.createElement("div");
     
-    div2.id = newdiv + ((settings.border)?"_border":"");
+    div2.id = parent + "_" + child + ((settings.border)?"_border":"");
     
     div1.appendChild(div2);
     
@@ -33,20 +34,19 @@ function addDiv(olddiv, newdiv, settings) {
     });
     
     if (settings.border) {
-        
-        var div3 = document.getElementById(newdiv + "_border");
+        var div3 = document.getElementById(parent + "_" + child + "_border");
         var div4 = document.createElement("div");
-        div4.id = newdiv;
+        div4.id = parent + "_" + child;
         div3.appendChild(div4);
         
-        $("#" + newdiv).css({
+        $("#" + parent + "_" + child).css({
             "max-height": (settings.height + "px"),
             "overflow-x": "hidden",
-            "overflow-y": ((newdiv == "impath" || newdiv == "expath")?"hidden":"auto")
+            "overflow-y": ((child == "path")?"hidden":"auto")
         });
-        
-        if (newdiv != "impath" && newdiv != "expath" && newdiv != "direxp") {
-            $("#" + newdiv + "_border").addClass("border");
+    
+        if (child != "path" && child != "direxp") {
+            $("#" + parent + "_" + child + "_border").addClass("border");
         }
     }
     
@@ -106,16 +106,20 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
             }
         });
     
+    cb.cover.active = true;
+    
     cb.activate = function() {
         cb.active = true;
+        cb.cover.active = true;
         cb.cover.attr({fill: "#000", opacity: 0, cursor: "pointer"});
     }
     
     cb.deactivate = function() {
         cb.active = false;
-        cb.cover.attr({fill: "#000", opacity: 0, cursor: "default"});
+        cb.cover.active = false;
+        cb.cover.attr({fill: "#000", opacity: 0.2, cursor: "default"});
     }
-        
+    
     cb.uncheck = function() {
         cb.isChecked = false;
         cb.box.attr({fill: "#eeeeee"});
@@ -128,6 +132,15 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
         cb.box.attr({fill: "#97bd6c"});
         cb.chk.show();
         cb.cover.isChecked = true;
+    }
+    
+    cb.refresh = function(x) {
+        if (x) {
+            cb.check();
+        }
+        else {
+            cb.uncheck();
+        }
     }
     
     cb.hideIt = function() {
@@ -166,7 +179,6 @@ Raphael.fn.checkBox = function(x, y, isChecked, label, dim, fontsize) {
 }
 
 Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, lbspace, size, fontsize) {
-    
     if (size === void 0) {
         size = 6.5;
     }
@@ -231,13 +243,17 @@ Raphael.fn.radio = function(x, y, whichChecked, labels, vertspace, horspace, lbs
         rd.fill.hide();
     }
     else {
-        rd.fill.transform("t0," + (rd.circle[whichChecked].getBBox().y - y + size));
+        rd.fill.show();
+        rd.fill.transform("t" + (rd.circle[whichChecked].getBBox().x - x + size) + "," + (rd.circle[whichChecked].getBBox().y - y + size));
     }
     
-    rd.moveTo = function(x) {
+    rd.moveTo = function(pos) {
         rd.fill.show();
-        rd.whichChecked = x;
-        rd.fill.transform("t0," + (rd.circle[x].getBBox().y - y + size));
+        rd.whichChecked = pos;
+        
+        var BBox = rd.cover[pos].getBBox();
+        
+        rd.fill.transform("t" + (BBox.x - x + size + 2) + "," + (BBox.y - y + size + 2));
     }
     
     rd.hideIt = function() {
@@ -273,13 +289,14 @@ function isNumeric(n) {
     
 }
 
-function copyObject(obj) {
-    
+function copyObject(obj, exclude = [""]) {
     var cols = getKeys(obj);
     var temp = {};
     
     for (var i = 0; i < cols.length; i++) {
-        temp[cols[i]] = obj[cols[i]];
+        if (exclude.indexOf(cols[i]) < 0 && cols[i] !== undefined) {
+            temp[cols[i]] = obj[cols[i]];
+        }
     }
     
     return(temp);
@@ -287,20 +304,19 @@ function copyObject(obj) {
 
 function copyArray(obj, exclude) {
     
-    if (exclude == void 0) {
-        exclude = -1;
+    if (exclude === void 0) {
+        return(obj.slice());
     }
-    
-    var temp = new Array(obj.length);
-    var idx = 0;
-    
-    for (var i = 0; i < obj.length; i++) {
-        if (i != exclude) {
-            temp[idx] = obj[i];
+    else {
+        
+        for (var i = obj.length - 1; i >= 0; i--) {
+            if (exclude.indexOf(obj[i]) >= 0) {
+                obj.splice(i, 1);
+            }
         }
-        idx += 1;
+        
+        return(obj);
     }
-    return(temp);
 }
 
 function arraysEqual(a, b) {
@@ -315,6 +331,10 @@ function arraysEqual(a, b) {
 }
 
 function getKeys(obj) {
+    if (obj === null) {
+        return(Array());
+    }
+    
     var keys = new Array(obj.length);
     var keycount = 0;
     for (var key in obj) {
@@ -325,6 +345,10 @@ function getKeys(obj) {
 }
 
 function getTrueKeys(obj) { 
+    if (obj === null) {
+        return(Array());
+    }
+    
     var trueKeys = new Array();
     for (var key in obj) {
         if (obj[key]) {
@@ -398,11 +422,13 @@ function sat(obj, options) {
         
         if (obj.type == "text") {
             var BBox, clipattr;
-            
             if (options.clip == void 0) {
                 obj.attr({"text-anchor": options.anchor, "font-size": (options.size + "px")});
-                if (options["font-weight"] !== undefined) {
+                if (options["font-weight"] !== void 0) {
                     obj.attr({"font-weight": options["font-weight"]});
+                }
+                if (options["color"] !== void 0) {
+                    obj.attr({"fill": options["color"]});
                 }
             }
             else {
@@ -418,8 +444,8 @@ function sat(obj, options) {
                 obj.attr({"text-anchor": options.anchor, "font-size": (options.size + "px"), "clip-rect": clipattr});
             }
         }
-        else {
-            obj.attr({stroke: '#a0a0a0', 'stroke-width': ((optkeys.indexOf("sw") < 0)?1:options.sw), fill: "#ffffff", "fill-opacity": 0});
+        else { 
+            obj.attr({stroke: ((optkeys.indexOf("stroke") < 0)?"#a0a0a0":options["stroke"]), 'stroke-width': ((optkeys.indexOf("sw") < 0)?1:options.sw), fill: "#ffffff", "fill-opacity": 0});
         }
     }
     
@@ -613,7 +639,7 @@ function checkRecodeSelections(colclicks, paper) {
         if (lhs.length > 1) {
             
             if (lhs[0] == "lo") {
-                idx = 2;
+                idx = 1;
                 paper.oldv.texts.LOWESTTO.attr({"text": lhs[1]});
                 paper.rules.oldv = lhs[1];
             }
@@ -623,7 +649,7 @@ function checkRecodeSelections(colclicks, paper) {
                 paper.rules.oldv = lhs[0];
             }
             else {
-                idx = 1;
+                idx = 2;
                 paper.oldv.texts.range.FROM.attr({"text": lhs[0]});
                 paper.oldv.texts.range.TO.attr({"text": lhs[1]});
                 paper.rules.oldv = [lhs[0], lhs[1]];
@@ -711,7 +737,7 @@ function scaleplot(paper) {
     var xcoord, ycoord;
     var randomjitter = paper.randomjitter;
     
-    if (paper.total != void 0) {
+    if (paper.total !== void 0) {
         paper.total.remove();
         paper.mdlines.remove();
         paper.afv.remove();
@@ -764,7 +790,6 @@ function scaleplot(paper) {
         if (this.label.attr("text") != "" & !paper.labels.isChecked) {
             this.label[1].attr({"fill-opacity": 0.4});
             this.label.show();
-            
         }
     }
     
